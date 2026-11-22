@@ -59,11 +59,13 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
         disabled={busy}
         switchVariant={stream.switchVariant}
       />
-      <StreamQualitySelect
-        session={session}
-        switching={stream.switching}
-        switchQuality={stream.switchQuality}
-      />
+      {session.sourceId !== "allanime" && (
+        <StreamQualitySelect
+          session={session}
+          switching={stream.switching}
+          switchQuality={stream.switchQuality}
+        />
+      )}
 
       <Button
         size="icon"

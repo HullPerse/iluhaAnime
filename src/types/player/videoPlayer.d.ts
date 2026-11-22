@@ -29,6 +29,8 @@ export interface StreamOpen {
   variantId: string;
   sources: StreamVariantSource[];
   variants?: StreamVariant[];
+  /** External subtitle tracks offered by the selected source. */
+  subtitles?: StreamSubtitleTrack[];
   mediaUrl: string;
   paused?: boolean;
 }
@@ -85,7 +87,7 @@ export interface StreamSource {
   audioTracks: StreamAudioTrack[];
 }
 
-interface StreamSubtitleTrack {
+export interface StreamSubtitleTrack {
   id: string;
   url: string;
   language: string;

@@ -11,7 +11,6 @@ import {
   loadEpisodes,
   loadPlayers,
   loadSources,
-  prefetchNativeSources,
 } from "@/lib/core/player/sessionCache.utils";
 import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/search/sources.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
@@ -21,8 +20,9 @@ import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { addNotification } from "@/store/notification.store";
 import { playbackAtoms, streamSession } from "@/store/player.store";
-import { getAnimelibProxyUrl, settingsAtoms } from "@/store/settings.store";
-import type { StreamVariant, StreamingEpisode } from "@/types/player/stream";
+import { getStreamProxyUrl, settingsAtoms } from "@/store/settings.store";
+import { DEFAULT_STREAM_SOURCE } from "@/config/player/streamSources.config";
+import type { StreamSourceId, StreamVariant, StreamingEpisode } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream, PlayerStreamNext } from "@/types/player/playerStream";
 
@@ -59,6 +59,7 @@ export function usePlayerStream(): PlayerStream {
   const stalledSinceRef = useRef<number | null>(null);
 
   const episodeId = session?.episodeId;
+  const sourceId = (session?.sourceId ?? DEFAULT_STREAM_SOURCE) as StreamSourceId;
   const seeded = session?.variants;
   const stallKey = `${episodeId ?? ""}:${session?.variantId ?? ""}`;
   const lastStallKeyRef = useRef<string>(stallKey);
@@ -78,7 +79,6 @@ export function usePlayerStream(): PlayerStream {
       setVariants(preferred);
       setVariantsLoading(false);
       setVariantsFailed(false);
-      ignore(prefetchNativeSources(episodeId, preferred));
 
       return;
     }
@@ -87,7 +87,7 @@ export function usePlayerStream(): PlayerStream {
     setVariantsLoading(true);
     setVariantsFailed(false);
     const load = async () => {
-      const [result, failure] = await attempt(loadPlayers(episodeId));
+      const [result, failure] = await attempt(loadPlayers(episodeId, sourceId));
 
       if (cancelled) return;
       setVariantsLoading(false);
@@ -100,7 +100,6 @@ export function usePlayerStream(): PlayerStream {
 
       const preferred = preferNativeVariants(result);
       setVariants(preferred);
-      ignore(prefetchNativeSources(episodeId, preferred, () => cancelled));
     };
 
     load();
@@ -108,7 +107,7 @@ export function usePlayerStream(): PlayerStream {
     return () => {
       cancelled = true;
     };
-  }, [episodeId, seeded, variantAttempt]);
+  }, [episodeId, seeded, sourceId, variantAttempt]);
 
   useEffect(() => {
     if (!episodeId || !session?.mediaId) return;
@@ -171,7 +170,11 @@ export function usePlayerStream(): PlayerStream {
 
       if (variantId === current.variantId) return false;
       const opened = await runSwitch(async () => {
-        const sources = await loadSources(current.episodeId, variantId);
+        const sources = await loadSources(
+          current.episodeId,
+          variantId,
+          current.sourceId as StreamSourceId
+        );
         const source = pickSource(sources, current.quality || fallbackQuality());
 
         if (!source) throw new Error("this voice-over has no playable sources");
@@ -180,11 +183,15 @@ export function usePlayerStream(): PlayerStream {
         return {
           ...current,
           variantId: nextVariantId,
-          proxyUrl: playbackProxyUrl(nextVariantId, getAnimelibProxyUrl()),
+          proxyUrl: playbackProxyUrl(
+            nextVariantId,
+            getStreamProxyUrl(current.sourceId as StreamSourceId)
+          ),
           quality: source.label,
           mediaUrl: source.url,
           headers: source.headers,
           sources: toVariantSources(sources),
+          subtitles: source.subtitles,
           resume: currentPosition(),
           paused: playbackAtoms.paused.get(),
         };
@@ -276,6 +283,7 @@ export function useStreamNext(): PlayerStreamNext {
   const runOperation = useStreamOperation();
   const session = useCell(streamSession);
   const mediaId = session?.mediaId;
+  const sourceId = (session?.sourceId ?? DEFAULT_STREAM_SOURCE) as StreamSourceId;
   const episodeNumber = session?.episodeNumber ?? null;
   const [episodes, setEpisodes] = useState<StreamingEpisode[]>([]);
   const [episodesLoading, setEpisodesLoading] = useState<boolean>(false);
@@ -292,7 +300,7 @@ export function useStreamNext(): PlayerStreamNext {
     let cancelled = false;
     setEpisodesLoading(true);
     const load = async () => {
-      const [loaded] = await attempt(loadEpisodes(mediaId));
+      const [loaded] = await attempt(loadEpisodes(mediaId, sourceId));
 
       if (cancelled) return;
       setEpisodesLoading(false);
@@ -304,7 +312,7 @@ export function useStreamNext(): PlayerStreamNext {
     return () => {
       cancelled = true;
     };
-  }, [mediaId]);
+  }, [mediaId, sourceId]);
 
   const hasNext =
     episodeNumber !== null && episodes.some((episode) => episode.number > episodeNumber);

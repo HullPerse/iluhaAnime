@@ -1,8 +1,10 @@
 import type { ApiTransport } from "@/types/core/transport";
+import type { StreamSourceId } from "@/types/player/stream";
 
 export interface StreamApiConfig {
   transport?: ApiTransport;
   proxyUrl?: string | null | (() => string | null);
+  proxyForSource?: (source: StreamSourceId) => string | null;
 }
 
 export interface AnimeLibAccount {

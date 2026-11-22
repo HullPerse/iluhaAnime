@@ -10,17 +10,18 @@ export const queryKeys = {
   gameRoms: () => ["game-roms"] as const,
   gamePlatforms: () => ["game-platforms"] as const,
   gameStore: () => ["game-store"] as const,
-  streamSearch: (query: string, page: number, filtersKey: string) =>
-    ["stream_search", query, page, filtersKey] as const,
-  streamConstants: () => ["stream_constants"] as const,
-  streamTitle: (slug: string) => ["stream_title", slug] as const,
-  streamHistoryRecent: () => ["stream_history_recent"] as const,
+  streamSearch: (source: string, query: string, page: number, filtersKey: string) =>
+    ["stream_search", source, query, page, filtersKey] as const,
+  streamConstants: (source = "animelib") => ["stream_constants", source] as const,
+  streamTitle: (source: string, slug: string) => ["stream_title", source, slug] as const,
+  streamHistoryRecent: (source = "animelib") => ["stream_history_recent", source] as const,
   streamHistoryForAnime: (animeId: string) => ["stream_history_anime", animeId] as const,
   streamHistoryProgress: (animeId: string) => ["stream_history_progress", animeId] as const,
   streamHistoryProgressMany: (idsKey: string) => ["stream_history_progress_many", idsKey] as const,
-  streamPlayers: (episodeId: string) => ["stream_players", episodeId] as const,
-  streamSources: (episodeId: string, variantId: string) =>
-    ["stream_sources", episodeId, variantId] as const,
+  streamPlayers: (source: string, episodeId: string) =>
+    ["stream_players", source, episodeId] as const,
+  streamSources: (source: string, episodeId: string, variantId: string) =>
+    ["stream_sources", source, episodeId, variantId] as const,
   anilistEpisodePreviews: (anilistId: number) => ["anilist_episode_previews", anilistId] as const,
   anilistSession: () => ["anilist_session"] as const,
   animeFull: (id: number, proxy: string, loggedIn: boolean) =>

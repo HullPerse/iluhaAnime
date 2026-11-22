@@ -215,7 +215,7 @@ function streamQualityEntries(
 }
 
 function streamEntries(menu: ModernMenuStream, actions: ModernMenuActions): ContextMenuEntry[] {
-  return [
+  const entries: ContextMenuEntry[] = [
     {
       kind: "submenu",
       id: "stream-voice",
@@ -232,16 +232,22 @@ function streamEntries(menu: ModernMenuStream, actions: ModernMenuActions): Cont
       disabled: menu.switching,
       entries: streamVariantEntries("sub", menu, actions),
     },
-    {
+  ];
+
+  if (menu.session.sourceId !== "allanime") {
+    entries.push({
       kind: "submenu",
       id: "stream-quality",
       label: "player.stream.quality",
       icon: SlidersHorizontal,
       disabled: menu.switching,
       entries: streamQualityEntries(menu, actions),
-    },
-    { kind: "separator", id: "sep-stream" },
-  ];
+    });
+  }
+
+  entries.push({ kind: "separator", id: "sep-stream" });
+
+  return entries;
 }
 
 export function buildModernPlayerMenu(

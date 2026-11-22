@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useAnilistSignedIn } from "@/hooks/anilist/session.hook";
 import { useStreamEpisodeSelection } from "@/hooks/stream/episodeSelection.hook";
@@ -8,15 +8,10 @@ import {
   useStreamHistoryForAnime,
   useStreamTitle,
 } from "@/hooks/stream/catalog.hook";
-import { attempt } from "@hullperse/hp_utils/attempt";
 import { historyByEpisode } from "@/lib/core/anilist/history.utils";
-import { prewarmPlayer } from "@/lib/player/playback.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import { prefetchEpisode } from "@/lib/player/streamResolve.utils";
-import { settingsAtoms } from "@/store/settings.store";
 import { streamStore } from "@/store/stream.store";
-import { useCell } from "@hullperse/hp_utils/react";
-import type { StreamHistoryEntry, StreamingEpisode } from "@/types/player/stream";
+import type { StreamHistoryEntry } from "@/types/player/stream";
 
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
 import { StreamDetailView } from "@/routes/components/stream/detail/view.detail";
@@ -42,34 +37,8 @@ export default function StreamDetail({ slug }: { slug: string }) {
   const [episode, setEpisode] = useStreamEpisodeSelection(episodes, latestEpisodeId);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const { play } = useStreamPlayer({ anime, playingId, setPlayingId });
-  const prewarmEnabled = useCell(settingsAtoms.playerPrewarmEnabled);
 
   const close = () => streamStore.selectedSlug.set(null);
-
-  useEffect(() => {
-    if (!prewarmEnabled) return;
-    ignore(attempt(prewarmPlayer()).then(() => undefined));
-  }, [prewarmEnabled]);
-
-  const animeId = anime?.id ?? null;
-  const episodeIndex = useMemo(() => {
-    if (!episodes || episodes.length === 0) return -1;
-    const index = episode ? episodes.findIndex((candidate) => candidate.id === episode.id) : 0;
-
-    return index === -1 ? 0 : index;
-  }, [episode, episodes]);
-  const neighbourIds = useMemo(() => {
-    if (!episodes) return [];
-
-    return [episodes[episodeIndex - 1], episodes[episodeIndex + 1]]
-      .filter((candidate): candidate is StreamingEpisode => candidate !== undefined)
-      .map((candidate) => candidate.id);
-  }, [episodeIndex, episodes]);
-  useEffect(() => {
-    if (!animeId) return;
-
-    for (const neighbourId of neighbourIds) ignore(prefetchEpisode(animeId, neighbourId));
-  }, [animeId, neighbourIds]);
 
   if (anilistOpen && anime?.anilistId) {
     return (

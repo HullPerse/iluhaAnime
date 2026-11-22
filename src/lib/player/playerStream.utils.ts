@@ -3,25 +3,29 @@ import { pickVariant } from "@/lib/player/streamPrefs.utils";
 import { loadEpisodes, loadPlayers, loadSources } from "@/lib/core/player/sessionCache.utils";
 import { pickSource, toVariantSources } from "@/lib/search/sources.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
-import type { StreamingEpisode } from "@/types/player/stream";
+import type { StreamSourceId, StreamingEpisode } from "@/types/player/stream";
 import type { StreamOpen, StreamSource } from "@/types/player/videoPlayer";
 
 async function episodeSources(
   episodeId: string,
   session: StreamOpen
 ): Promise<{ sources: StreamSource[]; variantId: string } | null> {
-  const [direct] = await attempt(loadSources(episodeId, session.variantId));
+  const [direct] = await attempt(
+    loadSources(episodeId, session.variantId, session.sourceId as StreamSourceId)
+  );
 
   if (direct && direct.length > 0) {
     return { sources: direct, variantId: session.variantId };
   }
 
-  const [rows] = await attempt(loadPlayers(episodeId));
+  const [rows] = await attempt(loadPlayers(episodeId, session.sourceId as StreamSourceId));
   const variant = rows ? pickVariant(rows, { variantId: session.variantId }) : null;
 
   if (!variant) return null;
   const variantId = buildVariantId(variant);
-  const [sources] = await attempt(loadSources(episodeId, variantId));
+  const [sources] = await attempt(
+    loadSources(episodeId, variantId, session.sourceId as StreamSourceId)
+  );
 
   return sources && sources.length > 0 ? { sources, variantId } : null;
 }
@@ -47,6 +51,7 @@ export async function resolveEpisodeStream(
     mediaUrl: source.url,
     headers: source.headers,
     sources: toVariantSources(resolved.sources),
+    subtitles: source.subtitles,
     variants: [],
     watchKey: buildWatchKey(session.sourceId, session.mediaId, episode.id),
     resume: 0,
@@ -55,7 +60,7 @@ export async function resolveEpisodeStream(
 }
 
 export async function resolveNextStream(session: StreamOpen): Promise<StreamOpen | null> {
-  const episodes = await loadEpisodes(session.mediaId);
+  const episodes = await loadEpisodes(session.mediaId, session.sourceId as StreamSourceId);
   const next = episodes
     .filter((episode) => episode.number > session.episodeNumber)
     .sort((left, right) => left.number - right.number)[0];

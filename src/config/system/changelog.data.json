@@ -1,6 +1,155 @@
 {
   "changelog": [
     {
+      "version": "5.4.0",
+      "added": [
+        {
+          "key": "changelog.5_4_0.added.manga.catalog",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.library",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.history",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.reader",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.reader_settings",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.translations",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.notifications",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.manga.sources",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.added.anilist.manga",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_4_0.added.anilist.week",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_4_0.added.collection.choice",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_4_0.added.streaming.allanime",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_4_0.added.streaming.proxy",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_4_0.added.player.allanime",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_0.added.app.fatal_update",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_4_0.added.app.discord",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_4_0.added.settings.modal",
+          "scope": "settings"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_4_0.changed.manga.cache",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_0.changed.streaming.source_switch",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_4_0.changed.streaming.rate_limit",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_4_0.changed.player.controls",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_0.changed.player.stream_start",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_0.changed.settings.diagnostics",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_0.changed.settings.animelib",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_0.changed.app.rendering",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_4_0.changed.app.maintenance",
+          "scope": "app"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_4_0.fixed.player.focus",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.streaming.pending",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.streaming.history",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.settings.animelib_check",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.collection.roster",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.game.volume",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.game.session",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.torrents.preparation",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_4_0.fixed.app.events",
+          "scope": "app"
+        }
+      ]
+    },
+    {
       "version": "5.3.0",
       "added": [
         { "key": "changelog.5_3_0.added.settings.diagnostics", "scope": "settings" },

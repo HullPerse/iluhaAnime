@@ -22,6 +22,7 @@ import {
   shouldSkipFrontendSeek,
 } from "@/lib/player/resume.utils";
 import { loadSidecarTracks } from "@/lib/player/sidecar.utils";
+import { loadStreamSubtitles } from "@/lib/player/streamSubtitles.utils";
 import { resolveTrackId } from "@/lib/player/trackIdentity.utils";
 import { hydrateMediaEntry } from "@/store/media.store";
 import { playbackAtoms, seedTrackSelection, streamSession } from "@/store/player.store";
@@ -160,6 +161,7 @@ export function usePlayerFileLoad({
 
     if (streamSession.get() !== null) {
       syncMarginsRef.current(true);
+      await loadStreamSubtitles(streamSession.get(), isCurrent);
 
       return;
     }

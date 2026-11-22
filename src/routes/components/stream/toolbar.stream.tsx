@@ -4,13 +4,21 @@ import { useEffect, useState } from "react";
 import { InlineAutocompleteInput } from "@/components/shared/autocomplete/input.autocomplete";
 import { ConfirmDialog } from "@/components/shared/confirm.component";
 import { Button } from "@/components/ui/button.component";
+import Select from "@/components/ui/select.component";
 import { countActiveStreamFilters } from "@/config/player/streamFilters.config";
+import { STREAM_SOURCES, streamSourceConfig } from "@/config/player/streamSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useSearchField } from "@/hooks/search/field.hook";
 import { useAnimelibAccount } from "@/hooks/stream/animelibAccount.hook";
 import { useCell } from "@hullperse/hp_utils/react";
-import { submitStreamSearch, streamPage, streamQuery } from "@/store/stream.store";
-import type { StreamCatalogFilters } from "@/types/player/stream";
+import {
+  selectStreamSource,
+  streamPage,
+  streamQuery,
+  streamSource,
+  submitStreamSearch,
+} from "@/store/stream.store";
+import type { StreamCatalogFilters, StreamSourceId } from "@/types/player/stream";
 
 export default function StreamToolbar({
   isFetching,
@@ -26,6 +34,8 @@ export default function StreamToolbar({
   const { t } = useI18n();
   const query = useCell(streamQuery);
   const page = useCell(streamPage);
+  const source = useCell(streamSource);
+  const sourceConfig = streamSourceConfig(source);
   const { account, waiting, error: loginError, login, logout } = useAnimelibAccount();
   const [text, setText] = useState<string>(query);
   const [logoutOpen, setLogoutOpen] = useState<boolean>(false);
@@ -52,10 +62,17 @@ export default function StreamToolbar({
 
   return (
     <div className="ui-toolbar ui-panel w-full flex-row">
+      <Select
+        className="w-28"
+        value={source}
+        onChange={(value) => selectStreamSource(value as StreamSourceId)}
+        options={STREAM_SOURCES.map((entry) => ({ value: entry.id, label: entry.name }))}
+      />
+
       <InlineAutocompleteInput
         data-main-search
-        placeholder={t("stream.searchPlaceholder")}
-        aria-label={t("stream.searchPlaceholder")}
+        placeholder={t(sourceConfig.searchPlaceholder)}
+        aria-label={t(sourceConfig.searchPlaceholder)}
         className="h-9 font-bold"
         {...field.inputProps}
       />
@@ -79,21 +96,25 @@ export default function StreamToolbar({
         <X className="size-4" />
       </Button>
 
-      <span className="ui-toolbar-separator" aria-hidden />
-      <Button
-        size="icon"
-        className="relative"
-        title={t("stream.filters.button")}
-        aria-label={t("stream.filters.button")}
-        onClick={onFiltersOpen}
-      >
-        <Filter className="size-4" />
-        {activeFilters > 0 && (
-          <span className="bg-secondary text-title-text absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs">
-            {activeFilters}
-          </span>
-        )}
-      </Button>
+      {sourceConfig.supportsFilters && (
+        <>
+          <span className="ui-toolbar-separator" aria-hidden />
+          <Button
+            size="icon"
+            className="relative"
+            title={t("stream.filters.button")}
+            aria-label={t("stream.filters.button")}
+            onClick={onFiltersOpen}
+          >
+            <Filter className="size-4" />
+            {activeFilters > 0 && (
+              <span className="bg-secondary text-title-text absolute -top-1 -right-1 flex size-3 items-center justify-center text-xs">
+                {activeFilters}
+              </span>
+            )}
+          </Button>
+        </>
+      )}
 
       <span className="ui-toolbar-separator" aria-hidden />
       <Button
@@ -106,33 +127,37 @@ export default function StreamToolbar({
         <RotateCw className="size-4" />
       </Button>
 
-      <span className="ui-toolbar-separator" aria-hidden />
-      {account?.authorized ? (
-        <Button
-          variant="ghost"
-          className="text-hint h-7 gap-1 px-1 text-xs"
-          title={t("stream.account.logout")}
-          aria-label={`${t("stream.account.logout")}: ${accountLabel}`}
-          onClick={() => setLogoutOpen(true)}
-        >
-          <User className="size-3.5" />
-          {accountLabel}
-          <LogOut className="size-3.5" />
-        </Button>
-      ) : (
-        <Button
-          title={loginError ?? t("stream.login")}
-          aria-label={t("stream.login")}
-          onClick={async () => {
-            const signedIn = await login();
+      {sourceConfig.supportsAccount && (
+        <>
+          <span className="ui-toolbar-separator" aria-hidden />
+          {account?.authorized ? (
+            <Button
+              variant="ghost"
+              className="text-hint h-7 gap-1 px-1 text-xs"
+              title={t("stream.account.logout")}
+              aria-label={`${t("stream.account.logout")}: ${accountLabel}`}
+              onClick={() => setLogoutOpen(true)}
+            >
+              <User className="size-3.5" />
+              {accountLabel}
+              <LogOut className="size-3.5" />
+            </Button>
+          ) : (
+            <Button
+              title={loginError ?? t("stream.login")}
+              aria-label={t("stream.login")}
+              onClick={async () => {
+                const signedIn = await login();
 
-            if (signedIn) onRefetch();
-          }}
-          loading={waiting}
-        >
-          <LogIn className="size-4" />
-          <span>{t("stream.login")}</span>
-        </Button>
+                if (signedIn) onRefetch();
+              }}
+              loading={waiting}
+            >
+              <LogIn className="size-4" />
+              <span>{t("stream.login")}</span>
+            </Button>
+          )}
+        </>
       )}
 
       {logoutOpen && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 import { streamApi } from "@/api/stream.api";
+import { streamSourceConfig } from "@/config/player/streamSources.config";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useStreamSearch } from "@/hooks/stream/catalog.hook";
@@ -12,11 +13,13 @@ import { consumeStreamDeepLink, deeplinkAtoms } from "@/store/deeplink.store";
 import { settingsAtoms } from "@/store/settings.store";
 import {
   applyStreamFilters,
+  selectStreamSource,
   setStreamSort,
   streamFilters,
   streamPage,
   streamQuery,
   streamSlug,
+  streamSource,
   streamStore,
 } from "@/store/stream.store";
 
@@ -45,6 +48,8 @@ export default function StreamRoute() {
   const page = useCell(streamPage);
   const slug = useCell(streamSlug);
   const filters = useCell(streamFilters);
+  const source = useCell(streamSource);
+  const sourceConfig = streamSourceConfig(source);
   const results = useStreamSearch(query, page, filters);
   const [filtersOpen, setFiltersOpen] = useState<boolean>(false);
   const [historyOpen, setHistoryOpen] = useState<boolean>(false);
@@ -52,6 +57,7 @@ export default function StreamRoute() {
 
   useEffect(() => {
     if (!streamTarget) return;
+    selectStreamSource(streamTarget.source);
     streamStore.selectedSlug.set(streamTarget.slug);
     consumeStreamDeepLink();
   }, [streamTarget]);
@@ -64,6 +70,7 @@ export default function StreamRoute() {
     {
       ignore: (event) => ignoreTabCycle(event),
       onAction: (id) => {
+        if (!sourceConfig.supportsSort) return;
         const next = stepTabId(STREAM_SORT_CYCLE, filters.sortBy, id === "sort-next" ? 1 : -1);
 
         if (next) setStreamSort(next, STREAM_SORT_DEFAULT_DIR[next]);
@@ -72,7 +79,7 @@ export default function StreamRoute() {
   );
   const openRandom = () => {
     streamApi
-      .random(filters)
+      .random(filters, source)
       .then((pick) => {
         if (pick?.slugUrl) streamStore.selectedSlug.set(pick.slugUrl);
 
@@ -99,7 +106,7 @@ export default function StreamRoute() {
         onRefetch={() => results.refetch()}
         onFiltersOpen={() => setFiltersOpen(true)}
       />
-      <StreamSortBar onHistoryOpen={() => setHistoryOpen(true)} onRandom={openRandom} />
+      <StreamSortBar onHistoryOpen={() => setHistoryOpen(true)} onRandom={sourceConfig.supportsRandom ? openRandom : undefined} />
       {online ? (
         <StreamResults
           data={results.data}
@@ -113,7 +120,7 @@ export default function StreamRoute() {
       )}
       {slug && <StreamDetail key={slug} slug={slug} />}
       <StreamFiltersModal
-        open={filtersOpen}
+        open={filtersOpen && sourceConfig.supportsFilters}
         filters={filters}
         onApply={applyStreamFilters}
         onClose={() => setFiltersOpen(false)}

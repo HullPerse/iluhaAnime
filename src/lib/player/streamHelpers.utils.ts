@@ -101,6 +101,8 @@ export function variantOf(
 }
 
 export function isSubtitleVariant(variant: StreamVariant): boolean {
+  if (variant.player === "AllAnime") return variant.id.startsWith("sub:");
+
   const label = `${variant.language ?? ""} ${variant.name}`.toLowerCase();
 
   return label.includes("субтит") || label.includes("subtitle");

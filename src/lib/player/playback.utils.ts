@@ -461,6 +461,19 @@ export function addExternalSubtitleAuto(path: string, expectedPath?: string): Pr
   return runMpvCommand("sub-add", [path, "auto"], expectedPath);
 }
 
+/** A soft subtitle from a streaming source, with its language shown in mpv. */
+export function addStreamSubtitle(
+  url: string,
+  language: string,
+  select: boolean,
+  expectedPath?: string
+): Promise<void> {
+  const label = language.trim() || "Subtitle";
+  const flag = select ? "select" : "auto";
+
+  return runMpvCommand("sub-add", [url, flag, label, label], expectedPath);
+}
+
 export function addExternalAudioAuto(path: string, expectedPath?: string): Promise<void> {
   return runMpvCommand("audio-add", [path, "auto"], expectedPath);
 }

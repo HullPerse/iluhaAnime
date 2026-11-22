@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   LOADING_TIMEOUT_MS,
+  canControlPlayback,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
 } from "@/lib/core/ui/loading.utils";
@@ -44,4 +45,12 @@ describe("player/loading spinner", () => {
     expect(shouldShowLoadingSpinner(false, false, false, false)).toBe(false);
     expect(shouldShowLoadingSpinner(true, true, true, true)).toBe(false);
   });
+});
+
+it("unlocks transport only after a file is ready and loading has finished", () => {
+  expect(canControlPlayback(false, false, false, false)).toBe(false);
+  expect(canControlPlayback(true, false, false, false)).toBe(false);
+  expect(canControlPlayback(true, true, true, false)).toBe(false);
+  expect(canControlPlayback(true, true, false, true)).toBe(false);
+  expect(canControlPlayback(true, true, false, false)).toBe(true);
 });

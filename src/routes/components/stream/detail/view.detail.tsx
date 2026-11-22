@@ -5,6 +5,7 @@ import Modal from "@/components/shared/modal.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { buildStreamLink } from "@/lib/core/system/deeplink.utils";
+import { sourceOfMediaId } from "@/config/player/streamSources.config";
 import type { StreamHistoryEntry, StreamingAnime, StreamingEpisode } from "@/types/player/stream";
 import type { useStreamTitle } from "@/hooks/stream/catalog.hook";
 
@@ -46,8 +47,8 @@ export function StreamDetailView({
   const titleFailed = !titleLoading && (title.error !== null || anime === undefined);
   const detailReady = !titleLoading && !titleFailed;
   const copyLink = () => {
-    writeText(buildStreamLink(anime?.slugUrl ?? slug)).catch((error: unknown) =>
-      reportBackgroundError("stream.copy-link", error)
+    writeText(buildStreamLink(anime?.slugUrl ?? slug, sourceOfMediaId(anime?.id))).catch(
+      (error: unknown) => reportBackgroundError("stream.copy-link", error)
     );
   };
 

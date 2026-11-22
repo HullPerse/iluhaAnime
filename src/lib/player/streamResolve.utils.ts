@@ -6,22 +6,25 @@ import { RESUME_END_MARGIN, RESUME_MIN } from "@/lib/player/resume.utils";
 import { pickSource } from "@/lib/search/sources.utils";
 import { pickVariant } from "@/lib/player/streamPrefs.utils";
 import type { StreamPlaybackResult } from "@/types/player/streamResolve";
-import type { StreamVariant } from "@/types/player/stream";
+import type { StreamSourceId, StreamVariant } from "@/types/player/stream";
 import type { StreamSource } from "@/types/player/videoPlayer";
-
-export const SOURCE_ID = "animelib";
-export const SOURCE_NAME = "AnimeLib";
 
 const playersInflight = new Map<string, Promise<StreamVariant[]>>();
 const sourcesInflight = new Map<string, Promise<StreamSource[]>>();
 
-function loadPlayers(episodeId: string): Promise<StreamVariant[]> {
-  return inflightFetch(playersInflight, episodeId, () => streamApi.players(episodeId));
+function loadPlayers(source: StreamSourceId, episodeId: string): Promise<StreamVariant[]> {
+  return inflightFetch(playersInflight, `${source}:${episodeId}`, () =>
+    streamApi.players(episodeId, source)
+  );
 }
 
-function loadSources(episodeId: string, variantId: string): Promise<StreamSource[]> {
-  return inflightFetch(sourcesInflight, `${episodeId}:${variantId}`, () =>
-    streamApi.streamSources({ episodeId, variantId })
+function loadSources(
+  source: StreamSourceId,
+  episodeId: string,
+  variantId: string
+): Promise<StreamSource[]> {
+  return inflightFetch(sourcesInflight, `${source}:${episodeId}:${variantId}`, () =>
+    streamApi.streamSources({ episodeId, variantId }, source)
   );
 }
 
@@ -30,6 +33,7 @@ function startPosition(watchKey: string, restart: boolean): Promise<number | und
 }
 
 export async function resolvePlayable(
+  sourceId: StreamSourceId,
   mediaId: string,
   episodeId: string,
   watchKey: string,
@@ -37,16 +41,11 @@ export async function resolvePlayable(
   defaultQuality: string
 ): Promise<StreamPlaybackResult> {
   const [prefsResult, resume] = await Promise.all([
-    attempt(streamApi.prefsGet(SOURCE_ID, mediaId)),
+    attempt(streamApi.prefsGet(sourceId, mediaId)),
     startPosition(watchKey, restart),
   ]);
   const prefs = prefsResult[0] ?? null;
-  const remembered = prefs?.variantId ?? null;
-  const [rowsResult, rememberedSources] = await Promise.all([
-    attempt(loadPlayers(episodeId)),
-    remembered ? attempt(loadSources(episodeId, remembered)) : null,
-  ]);
-  const [rows, rowsFailure] = rowsResult;
+  const [rows, rowsFailure] = await attempt(loadPlayers(sourceId, episodeId));
   const variant = rows ? pickVariant(rows, prefs) : null;
 
   if (rowsFailure || !variant) {
@@ -54,10 +53,7 @@ export async function resolvePlayable(
   }
 
   const variantId = `${variant.player}:${variant.id}`;
-  const [sources, sourcesFailure] =
-    remembered === variantId && rememberedSources
-      ? rememberedSources
-      : await attempt(loadSources(episodeId, variantId));
+  const [sources, sourcesFailure] = await attempt(loadSources(sourceId, episodeId, variantId));
   const quality = prefs?.quality || defaultQuality;
   const source = sources ? pickSource(sources, quality) : null;
 
@@ -68,12 +64,18 @@ export async function resolvePlayable(
   return { playable: { variant, source, sources, variants: rows }, prefs, resume };
 }
 
-export async function prefetchEpisode(mediaId: string, episodeId: string): Promise<void> {
-  const [prefs] = await attempt(streamApi.prefsGet(SOURCE_ID, mediaId));
+export async function prefetchEpisode(
+  sourceId: StreamSourceId,
+  mediaId: string,
+  episodeId: string
+): Promise<void> {
+  if (sourceId === "allanime") return;
+
+  const [prefs] = await attempt(streamApi.prefsGet(sourceId, mediaId));
   const remembered = prefs?.variantId ?? null;
   await Promise.all([
-    attempt(loadPlayers(episodeId)),
-    remembered ? attempt(loadSources(episodeId, remembered)) : null,
+    attempt(loadPlayers(sourceId, episodeId)),
+    remembered ? attempt(loadSources(sourceId, episodeId, remembered)) : null,
   ]);
 }
 

@@ -41,6 +41,7 @@ import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { startsOnPlayerControl } from "@/lib/player/playerDrag.utils";
 import {
   LOADING_TIMEOUT_MS,
+  canControlPlayback,
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
 } from "@/lib/core/ui/loading.utils";
@@ -200,6 +201,7 @@ function PlayerComponent() {
 
   const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch, retrySession } =
     usePlayerSession({ videoRef, syncMarginsRef, resumeRef, initialWatchRef });
+  const controlsReady = canControlPlayback(hasFile, fileReady, loadingFile, failed);
   const markFileReady = useCallback(
     (ready: boolean) => {
       fileReadyRef.current = ready;
@@ -379,10 +381,10 @@ function PlayerComponent() {
 
       if (!playbackAtoms.hasFile.get()) return;
 
-      if (loadingFile) return;
+      if (!fileReady || loadingFile || failed) return;
       onPlayPause();
     },
-    [consumeVideoDrag, loadingFile, onPlayPause]
+    [consumeVideoDrag, failed, fileReady, loadingFile, onPlayPause]
   );
 
   const {
@@ -451,7 +453,7 @@ function PlayerComponent() {
 
   const modernEntries = usePlayerModernMenu({
     enabled: showModernMenu,
-    hasFile,
+    hasFile: controlsReady,
     paused,
     tracks,
     chapters,
@@ -467,7 +469,7 @@ function PlayerComponent() {
     streamVariants: playerStreamVariants,
     streamVariantsLoading: playerStreamLoading,
     streamVariantsFailed: playerStreamFailed,
-    streamSwitching: playerStreamSwitching,
+    streamSwitching: playerStreamSwitching || !controlsReady,
     onPlayPause,
     onPrevFile: onFilePrev,
     onNextFile: onFileNext,
@@ -502,8 +504,14 @@ function PlayerComponent() {
   return (
     <div className={rootClass({ hasFile, failed, cursorHidden })}>
       <Keyboard
-        onAction={onKeyboardAction}
-        onWheel={(direction) => onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP)}
+        onAction={(action) => {
+          if (controlsReady || ["toggleFullscreen", "toggleAlwaysOnTop", "viewMinimal", "viewCompact", "viewNormal", "exitCinemaMode", "toggleCheatsheet", "toggleDiagnostics", "togglePlaylist", "toggleAutoHide"].includes(action)) {
+            onKeyboardAction(action);
+          }
+        }}
+        onWheel={(direction) => {
+          if (controlsReady) onVolume(playerAtoms.volume.get() + direction * VOLUME_STEP);
+        }}
         onFullscreenKey={onFullscreenKey}
       />
       <PlayerRuntime stream={stream} loadingFile={loadingFile} />
@@ -569,7 +577,7 @@ function PlayerComponent() {
                 </div>
               )}
 
-              {hasFile && (
+              {controlsReady && (
                 <SkipButton
                   duration={duration}
                   chapters={chapters}
@@ -610,6 +618,13 @@ function PlayerComponent() {
       </div>
 
       <div className={barClass({ position: "bottom", immersive, hidden: barsHidden })}>
+        <fieldset
+          className="contents"
+          disabled={!controlsReady}
+          inert={!controlsReady}
+          data-player-controls
+          aria-busy={!controlsReady}
+        >
         <PlayerBottomBar
           variant={chrome.bottom}
           playerType={playerType}
@@ -649,6 +664,7 @@ function PlayerComponent() {
           onAddSubtitle={() => ignore(onAddExternalSubtitle())}
           stream={playerStream}
         />
+        </fieldset>
       </div>
 
       <PlayerPanel

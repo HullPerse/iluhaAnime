@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import StreamDetail from "@/routes/components/stream/detail.stream";
@@ -151,10 +151,10 @@ afterEach(() => {
 });
 
 describe("StreamDetail AniList button", () => {
-  it("warms the player window as soon as the title opens", () => {
+  it("does not duplicate the tab-owned player prewarm when opening a title", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    expect(playback.prewarmPlayer).toHaveBeenCalledTimes(1);
+    expect(playback.prewarmPlayer).not.toHaveBeenCalled();
   });
 
   it("leaves the player cold when prewarming is turned off", () => {
@@ -196,13 +196,22 @@ describe("StreamDetail AniList button", () => {
     expect(screen.queryByText("The Journey's End")).toBeNull();
   });
 
-  it("warms the next episode's rows and sources as soon as the title opens", async () => {
+  it("does not request neighbouring episode sources before playback", () => {
     render(<StreamDetail slug={ANIME.slugUrl} />);
 
-    await waitFor(() => expect(api.players).toHaveBeenCalledWith("2"));
-    await waitFor(() =>
-      expect(api.streamSources).toHaveBeenCalledWith({ episodeId: "2", variantId: "Kodik:7" })
-    );
+    expect(api.players).not.toHaveBeenCalled();
+    expect(api.streamSources).not.toHaveBeenCalled();
+    expect(playback.openStream).not.toHaveBeenCalled();
+  });
+
+  it("does not open a late stream result after the title modal closes", async () => {
+    let finish: ((sources: PlayableSource[]) => void) | undefined;
+    api.streamSources.mockImplementationOnce(() => new Promise<PlayableSource[]>(resolve => { finish = resolve; }));
+    const { unmount } = render(<StreamDetail slug={ANIME.slugUrl} />);
+    fireEvent.click(screen.getByText("The Journey's End"));
+    await waitFor(() => expect(api.streamSources).toHaveBeenCalledTimes(1));
+    unmount();
+    await act(async () => { finish?.(DEFAULT_SOURCES); });
     expect(playback.openStream).not.toHaveBeenCalled();
   });
 

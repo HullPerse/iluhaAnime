@@ -86,6 +86,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
     "mangaLibBrowserDomain",
   ],
   "proxy.animelib": ["animelibProxyUrl"],
+  "proxy.stream": ["streamProxyUrls"],
   "proxy.collection": ["cardsImageProxyUrl", "dailyProxyUrl", "dailyOpeningProxyUrl"],
   "proxy.sources": ["searchProxyUrls", "webviewProxyEnabled"],
   "theme.schedule": ["themeSchedule"],

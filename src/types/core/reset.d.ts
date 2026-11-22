@@ -28,6 +28,7 @@ export type ResetSectionId =
   | "proxy.animelib"
   | "proxy.collection"
   | "proxy.sources"
+  | "proxy.stream"
   | "theme.schedule"
   | "theme.retro"
   | "theme.collection"

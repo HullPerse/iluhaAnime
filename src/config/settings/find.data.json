@@ -43,32 +43,6 @@
     },
     {
       "tab": "proxy",
-      "section": "animelib",
-      "titleKey": "settings.animelib.title",
-      "keys": [
-        "settings.animelib.token",
-        "settings.animelib.token.description",
-        "settings.animelib.token.placeholder",
-        "settings.animelib.token.save",
-        "settings.animelib.token.clear",
-        "settings.animelib.account.loading",
-        "settings.animelib.account.login",
-        "settings.animelib.account.signedIn",
-        "settings.animelib.account.invalid",
-        "settings.animelib.account.none",
-        "settings.animelib.token.saved",
-        "settings.animelib.login",
-        "settings.animelib.login.waiting",
-        "settings.animelib.proxy.url",
-        "settings.animelib.proxy.inherit",
-        "settings.animelib.proxy.no",
-        "settings.animelib.proxy.custom",
-        "settings.animelib.proxy.test",
-        "settings.animelib.login.proxy.socks5.auth"
-      ]
-    },
-    {
-      "tab": "proxy",
       "section": "anilist",
       "titleKey": "settings.anilist.proxy.title",
       "keys": [
@@ -115,6 +89,16 @@
         "settings.collection.proxy.images",
         "settings.collection.proxy.daily",
         "settings.collection.proxy.opening"
+      ]
+    },
+    {
+      "tab": "proxy",
+      "section": "stream",
+      "titleKey": "settings.proxy.stream.title",
+      "keys": [
+        "settings.proxy.stream.title",
+        "settings.proxy.stream.per.source",
+        "settings.proxy.test.action"
       ]
     },
     {

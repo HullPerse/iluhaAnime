@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { translate } from "@/lib/locale/i18n.utils";
 import type { PlayerStream } from "@/types/player/playerStream";
 import StreamControl from "@/routes/components/player/media/stream.player";
 import { playbackAtoms } from "@/store/player.store";
@@ -10,7 +11,9 @@ import type { StreamOpen } from "@/types/player/videoPlayer";
 
 const cache = vi.hoisted(() => ({ loadSources: vi.fn(async () => []) }));
 
-vi.mock("@/lib/core/player/sessionCache.utils", () => ({ loadSources: cache.loadSources }));
+vi.mock("@/lib/core/player/sessionCache.utils", () => ({
+  loadSources: cache.loadSources,
+}));
 
 const state = vi.hoisted(() => ({
   session: null as StreamOpen | null,
@@ -77,8 +80,18 @@ const session = (patch: Partial<StreamOpen> = {}): StreamOpen => {
     quality: "1080p",
     variantId: "Animelib:1",
     sources: [
-      { url: "https://cdn/1080.mp4", type: "mp4", quality: "1080", label: "1080p" },
-      { url: "https://cdn/720.mp4", type: "mp4", quality: "720", label: "720p" },
+      {
+        url: "https://cdn/1080.mp4",
+        type: "mp4",
+        quality: "1080",
+        label: "1080p",
+      },
+      {
+        url: "https://cdn/720.mp4",
+        type: "mp4",
+        quality: "720",
+        label: "720p",
+      },
     ],
     mediaUrl: "https://cdn/1080.mp4",
     ...patch,
@@ -110,6 +123,57 @@ afterEach(() => {
 });
 
 describe("StreamControl", () => {
+  it("keeps AllAnime Dub and Sub providers in separate selects and switches between them", async () => {
+    const dub = {
+      ...VOICE,
+      id: "dub:Yt-mp4",
+      name: "Dub - Yt-mp4",
+      language: "Dub",
+      player: "AllAnime",
+    };
+    const sub = {
+      ...dub,
+      id: "sub:Yt-mp4",
+      name: "Sub - Yt-mp4",
+      language: "Sub",
+    };
+    state.session = session({
+      sourceId: "allanime",
+      variantId: "AllAnime:dub:Yt-mp4",
+    });
+    state.variants = [dub, sub];
+    render(<StreamControl stream={playerStream()} />);
+
+    expect(
+      screen.queryByRole("button", { name: new RegExp(translate("player.stream.quality")) })
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `${translate("player.stream.voice")}: ${dub.name}`,
+      })
+    );
+    expect(screen.getByRole("option", { name: /Dub - Yt-mp4/ })).toBeTruthy();
+    expect(screen.queryByRole("option", { name: /Sub - Yt-mp4/ })).toBeNull();
+    fireEvent.click(screen.getByRole("option", { name: /Dub - Yt-mp4/ }));
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `${translate("player.media.tracks.subs.short")}: ${translate(
+          "player.media.tracks.none"
+        )}`,
+      })
+    );
+    expect(screen.queryByRole("option", { name: /Dub - Yt-mp4/ })).toBeNull();
+    fireEvent.click(screen.getByRole("option", { name: /Sub - Yt-mp4/ }));
+    expect(
+      await screen.findByRole("button", {
+        name: `${translate("player.media.tracks.subs.short")}: ${sub.name}`,
+      })
+    ).toBeTruthy();
+    expect(state.switchVariant).toHaveBeenCalledWith(sub);
+  });
+
   it("renders the active voice-over and keeps the subtitle select at None", () => {
     render(<StreamControl stream={playerStream()} />);
 
@@ -142,7 +206,7 @@ describe("StreamControl", () => {
     fireEvent.click(screen.getByRole("button", { name: "Озвучка: AniDUB" }));
     fireEvent.pointerEnter(screen.getByRole("option", { name: /Other/ }));
 
-    expect(cache.loadSources).toHaveBeenCalledWith("10", "Kodik:9");
+    expect(cache.loadSources).toHaveBeenCalledWith("10", "Kodik:9", "animelib");
   });
 
   it("switches quality from the source list", async () => {

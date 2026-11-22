@@ -30,6 +30,8 @@ import { playerMedia } from "./scenarios/playerMedia";
 import { repro } from "./scenarios/repro";
 import { torrent } from "./scenarios/torrent";
 
+import { streaming } from "./scenarios/streaming";
+
 const SMOKE: Scenario[] = [
   boot,
   collection,
@@ -42,6 +44,7 @@ const SMOKE: Scenario[] = [
 ];
 const SUITES: Record<string, Scenario[]> = {
   smoke: SMOKE,
+  streaming: [streaming],
   diagnostics: [diagnostics],
   manga: [manga],
   media: [playerMedia],

@@ -187,7 +187,12 @@ pub async fn player_open(
 /// position via `start=`. Emits `player-open-request` so the frontend can
 /// capture session state (position, pause) before the replacement.
 #[tauri::command]
-pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<(), String> {
+pub async fn player_open_stream(
+    app: AppHandle,
+    invoking_window: WebviewWindow,
+    stream: StreamOpen,
+) -> Result<(), String> {
+    let activate = invoking_window.label() != PLAYER_WINDOW_LABEL;
     super::validation::stream(&stream)?;
     let window_owner = app.clone();
     let window_host = window_owner.state::<PlayerHost>();
@@ -216,9 +221,11 @@ pub async fn player_open_stream(app: AppHandle, stream: StreamOpen) -> Result<()
         host.set_pending_open(Some(request.clone()));
         // Raise first: a hidden prewarmed window has a throttled renderer, and
         // the frontend has to see the request to paint the new session.
-        if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
-            let _ = window.show();
-            let _ = window.set_focus();
+        if activate {
+            if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
         }
         app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
             .map_err(|error| error.to_string())?;
@@ -496,14 +503,13 @@ pub(crate) async fn prewarm_player(app: AppHandle) -> Result<(), String> {
         .decorations(false)
         .transparent(true)
         .visible(false)
+        .focused(false)
         .center()
         .build()
     {
         Ok(window) => window,
         Err(error) => return Err(format!("prewarm create window: {error}")),
     };
-
-    let _ = window.set_focus();
 
     install_close_handler(&window);
 

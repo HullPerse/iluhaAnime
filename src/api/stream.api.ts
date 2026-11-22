@@ -1,3 +1,4 @@
+import { translate } from "@/lib/locale/i18n.utils";
 import { tauriTransport } from "@/api/transport.api";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
 import { StreamSourcesSchema } from "@/schemas/stream.schema";
@@ -8,8 +9,9 @@ import {
   normalizeEpisode,
   normalizeVariant,
 } from "@/lib/player/streamHelpers.utils";
+import { DEFAULT_STREAM_SOURCE, streamSourceConfig } from "@/config/player/streamSources.config";
 import { streamProxyArgs } from "@/lib/player/streamProxy.utils";
-import { getAnimelibProxyUrl } from "@/store/settings.store";
+import { getStreamProxyUrl } from "@/store/settings.store";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import type {
   StreamCatalogFilters,
@@ -19,6 +21,7 @@ import type {
   StreamHistoryProgress,
   StreamPrefs,
   StreamSearchPage,
+  StreamSourceId,
   StreamTitle,
   StreamVariant,
   StreamingAnime,
@@ -37,24 +40,47 @@ export class StreamApi {
 
   private readonly proxyUrl: string | null | (() => string | null);
 
+  private readonly proxyForSource: ((source: StreamSourceId) => string | null) | null;
+
   constructor(config: StreamApiConfig = {}) {
     this.transport = config.transport ?? tauriTransport;
     this.proxyUrl = config.proxyUrl ?? null;
+    this.proxyForSource = config.proxyForSource ?? null;
   }
 
-  private proxy(): Record<string, string> {
-    const resolved = typeof this.proxyUrl === "function" ? this.proxyUrl() : this.proxyUrl;
+  private proxy(source: StreamSourceId = DEFAULT_STREAM_SOURCE): Record<string, string> {
+    const resolved =
+      this.proxyForSource?.(source) ??
+      (typeof this.proxyUrl === "function" ? this.proxyUrl() : this.proxyUrl);
 
     return streamProxyArgs(resolved);
   }
 
-  private async call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+  private command(
+    kind: "search" | "title" | "episodes" | "players" | "stream_sources" | "test_connection",
+    source: StreamSourceId
+  ): string {
+    if (source === "animelib" && kind === "test_connection") return "animelib_test_connection";
+
+    return source === "allanime" ? `allanime_${kind}` : `anime_lib_${kind}`;
+  }
+
+  private async call<T>(
+    command: string,
+    args: Record<string, unknown> = {},
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  ): Promise<T> {
     const [value, error] = await attempt(
-      this.transport.call<T>(command, { ...args, ...this.proxy() })
+      this.transport.call<T>(command, { ...args, ...this.proxy(source) })
     );
 
     if (error !== null) {
       noteNetworkFailure(error);
+
+      if (error.message.includes("NEED_CAPTCHA")) {
+        throw new Error(translate("stream.error.captcha"));
+      }
+
       throw error;
     }
 
@@ -66,16 +92,16 @@ export class StreamApi {
   async search(
     query: string,
     page?: number,
-    filters?: StreamCatalogFilters
+    filters?: StreamCatalogFilters,
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
   ): Promise<StreamSearchPage> {
+    const filterArgs = filters ? { filters } : {};
     const raw = await this.call<{
       items: RawAnime[];
       page: number;
       lastPage?: number;
       total?: number;
-    }>("anime_lib_search", {
-      input: { query, page: page ?? 1, ...(filters ? { filters } : {}) },
-    });
+    }>(this.command("search", source), { input: { query, page: page ?? 1, ...filterArgs } }, source);
 
     return {
       items: raw.items.map(normalizeAnime),
@@ -85,20 +111,30 @@ export class StreamApi {
     };
   }
 
-  async random(filters: StreamCatalogFilters): Promise<StreamingAnime | null> {
-    const raw = await this.call<RawAnime | null>("anime_lib_random", { filters });
+  async random(
+    filters: StreamCatalogFilters,
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  ): Promise<StreamingAnime | null> {
+    if (!streamSourceConfig(source).supportsRandom) return null;
+    const raw = await this.call<RawAnime | null>("anime_lib_random", { filters }, source);
 
     return raw ? normalizeAnime(raw) : null;
   }
 
-  async constants(): Promise<StreamConstants> {
-    return this.call<StreamConstants>("anime_lib_constants");
+  async constants(source: StreamSourceId = DEFAULT_STREAM_SOURCE): Promise<StreamConstants> {
+    if (!streamSourceConfig(source).supportsFilters) {
+      return { types: [], statuses: [], ageRatings: [], genres: [] };
+    }
+
+    return this.call<StreamConstants>("anime_lib_constants", {}, source);
   }
 
-  async title(slug: string): Promise<StreamTitle> {
-    const raw = await this.call<{ anime: RawAnime; episodes: RawEpisode[] }>("anime_lib_title", {
-      input: { slug },
-    });
+  async title(slug: string, source: StreamSourceId = DEFAULT_STREAM_SOURCE): Promise<StreamTitle> {
+    const raw = await this.call<{ anime: RawAnime; episodes: RawEpisode[] }>(
+      this.command("title", source),
+      { input: { slug } },
+      source
+    );
 
     return {
       anime: normalizeAnime(raw.anime),
@@ -106,24 +142,41 @@ export class StreamApi {
     };
   }
 
-  async episodes(animeId: string): Promise<StreamingEpisode[]> {
-    const raw = await this.call<RawEpisode[]>("anime_lib_episodes", {
-      input: { animeId },
-    });
+  async episodes(
+    animeId: string,
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  ): Promise<StreamingEpisode[]> {
+    const raw = await this.call<RawEpisode[]>(
+      this.command("episodes", source),
+      { input: { animeId } },
+      source
+    );
 
     return raw.map(normalizeEpisode);
   }
 
-  async players(episodeId: string): Promise<StreamVariant[]> {
-    const raw = await this.call<RawVariant[]>("anime_lib_players", {
-      input: { episodeId },
-    });
+  async players(
+    episodeId: string,
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  ): Promise<StreamVariant[]> {
+    const raw = await this.call<RawVariant[]>(
+      this.command("players", source),
+      { input: { episodeId } },
+      source
+    );
 
     return raw.map(normalizeVariant);
   }
 
-  async streamSources(input: StreamSourcesInput): Promise<StreamSource[]> {
-    const sources = await this.call<unknown>("anime_lib_stream_sources", { input });
+  async streamSources(
+    input: StreamSourcesInput,
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  ): Promise<StreamSource[]> {
+    const sources = await this.call<unknown>(
+      this.command("stream_sources", source),
+      { input },
+      source
+    );
 
     return assertSchema(sources, StreamSourcesSchema);
   }
@@ -161,8 +214,8 @@ export class StreamApi {
     await this.transport.call<null>("animelib_token_clear");
   }
 
-  async testConnection(): Promise<string> {
-    return this.call<string>("animelib_test_connection");
+  async testConnection(source: StreamSourceId = DEFAULT_STREAM_SOURCE): Promise<string> {
+    return this.call<string>(this.command("test_connection", source), {}, source);
   }
 
   async prefsGet(sourceId: string, mediaId: string): Promise<StreamPrefs | null> {
@@ -179,8 +232,18 @@ export class StreamApi {
     });
   }
 
-  async historyRecent(limit = 50): Promise<StreamHistoryEntry[]> {
-    return this.transport.call<StreamHistoryEntry[]>("stream_history_recent", { limit });
+  async historyRecent(
+    limit = 50,
+    source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  ): Promise<StreamHistoryEntry[]> {
+    const rows = await this.transport.call<StreamHistoryEntry[]>("stream_history_recent", {
+      limit,
+    });
+    const prefix = streamSourceConfig(source).mediaPrefix;
+
+    return rows.filter((row) =>
+      prefix === "" ? !row.animeId.startsWith("allanime:") : row.animeId.startsWith(prefix)
+    );
   }
 
   async historyForAnime(animeId: string): Promise<StreamHistoryEntry[]> {
@@ -208,5 +271,5 @@ export class StreamApi {
 }
 
 export const streamApi = new StreamApi({
-  proxyUrl: getAnimelibProxyUrl,
+  proxyForSource: getStreamProxyUrl,
 });

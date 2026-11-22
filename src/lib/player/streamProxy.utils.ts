@@ -1,6 +1,7 @@
 import { readRememberedRoute } from "@/lib/player/streamRouteMemory.utils";
 
 const KODIK_VARIANT_PREFIX = "Kodik:";
+const ALLANIME_VARIANT_PREFIX = "AllAnime:";
 
 export function streamProxyArgs(proxy: string | null): Record<string, string> {
   const clean = proxy?.trim();
@@ -37,5 +38,7 @@ export function playbackProxyUrl(
 
   if (remembered === "direct") return null;
 
-  return variantId.startsWith(KODIK_VARIANT_PREFIX) ? null : proxy;
+  return variantId.startsWith(KODIK_VARIANT_PREFIX) || variantId.startsWith(ALLANIME_VARIANT_PREFIX)
+    ? null
+    : proxy;
 }

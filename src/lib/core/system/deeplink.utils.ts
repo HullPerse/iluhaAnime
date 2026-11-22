@@ -33,9 +33,10 @@ export function buildAnimeLink(
 }
 
 export function buildStreamLink(
-  slug: string
-): `${typeof DEEP_LINK_SCHEME}://stream/animelib/${string}` {
-  return `${DEEP_LINK_SCHEME}://stream/animelib/${slug}`;
+  slug: string,
+  source: StreamDeepLink["source"] = "animelib"
+): `${typeof DEEP_LINK_SCHEME}://stream/${StreamDeepLink["source"]}/${string}` {
+  return `${DEEP_LINK_SCHEME}://stream/${source}/${slug}`;
 }
 
 export function buildTorrentLink(
@@ -132,12 +133,17 @@ export function parseStreamLink(raw: string): StreamDeepLink | null {
   if (rest.includes("?") || rest.includes("#")) return null;
   const parts = rest.split("/");
 
-  if (parts.length !== 3 || parts[0] !== "stream" || parts[1] !== "animelib") return null;
+  if (parts.length !== 3 || parts[0] !== "stream") return null;
+  const source = parts[1];
   const slug = parts[2];
 
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(slug) || !slug.includes("--")) return null;
+  if (source !== "animelib" && source !== "allanime") return null;
 
-  return { source: "animelib", slug };
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(slug)) return null;
+
+  if (source === "animelib" && !slug.includes("--")) return null;
+
+  return { source, slug };
 }
 
 export function parseAnimeLink(raw: string): AnimeDeepLink | null {

@@ -139,6 +139,7 @@
     "anilistProxyUrl": null,
     "newsProxyUrl": null,
     "animelibProxyUrl": null,
+    "streamProxyUrls": {},
     "cardsImageProxyUrl": null,
     "dailyProxyUrl": null,
     "dailyOpeningProxyUrl": null,

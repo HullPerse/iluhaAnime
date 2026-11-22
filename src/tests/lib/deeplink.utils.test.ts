@@ -112,6 +112,17 @@ describe("utils/deeplink", () => {
       expect(parseStreamLink(link)).toEqual({ source: "animelib", slug: SLUG });
     });
 
+    it("builds and parses an AllAnime link", () => {
+      const raw = buildStreamLink("abc123", "allanime");
+      expect(raw).toBe("iluhaanime://stream/allanime/abc123");
+      expect(parseStreamLink(raw)).toEqual({ source: "allanime", slug: "abc123" });
+      expect(parseStreamLink("iluhaanime://stream/allanime/abc--123")).toEqual({
+        source: "allanime",
+        slug: "abc--123",
+      });
+      expect(parseStreamLink("iluhaanime://stream/unknown/abc123")).toBeNull();
+    });
+
     it("is recognized as a pasted link", () => {
       expect(parsePastedLink(buildStreamLink(SLUG))).toEqual({
         kind: "stream",

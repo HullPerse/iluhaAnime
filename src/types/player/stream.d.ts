@@ -1,3 +1,5 @@
+export type StreamSourceId = "animelib" | "allanime";
+
 export interface StreamingAnime {
   id: string;
   title: string;

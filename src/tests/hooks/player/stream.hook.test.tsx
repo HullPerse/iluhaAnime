@@ -149,7 +149,8 @@ describe("usePlayerStream", () => {
     expect(result.current.variants[0]).toEqual(NATIVE);
     expect(result.current.variantsLoading).toBe(false);
     expect(cache.loadPlayers).not.toHaveBeenCalled();
-    expect(cache.prefetchNativeSources).toHaveBeenCalledWith("10", [NATIVE]);
+    expect(cache.prefetchNativeSources).not.toHaveBeenCalled();
+    expect(cache.loadSources).not.toHaveBeenCalled();
   });
 
   it("fetches the rows when the request carries none", async () => {
@@ -159,7 +160,7 @@ describe("usePlayerStream", () => {
     const { result } = renderHook(() => usePlayerStream());
 
     await waitFor(() => expect(result.current.variants).toEqual([KODIK]));
-    expect(cache.loadPlayers).toHaveBeenCalledWith("10");
+    expect(cache.loadPlayers).toHaveBeenCalledWith("10", "animelib");
   });
 });
 

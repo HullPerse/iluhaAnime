@@ -170,6 +170,7 @@ export interface SettingsStore {
   anilistProxyUrl: string | null;
   newsProxyUrl: string | null;
   animelibProxyUrl: string | null;
+  streamProxyUrls: Record<string, string>;
   cardsImageProxyUrl: string | null;
   dailyProxyUrl: string | null;
   dailyOpeningProxyUrl: string | null;
@@ -308,7 +309,8 @@ type ChangelogScope =
   | "app"
   | "search"
   | "game"
-  | "streaming";
+  | "streaming"
+  | "manga";
 
 export interface ChangelogEntry {
   key: TranslationKey;

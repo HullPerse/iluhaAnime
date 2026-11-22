@@ -5,7 +5,8 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { useCell } from "@hullperse/hp_utils/react";
-import { setStreamSort, streamFilters } from "@/store/stream.store";
+import { streamSourceConfig } from "@/config/player/streamSources.config";
+import { setStreamSort, streamFilters, streamSource } from "@/store/stream.store";
 import type { StreamSortBy } from "@/types/player/stream";
 
 const SORT_KEYS = [
@@ -33,6 +34,8 @@ export default function StreamSortBar({
 }) {
   const { t } = useI18n();
   const filters = useCell(streamFilters);
+  const source = useCell(streamSource);
+  const sortable = streamSourceConfig(source).supportsSort;
   const { sortBy, sortType } = filters;
   const activeIndex = SORT_KEYS.findIndex(({ key }) => key === sortBy);
   const { rowRef, start, end, stepPage } = usePagedRow(SORT_KEYS.length, activeIndex);
@@ -44,12 +47,33 @@ export default function StreamSortBar({
       return;
     }
 
+    if (source === "allanime" && key !== "name") return;
+
     setStreamSort(key, sortType === "asc" ? "desc" : "asc");
   };
 
+  if (!sortable) {
+    return (
+      <section
+        className="windows95-border bg-field flex shrink-0 flex-row items-center justify-end gap-2 px-1 py-0.5"
+        aria-label={t("stream.history.button")}
+      >
+        <Button
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          title={t("stream.history.button")}
+          aria-label={t("stream.history.button")}
+          onClick={onHistoryOpen}
+        >
+          <History className="size-3.5" />
+        </Button>
+      </section>
+    );
+  }
+
   return (
     <section
-      className="windows95-border bg-field flex flex-row items-center gap-2 px-1 py-0.5"
+      className="windows95-border bg-field flex shrink-0 flex-row items-center gap-2 px-1 py-0.5"
       aria-label={t("stream.sort.label")}
     >
       <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -58,6 +82,7 @@ export default function StreamSortBar({
           className="h-6 w-6 shrink-0"
           title={t("common.previous")}
           aria-label={t("common.previous")}
+          disabled={start === 0 && end >= SORT_KEYS.length}
           onClick={() => stepPage(-1)}
         >
           <ChevronLeft className="size-3.5" />
@@ -67,7 +92,7 @@ export default function StreamSortBar({
             <Button
               key={key}
               variant={sortBy === key ? "outline" : "default"}
-              className="h-6 w-33 shrink-0 px-1"
+              className="h-6 w-33 max-w-full shrink-0 px-1"
               aria-current={sortBy === key ? true : undefined}
               onClick={() => pick(key)}
             >
@@ -86,6 +111,7 @@ export default function StreamSortBar({
           className="h-6 w-6 shrink-0"
           title={t("common.next")}
           aria-label={t("common.next")}
+          disabled={start === 0 && end >= SORT_KEYS.length}
           onClick={() => stepPage(1)}
         >
           <ChevronRight className="size-3.5" />

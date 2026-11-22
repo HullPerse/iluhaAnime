@@ -12,35 +12,49 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { anilistEpisodePreviews } from "@/lib/player/episodes.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { StreamCatalogFilters } from "@/types/player/stream";
+import { streamSource } from "@/store/stream.store";
+import { DEFAULT_STREAM_SOURCE } from "@/config/player/streamSources.config";
+import type { StreamCatalogFilters, StreamSourceId } from "@/types/player/stream";
 
 export function useStreamSearch(query: string, page: number, filters: StreamCatalogFilters) {
+  const source = useCell(streamSource);
+
   return useAppQuery("slow", {
-    queryKey: queryKeys.streamSearch(query, page, streamFiltersKey(filters)),
-    queryFn: () => streamApi.search(query, page, filters),
-    placeholderData: (previous) => previous,
+    queryKey: queryKeys.streamSearch(source, query, page, streamFiltersKey(filters)),
+    queryFn: () => streamApi.search(query, page, filters, source),
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey[1] === source ? previous : undefined,
   });
 }
 
-const streamConstantsOptions = {
-  queryKey: queryKeys.streamConstants(),
-  queryFn: () => streamApi.constants(),
-};
-
-export function useStreamConstants(enabled: boolean) {
-  return useAppQuery("static", { ...streamConstantsOptions, enabled });
+function streamConstantsOptions(source: StreamSourceId) {
+  return {
+    queryKey: queryKeys.streamConstants(source),
+    queryFn: () => streamApi.constants(source),
+  };
 }
 
-export function prefetchStreamConstants(queryClient: QueryClient): Promise<void> {
+export function useStreamConstants(enabled: boolean) {
+  const source = useCell(streamSource);
+
+  return useAppQuery("static", { ...streamConstantsOptions(source), enabled });
+}
+
+export function prefetchStreamConstants(
+  queryClient: QueryClient,
+  source: StreamSourceId = DEFAULT_STREAM_SOURCE
+): Promise<void> {
   return queryClient
-    .prefetchQuery({ ...QUERY_PRESETS.static, ...streamConstantsOptions })
+    .prefetchQuery({ ...QUERY_PRESETS.static, ...streamConstantsOptions(source) })
     .then(() => undefined);
 }
 
 export function useStreamTitle(slug: string | null) {
+  const source = useCell(streamSource);
+
   return useAppQuery("static", {
-    queryKey: queryKeys.streamTitle(slug ?? ""),
-    queryFn: () => streamApi.title(slug ?? ""),
+    queryKey: queryKeys.streamTitle(source, slug ?? ""),
+    queryFn: () => streamApi.title(slug ?? "", source),
     enabled: slug !== null && slug.length > 0,
   });
 }
@@ -66,22 +80,30 @@ export function useStreamHistoryForAnime(animeId: string | null) {
   });
 }
 
-const streamHistoryRecentOptions = {
-  queryKey: queryKeys.streamHistoryRecent(),
-  queryFn: () => streamApi.historyRecent(50),
-};
+function streamHistoryRecentOptions(source: StreamSourceId) {
+  return {
+    queryKey: queryKeys.streamHistoryRecent(source),
+    queryFn: () => streamApi.historyRecent(50, source),
+  };
+}
 
 export function useStreamHistoryRecent(open: boolean) {
-  return useAppQuery("slow", { ...streamHistoryRecentOptions, enabled: open });
+  const source = useCell(streamSource);
+
+  return useAppQuery("slow", { ...streamHistoryRecentOptions(source), enabled: open });
 }
 
 export function usePrewarmStreamHistory(ready: boolean): void {
   const queryClient = useQueryClient();
   const enabled = useCell(settingsAtoms.streamTabEnabled);
+  const source = useCell(streamSource);
+
   useEffect(() => {
     if (!ready || !enabled) return;
-    ignore(queryClient.prefetchQuery({ ...QUERY_PRESETS.slow, ...streamHistoryRecentOptions }));
-  }, [enabled, queryClient, ready]);
+    ignore(
+      queryClient.prefetchQuery({ ...QUERY_PRESETS.slow, ...streamHistoryRecentOptions(source) })
+    );
+  }, [enabled, queryClient, ready, source]);
 }
 
 /** One request for the visible catalog page instead of one per hovered card. */

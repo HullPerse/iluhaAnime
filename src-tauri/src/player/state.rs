@@ -83,6 +83,10 @@ pub struct StreamOpen {
     pub quality: String,
     pub variant_id: String,
     pub sources: Vec<StreamVariantSource>,
+    /// Soft subtitle tracks the selected source offers. Players add them with
+    /// `sub-add` after the media file loads; embedded tracks never appear here.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub subtitles: Vec<crate::stream::anime_lib_models::SubtitleTrack>,
     /// The episode's voice-over and subtitle rows, handed over by the catalog
     /// window so the player's list is ready without another network request.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -758,6 +762,37 @@ mod tests {
         host.finish_close();
         assert!(host.close_is_finished());
         assert!(!host.begin_close());
+    }
+
+    #[test]
+    fn a_stream_open_carries_soft_subtitles() {
+        let value = json!({
+            "sourceId": "allanime",
+            "sourceName": "AllAnime",
+            "mediaId": "allanime:abc",
+            "mediaTitle": "Frieren",
+            "episodeId": "allanime:abc|1",
+            "episodeNumber": 1,
+            "episodeTitle": "",
+            "watchKey": "stream:allanime:abc:1",
+            "headers": {},
+            "quality": "1080p",
+            "variantId": "AllAnime:sub:Default",
+            "sources": [],
+            "subtitles": [{
+                "id": "allanime-sub-0",
+                "url": "https://cdn.example/en.vtt",
+                "language": "English",
+                "isDefault": true,
+                "headers": { "Referer": "https://youtu-chan.com/" }
+            }],
+            "mediaUrl": "https://cdn.example/master.m3u8"
+        });
+
+        let stream: StreamOpen = serde_json::from_value(value).expect("stream open parses");
+        assert_eq!(stream.subtitles.len(), 1);
+        assert!(stream.subtitles[0].is_default);
+        assert_eq!(stream.subtitles[0].language, "English");
     }
 
     #[test]

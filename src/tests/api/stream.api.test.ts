@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { StreamApi } from "@/api/stream.api";
+import { DEFAULT_STREAM_FILTERS } from "@/config/player/streamFilters.config";
 import type { ApiTransport } from "@/types/core/transport";
 import { getAnimelibProxyUrl, patchSettings, settingsAtoms } from "@/store/settings.store";
 
@@ -122,6 +123,59 @@ describe("StreamApi", () => {
     ).rejects.toThrow();
   });
 
+  it("routes AllAnime sorting to its own catalog command", async () => {
+    const { calls, transport } = fakeTransport(() => EMPTY_SEARCH);
+    const api = new StreamApi({ transport });
+
+    await api.search("frieren", 2, DEFAULT_STREAM_FILTERS, "allanime");
+
+    expect(calls).toEqual([
+      {
+        command: "allanime_search",
+        args: { input: { query: "frieren", page: 2, filters: DEFAULT_STREAM_FILTERS } },
+      },
+    ]);
+  });
+
+  it("dispatches every AllAnime catalog and playback command", async () => {
+    const { calls, transport } = fakeTransport((command) =>
+      command === "allanime_title"
+        ? { anime: { id: "allanime:abc", title: "Frieren", slugUrl: "abc" }, episodes: [] }
+        : []
+    );
+    const api = new StreamApi({ transport });
+
+    await api.title("abc", "allanime");
+    await api.episodes("allanime:abc", "allanime");
+    await api.players("allanime:abc|1", "allanime");
+    await api.streamSources(
+      { episodeId: "allanime:abc|1", variantId: "AllAnime:sub:x" },
+      "allanime"
+    );
+
+    expect(calls.map((call) => call.command)).toEqual([
+      "allanime_title",
+      "allanime_episodes",
+      "allanime_players",
+      "allanime_stream_sources",
+    ]);
+  });
+
+  it("keeps the history of each source apart", async () => {
+    const { transport } = fakeTransport(() => [
+      { animeId: "11", episodeId: "1", slug: "11--a" },
+      { animeId: "allanime:abc", episodeId: "allanime:abc|1", slug: "abc" },
+    ]);
+    const api = new StreamApi({ transport });
+
+    await expect(api.historyRecent(50, "allanime")).resolves.toEqual([
+      { animeId: "allanime:abc", episodeId: "allanime:abc|1", slug: "abc" },
+    ]);
+    await expect(api.historyRecent(50, "animelib")).resolves.toEqual([
+      { animeId: "11", episodeId: "1", slug: "11--a" },
+    ]);
+  });
+
   it("asks for a title and its episodes in one command", async () => {
     const { calls, transport } = fakeTransport(() => ({
       anime: { id: "11", title: "Naruto", slugUrl: "11--naruto-anime" },
@@ -136,6 +190,34 @@ describe("StreamApi", () => {
     ]);
     expect(result.anime).toMatchObject({ id: "11", title: "Naruto", genres: [] });
     expect(result.episodes).toEqual([{ id: "1", number: 1, title: "Pilot" }]);
+  });
+
+  it("uses a separate proxy for each streaming source", async () => {
+    const { calls, transport } = fakeTransport(() => EMPTY_SEARCH);
+    const api = new StreamApi({
+      transport,
+      proxyForSource: (source) =>
+        source === "allanime" ? "socks5://127.0.0.1:10808" : "http://127.0.0.1:7890",
+    });
+
+    await api.search("frieren", 1, undefined, "allanime");
+    await api.search("naruto", 1, undefined, "animelib");
+
+    expect(calls[0]?.args?.proxyUrl).toBe("socks5://127.0.0.1:10808");
+    expect(calls[1]?.args?.proxyUrl).toBe("http://127.0.0.1:7890");
+  });
+
+  it("tests the connection of the source it belongs to", async () => {
+    const { calls, transport } = fakeTransport(() => "titles");
+    const api = new StreamApi({ transport });
+
+    await api.testConnection("allanime");
+    await api.testConnection("animelib");
+
+    expect(calls.map((call) => call.command)).toEqual([
+      "allanime_test_connection",
+      "animelib_test_connection",
+    ]);
   });
 
   it("uses the proxy for the session check when saving a token", async () => {

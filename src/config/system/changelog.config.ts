@@ -14,6 +14,7 @@ const ChangelogScopeSchema = z.enum([
   "search",
   "game",
   "streaming",
+  "manga",
 ]);
 
 const ChangelogEntrySchema = z.object({

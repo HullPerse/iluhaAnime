@@ -8,6 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { setStreamCoverScope } from "@/hooks/remoteImage.hook";
 import { useStreamHistoryProgressMap } from "@/hooks/stream/catalog.hook";
 import { STREAM_ORDER_LABELS } from "@/config/player/streamFilters.config";
+import { streamSourceConfig } from "@/config/player/streamSources.config";
 import { isTextEntryTarget } from "@/lib/core/hotkeys/filterHotkeys.utils";
 import { useCell } from "@hullperse/hp_utils/react";
 import { gridColumns } from "@/lib/stream/gridColumns.utils";
@@ -15,6 +16,7 @@ import {
   streamFilters,
   streamPage,
   streamQuery,
+  streamSource,
   streamStore,
   submitStreamSearch,
 } from "@/store/stream.store";
@@ -25,7 +27,6 @@ import { StreamEmpty } from "@/routes/components/stream/states/empty.states";
 import { StreamError } from "@/routes/components/stream/states/error.states";
 import { StreamLoadingGrid } from "@/routes/components/stream/states/loadingGrid.states";
 
-const PAGE_SIZE = 60;
 const NO_ITEMS: StreamingAnime[] = [];
 
 type GridKeyAction = "grid-left" | "grid-right" | "grid-up" | "grid-down";
@@ -62,6 +63,8 @@ export default function StreamResults({
   const { t } = useI18n();
   const query = useCell(streamQuery);
   const requestPage = useCell(streamPage);
+  const source = useCell(streamSource);
+  const pageSize = streamSourceConfig(source).pageSize;
   const sortBy = useCell(streamFilters).sortBy;
   const scrollRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -129,13 +132,13 @@ export default function StreamResults({
   }
 
   const page = data?.page ?? requestPage;
-  const lastPage = data?.lastPage ?? (items.length < PAGE_SIZE ? page : page + 1);
+  const lastPage = data?.lastPage ?? (items.length < pageSize ? page : page + 1);
   const total = data?.total ?? 0;
-  const from = (page - 1) * PAGE_SIZE + 1;
-  const to = (page - 1) * PAGE_SIZE + items.length;
+  const from = (page - 1) * pageSize + 1;
+  const to = (page - 1) * pageSize + items.length;
   const orderLabel = query ? t("stream.searchResults") : t(STREAM_ORDER_LABELS[sortBy]);
   const statusText = `${orderLabel} - ${t("stream.page", { page })} - ${t("stream.page.size", {
-    count: PAGE_SIZE,
+    count: pageSize,
   })}`;
 
   return (

@@ -23,6 +23,7 @@ import type changelog522 from "@/lib/locale/changelog/v5_2_2.ru";
 import type changelog523 from "@/lib/locale/changelog/v5_2_3.ru";
 import type changelog525 from "@/lib/locale/changelog/v5_2_5.ru";
 import type changelog530 from "@/lib/locale/changelog/v5_3_0.ru";
+import type changelog540 from "@/lib/locale/changelog/v5_4_0.ru";
 import anilist from "@/lib/locale/ru/anilist.locale";
 import collection from "@/lib/locale/ru/collection.locale";
 import common from "@/lib/locale/ru/common.locale";
@@ -83,7 +84,8 @@ type ChangelogDictionary = typeof changelog320 &
   typeof changelog522 &
   typeof changelog523 &
   typeof changelog525 &
-  typeof changelog530;
+  typeof changelog530 &
+  typeof changelog540;
 
 export type RuDictionary = typeof ru & ChangelogDictionary;
 

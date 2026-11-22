@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
-import { isSourceImage } from "@/lib/graphics/images.utils";
+import { isAllAnimeImage, isSourceImage } from "@/lib/graphics/images.utils";
 import { assetUrl } from "@/lib/graphics/image.utils";
 import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { createLruCache } from "@hullperse/hp_utils/lruCache";
@@ -33,6 +33,7 @@ let activeRemoteFetches = 0;
 let remoteScope: Set<string> | null = null;
 
 export const STREAM_COVER_REFERER = "https://animelib.org/";
+const ALLANIME_REFERER = "https://youtu-chan.com/";
 
 const streamCovers = createLruCache<string, string>(300);
 const streamInflight = new Map<string, Promise<string | null>>();
@@ -353,7 +354,10 @@ function fetchStreamCover(remoteUrl: string): Promise<string | null> {
   if (cached) return Promise.resolve(cached);
   const fromSource = isSourceImage(remoteUrl);
   const request = fromSource
-    ? { url: remoteUrl, referer: STREAM_COVER_REFERER }
+    ? {
+        url: remoteUrl,
+        referer: isAllAnimeImage(remoteUrl) ? ALLANIME_REFERER : STREAM_COVER_REFERER,
+      }
     : { url: remoteUrl, proxyUrl: settingsAtoms.anilistProxyUrl.get() ?? undefined };
 
   return streamInFlight(remoteUrl, () =>

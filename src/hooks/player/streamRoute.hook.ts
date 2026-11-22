@@ -11,7 +11,8 @@ import {
 } from "@/lib/player/streamRoute.utils";
 import { rememberStreamRoute } from "@/lib/player/streamRouteMemory.utils";
 import { playbackAtoms, streamSession } from "@/store/player.store";
-import { getAnimelibProxyUrl } from "@/store/settings.store";
+import { getStreamProxyUrl } from "@/store/settings.store";
+import type { StreamSourceId } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 
 const CHECK_MS = 500;
@@ -128,7 +129,10 @@ export function useStreamRouteGuard({
     let nextProxy: string | null | undefined;
 
     if (state.attempts === 0) {
-      nextProxy = alternateProxyUrl(state.baseProxy, getAnimelibProxyUrl());
+      nextProxy = alternateProxyUrl(
+        state.baseProxy,
+        getStreamProxyUrl(current.sourceId as StreamSourceId)
+      );
     }
 
     if (nextProxy === undefined) nextProxy = state.baseProxy;

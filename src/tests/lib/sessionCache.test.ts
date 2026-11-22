@@ -78,10 +78,14 @@ describe("stream session cache", () => {
     await loadSources("cache-sources", "Animelib:1");
 
     expect(api.streamSources).toHaveBeenCalledTimes(2);
-    expect(api.streamSources).toHaveBeenNthCalledWith(1, {
-      episodeId: "cache-sources",
-      variantId: "Animelib:1",
-    });
+    expect(api.streamSources).toHaveBeenNthCalledWith(
+      1,
+      {
+        episodeId: "cache-sources",
+        variantId: "Animelib:1",
+      },
+      "animelib"
+    );
   });
 
   it("prefetches only the site's own rows and survives a failure", async () => {
@@ -96,14 +100,22 @@ describe("stream session cache", () => {
     ]);
 
     expect(api.streamSources).toHaveBeenCalledTimes(2);
-    expect(api.streamSources).toHaveBeenNthCalledWith(1, {
-      episodeId: "cache-prefetch",
-      variantId: "Animelib:1",
-    });
-    expect(api.streamSources).toHaveBeenNthCalledWith(2, {
-      episodeId: "cache-prefetch",
-      variantId: "Animelib:2",
-    });
+    expect(api.streamSources).toHaveBeenNthCalledWith(
+      1,
+      {
+        episodeId: "cache-prefetch",
+        variantId: "Animelib:1",
+      },
+      "animelib"
+    );
+    expect(api.streamSources).toHaveBeenNthCalledWith(
+      2,
+      {
+        episodeId: "cache-prefetch",
+        variantId: "Animelib:2",
+      },
+      "animelib"
+    );
   });
 
   it("stops prefetching when the caller cancels", async () => {

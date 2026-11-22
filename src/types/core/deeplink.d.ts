@@ -13,7 +13,7 @@ export interface MangaDeepLink {
 }
 
 export interface StreamDeepLink {
-  readonly source: "animelib";
+  readonly source: "animelib" | "allanime";
   readonly slug: string;
 }
 

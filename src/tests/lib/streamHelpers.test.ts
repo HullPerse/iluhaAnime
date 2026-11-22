@@ -39,7 +39,7 @@ describe("stream identity", () => {
         separateStream: true,
         player: "Kodik",
         sourceUrl: "//kodikplayer.com/seria/1/hash/720p",
-      })
+      }),
     ).toBe("Kodik:32416");
   });
 
@@ -51,27 +51,66 @@ describe("stream identity", () => {
 });
 
 describe("stream variant kind", () => {
-  it("reads the subtitle kind from the label or the team", () => {
+  it("uses AllAnime translation ids rather than provider labels", () => {
     expect(
       isSubtitleVariant(
-        normalizeVariant({ id: "1", name: "AniRise", language: "Субтитры", player: "Kodik" })
-      )
+        normalizeVariant({
+          id: "sub:Yt-mp4",
+          name: "Yt-mp4",
+          language: "Sub",
+          player: "AllAnime",
+        }),
+      ),
     ).toBe(true);
     expect(
       isSubtitleVariant(
-        normalizeVariant({ id: "2", name: "Crunchyroll.Subtitles", player: "Kodik" })
-      )
+        normalizeVariant({
+          id: "dub:Yt-mp4",
+          name: "Subtitle provider",
+          language: "Dub",
+          player: "AllAnime",
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("reads the subtitle kind from the label or the team", () => {
+    expect(
+      isSubtitleVariant(
+        normalizeVariant({
+          id: "1",
+          name: "AniRise",
+          language: "Субтитры",
+          player: "Kodik",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isSubtitleVariant(
+        normalizeVariant({
+          id: "2",
+          name: "Crunchyroll.Subtitles",
+          player: "Kodik",
+        }),
+      ),
     ).toBe(true);
   });
 
   it("keeps voice-overs out of the subtitle group", () => {
     expect(
       isSubtitleVariant(
-        normalizeVariant({ id: "3", name: "AniDUB", language: "Озвучка", player: "Kodik" })
-      )
+        normalizeVariant({
+          id: "3",
+          name: "AniDUB",
+          language: "Озвучка",
+          player: "Kodik",
+        }),
+      ),
     ).toBe(false);
     expect(
-      isSubtitleVariant(normalizeVariant({ id: "4", name: "Studio Band", player: "Kodik" }))
+      isSubtitleVariant(
+        normalizeVariant({ id: "4", name: "Studio Band", player: "Kodik" }),
+      ),
     ).toBe(false);
   });
 });

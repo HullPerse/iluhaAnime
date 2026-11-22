@@ -3,7 +3,8 @@ import { buildVariantId } from "@/lib/player/streamHelpers.utils";
 import { isNativeVariant } from "@/lib/player/streamPrefs.utils";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { createLruCache, inflightFetch } from "@hullperse/hp_utils/lruCache";
-import type { StreamingEpisode, StreamVariant } from "@/types/player/stream";
+import { DEFAULT_STREAM_SOURCE } from "@/config/player/streamSources.config";
+import type { StreamSourceId, StreamingEpisode, StreamVariant } from "@/types/player/stream";
 import type { StreamSource } from "@/types/player/videoPlayer";
 
 const TTL_MS = 5 * 60_000;
@@ -37,24 +38,37 @@ const catalogLoader = createTimedLoader<StreamingEpisode[]>();
 const variantLoader = createTimedLoader<StreamVariant[]>();
 const sourceLoader = createTimedLoader<StreamSource[]>();
 
-export function loadEpisodes(animeId: string): Promise<StreamingEpisode[]> {
-  return catalogLoader(`episodes:${animeId}`, () => streamApi.episodes(animeId));
+export function loadEpisodes(
+  animeId: string,
+  source: StreamSourceId = DEFAULT_STREAM_SOURCE
+): Promise<StreamingEpisode[]> {
+  return catalogLoader(`episodes:${source}:${animeId}`, () => streamApi.episodes(animeId, source));
 }
 
-export function loadPlayers(episodeId: string): Promise<StreamVariant[]> {
-  return variantLoader(`players:${episodeId}`, () => streamApi.players(episodeId));
+export function loadPlayers(
+  episodeId: string,
+  source: StreamSourceId = DEFAULT_STREAM_SOURCE
+): Promise<StreamVariant[]> {
+  return variantLoader(`players:${source}:${episodeId}`, () =>
+    streamApi.players(episodeId, source)
+  );
 }
 
-export function loadSources(episodeId: string, variantId: string): Promise<StreamSource[]> {
-  return sourceLoader(`sources:${episodeId}:${variantId}`, () =>
-    streamApi.streamSources({ episodeId, variantId })
+export function loadSources(
+  episodeId: string,
+  variantId: string,
+  source: StreamSourceId = DEFAULT_STREAM_SOURCE
+): Promise<StreamSource[]> {
+  return sourceLoader(`sources:${source}:${episodeId}:${variantId}`, () =>
+    streamApi.streamSources({ episodeId, variantId }, source)
   );
 }
 
 export async function prefetchNativeSources(
   episodeId: string,
   variants: StreamVariant[],
-  isCancelled: () => boolean = () => false
+  isCancelled: () => boolean = () => false,
+  source: StreamSourceId = DEFAULT_STREAM_SOURCE
 ): Promise<void> {
   if (isCancelled()) return;
   const queue = variants.filter(isNativeVariant);
@@ -62,7 +76,7 @@ export async function prefetchNativeSources(
   const worker = async () => {
     while (!isCancelled() && cursor < queue.length) {
       const variant = queue[cursor++];
-      await attempt(loadSources(episodeId, buildVariantId(variant)));
+      await attempt(loadSources(episodeId, buildVariantId(variant), source));
     }
   };
 

@@ -32,7 +32,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 import PlayerComponent from "@/routes/components/player/player.component";
 import { notificationAtoms } from "@/store/notification.store";
-import { DEFAULT_PLAYER_SETTINGS, patchPlayerSettings } from "@/store/player.store";
+import { DEFAULT_PLAYER_SETTINGS, patchPlayerSettings, playbackAtoms, resetPlayback } from "@/store/player.store";
 import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {
@@ -68,6 +68,21 @@ afterEach(() => {
 });
 
 describe("player session initialization", () => {
+  it("locks playback controls and keyboard transport until the file is ready", async () => {
+    resetPlayback();
+    playbackAtoms.hasFile.set(true);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(<QueryClientProvider client={queryClient}><PlayerComponent /></QueryClientProvider>);
+    await act(async () => {});
+    const controls = container.querySelector<HTMLFieldSetElement>("[data-player-controls]");
+    expect(controls?.disabled).toBe(true);
+    expect(controls?.hasAttribute("inert")).toBe(true);
+    invokeMock.mockClear();
+    act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true })); });
+    expect(invokeMock.mock.calls.some(([command]) => command === "player_set_property" || command === "player_command")).toBe(false);
+    resetPlayback();
+  });
+
   it("creates the mpv instance once when StrictMode mounts the effect twice", async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(

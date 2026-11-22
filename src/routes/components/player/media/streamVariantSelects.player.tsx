@@ -10,8 +10,8 @@ import { ignore } from "@/lib/core/shared/promise.utils";
 import { pickSource } from "@/lib/search/sources.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { warmStreamUrl } from "@/lib/player/streamWarm.utils";
-import { getAnimelibProxyUrl } from "@/store/settings.store";
-import type { StreamVariant } from "@/types/player/stream";
+import { getStreamProxyUrl } from "@/store/settings.store";
+import type { StreamSourceId, StreamVariant } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerStream } from "@/types/player/playerStream";
 
@@ -43,23 +43,31 @@ export function StreamVariantSelects({
   const activeSubtitle = variantOf(subtitles, activeId);
 
   const prefetch = (rows: StreamVariant[], id: string) => {
+    if (disabled || id === activeId) return;
+
     const variant = variantOf(rows, id);
 
     if (!variant) return;
     const variantId = buildVariantId(variant);
     ignore(
-      attempt(loadSources(session.episodeId, variantId)).then(([sources]) => {
-        if (!sources) return undefined;
-        const source = pickSource(sources, session.quality);
+      attempt(loadSources(session.episodeId, variantId, session.sourceId as StreamSourceId)).then(
+        ([sources]) => {
+          if (!sources) return undefined;
+          const source = pickSource(sources, session.quality);
 
-        if (!source) return undefined;
+          if (!source) return undefined;
 
-        return warmStreamUrl(
-          source.url,
-          source.headers,
-          playbackProxyUrl(source.variantId || variantId, getAnimelibProxyUrl(), source.url)
-        );
-      })
+          return warmStreamUrl(
+            source.url,
+            source.headers,
+            playbackProxyUrl(
+              source.variantId || variantId,
+              getStreamProxyUrl(session.sourceId as StreamSourceId),
+              source.url
+            )
+          );
+        }
+      )
     );
   };
 

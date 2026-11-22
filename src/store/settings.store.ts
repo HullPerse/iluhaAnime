@@ -12,6 +12,7 @@ import { attemptSync, reportBackgroundError } from "@hullperse/hp_utils/attempt"
 import { applyFontFamily } from "@/lib/graphics/font.utils";
 import { effectiveProxyUrl } from "@/lib/core/system/proxy.utils";
 import type { SettingsData, SettingsSignalStore } from "@/types/store/settings";
+import type { StreamSourceId } from "@/types/player/stream";
 import type { SignalStoreOptions } from "@/types/store/options";
 import { migrateSettingsData } from "@/store/settings/settings.migrations";
 
@@ -124,6 +125,16 @@ export function getAnimelibProxyUrl(): string | null {
     settingsAtoms.animelibProxyUrl.get(),
     settingsAtoms.anilistProxyUrl.get()
   );
+}
+
+/** The proxy configured for one streaming source. AnimeLib keeps the legacy
+ * global value when its own slot is empty; every other source is independent. */
+export function getStreamProxyUrl(source: StreamSourceId): string | null {
+  const perSource = settingsAtoms.streamProxyUrls.get()[source]?.trim() || null;
+
+  if (perSource) return perSource;
+
+  return source === "animelib" ? getAnimelibProxyUrl() : null;
 }
 
 export function syncCoverModeWithAnilistAuth(loggedIn: boolean): void {

@@ -17,3 +17,7 @@ export function shouldShowLoadingSpinner(
 ): boolean {
   return !failed && hasFile && loadingFile && hasShownFrame;
 }
+
+export function canControlPlayback(hasFile: boolean, fileReady: boolean, loadingFile: boolean, failed: boolean): boolean {
+  return hasFile && fileReady && !loadingFile && !failed;
+}

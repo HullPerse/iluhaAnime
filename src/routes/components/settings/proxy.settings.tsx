@@ -9,10 +9,10 @@ import { PROXY_TEST_SLOW_MS } from "@/hooks/proxyTest.hook";
 import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
-import AnimelibSettings from "@/routes/components/settings/animelib.settings";
 import MangaProxySettings from "@/routes/components/settings/proxy/manga.proxy";
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";
 import { SourceProxySettings } from "@/routes/components/settings/proxy/sourceProxies.proxy";
+import { StreamProxySettings } from "@/routes/components/settings/proxy/streamProxies.proxy";
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 
 export default function SettingsProxy() {
@@ -153,7 +153,7 @@ export default function SettingsProxy() {
         </div>
       </section>
 
-      <AnimelibSettings />
+      <StreamProxySettings />
       <SourceProxySettings />
     </div>
   );

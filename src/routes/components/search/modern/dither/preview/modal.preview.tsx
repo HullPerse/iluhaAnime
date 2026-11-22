@@ -75,6 +75,7 @@ export default function DitherPreviewModal({
     setOptions((prev) => ({ ...prev, ...partial }));
     setCanSave(false);
   };
+
   const [extracting, setExtracting] = useState<boolean>(false);
   const extractFromImage = () => {
     if (extracting) return;
@@ -88,6 +89,7 @@ export default function DitherPreviewModal({
         canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
         canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
         if (!ctx) throw new Error("2d context unavailable");
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -98,16 +100,20 @@ export default function DitherPreviewModal({
             Math.min(EXTRACT_PALETTE_MAX_COLORS, options.palette.length)
           )
         );
+
         if (palette.length === 0) throw new Error("no colors extracted");
         patchOptions({ palette });
       });
+
       if (error) showError(t("common.error"), t("search.dither.palette.extract.error"));
       setExtracting(false);
     };
+
     img.onerror = () => {
       setExtracting(false);
       showError(t("common.error"), t("search.dither.palette.extract.error"));
     };
+
     img.src = src;
   };
 
@@ -148,16 +154,22 @@ export default function DitherPreviewModal({
     bakeStartedRef.current = true;
     bakeStageRef.current = "database";
     const canvas = bakeRef.current;
+
     if (!canvas) {
       stopBaking();
+
       return;
     }
+
     const [dataUrl, toDataError] = attemptSync(() => canvas.toDataURL("image/png"));
+
     if (toDataError) {
       stopBaking();
       showError(t("common.error"), t("search.dither.save.error"));
+
       return;
     }
+
     const [updated, error] = await attempt(systemApi.updateDitherImageData(image.id, dataUrl));
     bakeTimerRef.current?.cancel();
     bakeTimerRef.current = null;
@@ -165,6 +177,7 @@ export default function DitherPreviewModal({
     setSaving(false);
     setBaking(false);
     setBakeProgress(null);
+
     if (error) return showError(t("common.error"), t("search.dither.save.error"));
     onSaved(toUserImage(updated));
     onBack();

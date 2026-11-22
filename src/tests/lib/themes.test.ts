@@ -31,6 +31,7 @@ const STATUS_KEYS = ["downloading", "seeding", "done", "error", "idle", "missing
 function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
   const c = theme.colors;
   const overrides = theme.overrides ?? {};
+
   return {
     done: overrides.torrentDone ?? c.success,
     downloading: overrides.torrentDownloading ?? c.highlight,
@@ -44,7 +45,9 @@ function statusColors(theme: (typeof THEMES)[number]): Record<string, string> {
 function blendOver(face: string, desktop: string, alpha: number): string {
   const base = hexToRgb(face);
   const under = hexToRgb(desktop);
+
   if (!base || !under) throw new Error("invalid theme color");
+
   return rgbToHex({
     b: under.b + (base.b - under.b) * alpha,
     g: under.g + (base.g - under.g) * alpha,
@@ -72,6 +75,7 @@ describe("built-in themes", () => {
       expect(theme.mode, theme.name).toBeDefined();
       expect(["dark", "light"]).toContain(theme.mode);
     }
+
     expect(THEMES.some((theme) => theme.mode === "dark")).toBe(true);
     expect(THEMES.some((theme) => theme.mode === "light")).toBe(true);
   });
@@ -121,6 +125,7 @@ describe("built-in themes", () => {
   it("separates the accent roles that also drive graph and status colours", () => {
     for (const theme of THEMES) {
       if (THEME_ACCENT_EXEMPT.includes(theme.name)) continue;
+
       for (const [a, b] of pairs(ACCENT_KEYS)) {
         expect(
           colorDistance(theme.colors[a], theme.colors[b]),
@@ -135,6 +140,7 @@ describe("built-in themes", () => {
       const alpha = windowTintAlpha(theme.colors.primary, theme.colors.text);
       expect(alpha, theme.name).toBeGreaterThanOrEqual(WINDOW_TINT_MIN);
       expect(alpha, theme.name).toBeLessThanOrEqual(WINDOW_TINT_MAX);
+
       for (const desktop of ["#000000", "#ffffff"]) {
         expect(
           contrastRatio(blendOver(theme.colors.primary, desktop, alpha), theme.colors.text),
@@ -147,6 +153,7 @@ describe("built-in themes", () => {
   it("separates the torrent status colours", () => {
     for (const theme of THEMES) {
       const colors = statusColors(theme);
+
       for (const [a, b] of pairs(STATUS_KEYS)) {
         expect(
           colorDistance(colors[a], colors[b]),
@@ -160,6 +167,7 @@ describe("built-in themes", () => {
     for (const name of THEME_ACCENT_EXEMPT) {
       const theme = THEMES.find((item) => item.name === name);
       expect(theme, name).toBeDefined();
+
       if (!theme) throw new Error(`theme ${name} is missing`);
       const shades = new Set([
         theme.colors.highlight,

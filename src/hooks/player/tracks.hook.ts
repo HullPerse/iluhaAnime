@@ -31,12 +31,17 @@ export function usePlayerTracks() {
   const persistTrack = useCallback(
     (track: MpvTrack, kind: "audio" | "sub") => {
       const session = streamSession.get();
+
       if (session) {
         const language = track.lang?.trim() || track.title?.trim() || "";
+
         if (language) ignore(rememberStreamTrack(session, kind, language));
+
         return;
       }
+
       const current = playbackAtoms.path.get();
+
       if (current) setMediaTrack(current, kind, track.id, trackIdentity(track) || undefined);
     },
     [rememberStreamTrack]
@@ -47,24 +52,35 @@ export function usePlayerTracks() {
       const previous = playbackAtoms.tracks.get();
       const path = playbackAtoms.path.get();
       const session = streamSession.get();
-      const selected = typeof id === "number" ? previous.find((track) => track.type === kind && track.id === id) : undefined;
+      const selected =
+        typeof id === "number"
+          ? previous.find((track) => track.type === kind && track.id === id)
+          : undefined;
       markTrackSelected(kind, id, selected ? trackIdentity(selected) || undefined : undefined);
       const optimistic = playbackAtoms.tracks.get();
       const [, failure] = await attempt(selectTrack(kind, id));
       const current = playbackAtoms.path.get() === path && streamSession.get() === session;
+
       if (failure) {
         if (current && playbackAtoms.tracks.get() === optimistic) {
           playbackAtoms.tracks.set(previous);
         }
+
         reportBackgroundError("player.track.select", failure);
+
         return;
       }
+
       if (!current) return;
+
       if (typeof id === "number") {
         const track = previous.find((entry) => entry.type === kind && entry.id === id);
+
         if (track) persistTrack(track, kind);
+
         return;
       }
+
       if (id === "no" && kind === "sub") {
         if (session) ignore(rememberStreamTrack(session, "sub", "no"));
         else if (path) setMediaTrack(path, "sub", "no");
@@ -76,6 +92,7 @@ export function usePlayerTracks() {
   const onCycleTrack = useCallback(
     (kind: "audio" | "sub") => {
       const id = nextTrackId(playbackAtoms.tracks.get(), kind);
+
       if (id === null) return;
       ignore(onSelectTrack(kind)(id));
     },
@@ -93,7 +110,9 @@ export function usePlayerTracks() {
         }),
         null
       );
+
       if (!selection) return [];
+
       return Array.isArray(selection) ? selection : [selection];
     },
     [t]
@@ -101,11 +120,13 @@ export function usePlayerTracks() {
 
   const onAddExternalSubtitle = useCallback(async () => {
     const files = await pickFiles(SUBTITLE_FILTERS);
+
     for (const file of files) await addExternalSubtitle(file);
   }, [pickFiles]);
 
   const onAddExternalAudio = useCallback(async () => {
     const files = await pickFiles(AUDIO_FILTERS);
+
     for (const file of files) await addExternalAudio(file);
   }, [pickFiles]);
 

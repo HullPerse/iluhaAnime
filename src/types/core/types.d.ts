@@ -47,6 +47,7 @@ export type Exact<T, Shape> = T extends Shape
   : never;
 
 type Without<T, U> = Partial<Record<Exclude<keyof T, keyof U>, never>>;
+
 export type XOR<A, B> = (Without<A, B> & B) | (Without<B, A> & A);
 
 export type AtLeastOne<T> = Partial<T> & { [K in keyof T]: Required<Pick<T, K>> }[keyof T];

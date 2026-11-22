@@ -58,6 +58,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   const promise = new Promise<T>((resolve) => {
     settle = resolve;
   });
+
   return { promise, resolve: settle };
 }
 
@@ -73,6 +74,7 @@ const tickResponse = (flags: number, pixels: number[] = [], hires = false): Arra
   const bytes = new Uint8Array(FRAME_HEADER_BYTES + (hires ? HIGH_FRAME_BYTES : LOW_FRAME_BYTES));
   bytes[0] = flags;
   bytes.set(pixels, FRAME_HEADER_BYTES);
+
   return bytes.buffer;
 };
 
@@ -88,6 +90,7 @@ const xoResponse = (
   bytes[FRAME_HEADER_BYTES + 1] = (pitchHz >> 8) & 0xff;
   bytes.set(pattern, FRAME_HEADER_BYTES + 2);
   bytes.set(pixels, FRAME_HEADER_BYTES + XO_AUDIO_BYTES);
+
   return bytes.buffer;
 };
 
@@ -95,13 +98,16 @@ const step = (deltaMs: number): void => {
   clock += deltaMs;
   const pending = frames;
   frames = [];
+
   for (const scheduled of pending) scheduled(clock);
 };
 
 const startMock = (tick: () => ArrayBuffer | Promise<ArrayBuffer>): void => {
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "game_start") return START;
+
     if (command === "game_tick") return await tick();
+
     return null;
   });
 };
@@ -118,6 +124,7 @@ const renderSession = (muted = false, volume = 1) => {
       useGameSession({ canvas: ref, muted: current, volume: currentVolume }),
     { initialProps: { muted, volume } }
   );
+
   return { canvas, ...view };
 };
 
@@ -132,6 +139,7 @@ beforeEach(() => {
   clock = 0;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
     frames.push(callback);
+
     return frames.length;
   });
   vi.stubGlobal("cancelAnimationFrame", () => undefined);
@@ -220,6 +228,7 @@ describe("useGameSession", () => {
     await start({ result });
 
     act(() => step(0));
+
     for (let index = 0; index < 30; index += 1) {
       await act(async () => step(5.556));
     }
@@ -339,7 +348,9 @@ describe("useGameSession", () => {
   it("surfaces tick failures as an error and tears the session down", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "game_start") return START;
+
       if (command === "game_tick") throw new Error("no active game session");
+
       return null;
     });
     const { result } = renderSession();
@@ -385,9 +396,11 @@ describe("useGameSession", () => {
     const pattern = Array.from({ length: 16 }, (_, index) => index);
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "game_start") return xoStart;
+
       if (command === "game_tick") {
         return xoResponse(FRAME_FLAG_DIRTY | FRAME_FLAG_SOUND, 4000, pattern, [0b01_10_11_00]);
       }
+
       return null;
     });
     const { result } = renderSession();
@@ -416,8 +429,10 @@ describe("useGameSession", () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "game_start") {
         starts += 1;
+
         return starts === 1 ? firstStart.promise : secondStart.promise;
       }
+
       return null;
     });
     const { result } = renderSession();
@@ -433,9 +448,7 @@ describe("useGameSession", () => {
     act(() => {
       secondRun = result.current.start(other);
     });
-    await vi.waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: other.id })
-    );
+    await vi.waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("game_start", { id: other.id }));
 
     firstStart.resolve({ ...START, session: 7 });
     await act(async () => {
@@ -457,6 +470,7 @@ describe("useGameSession", () => {
     const starting = deferred<GameStartInfo>();
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "game_start") return starting.promise;
+
       return null;
     });
     const { result } = renderSession();

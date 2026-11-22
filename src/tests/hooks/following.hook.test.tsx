@@ -48,6 +48,7 @@ describe("useAnilistFollowing", () => {
   it("loads the first page and appends the next one on load more", async () => {
     invokeMock.mockImplementation((command: string, args: Record<string, unknown>) => {
       expect(command).toBe("get_anilist_following");
+
       return Promise.resolve(args["page"] === 1 ? PAGE_ONE : PAGE_TWO);
     });
     const { result, unmount } = renderHook(() => useAnilistFollowing(1, true), { wrapper });

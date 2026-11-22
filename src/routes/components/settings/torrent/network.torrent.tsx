@@ -38,6 +38,7 @@ export function TorrentNetworkSettings({
   const applyNetwork = () => {
     const valid = portValid && connectValid && readWriteValid;
     setNetworkInvalid(!valid);
+
     if (!valid) return;
     const port = Number(portInput);
     const connect = Number(connectInput);

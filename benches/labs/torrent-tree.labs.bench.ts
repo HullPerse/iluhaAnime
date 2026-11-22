@@ -18,17 +18,21 @@ function makeRelease(episodes: number, seed: string): TorrentFileInfo[] {
       progress_bytes: size,
     });
   };
+
   for (let ep = 1; ep <= episodes; ep++) {
     const n = String(ep).padStart(3, "0");
     push(
       `${seed}/[Leopard-Raws] Hunter x Hunter - ${n} (2011) [1080p][RUS(ext), JAP+Sub].mkv`,
       1_400_000_000
     );
+
     if (ep % 2 === 0) {
       push(`${seed}/Subtitles/${seed} - ${n}.ass`, 80_000);
     }
   }
+
   push(`${seed}/info.nfo`, 2000);
+
   return files;
 }
 
@@ -43,7 +47,9 @@ function openAll(nodes: ReturnType<typeof buildTorrentTree>["nodes"]): Set<strin
       walk(node.children, depth + 1);
     }
   };
+
   walk(nodes, 0);
+
   return open;
 }
 
@@ -55,6 +61,7 @@ const BIG_OPEN = openAll(BIG_TREE.nodes);
 group("torrent-tree @torrent @quick", () => {
   bench("build 148 files (HxH release shape)", () => {
     const t = buildTorrentTree(HXH_148);
+
     return t.nodes.length + t.rootFiles.length;
   });
 
@@ -64,6 +71,7 @@ group("torrent-tree @torrent @quick", () => {
 
   bench("build 6k files (scale probe)", () => {
     const t = buildTorrentTree(BIG_6K);
+
     return t.nodes.length + t.rootFiles.length;
   });
 

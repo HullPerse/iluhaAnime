@@ -35,7 +35,9 @@ function TorrentCategoryEntryView({
     data.map((entry) => entry.fullPath),
     tor.id
   );
+
   if (torrentFilesMap[tor.id] === undefined && data.length === 0) return null;
+
   if (files.length === 0 && data.length === 0) return <TorrentPendingState item={tor} />;
 
   const handleUpscaleDone = () => refetch();

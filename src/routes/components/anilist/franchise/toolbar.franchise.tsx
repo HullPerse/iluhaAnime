@@ -31,6 +31,7 @@ function FranchiseToolbar({
       >
         {RELATION_FILTERS.map((group) => {
           const active = activeFilters.has(group);
+
           return (
             <Button
               key={group}

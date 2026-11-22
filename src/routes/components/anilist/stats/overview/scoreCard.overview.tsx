@@ -17,6 +17,7 @@ export function ScoreCard({
 }) {
   const { t, locale } = useI18n();
   const buckets = model.scores.buckets;
+
   if (buckets.length === 0) {
     return (
       <StatsCard title={t("anilist.stats.scores")}>
@@ -26,9 +27,11 @@ export function ScoreCard({
       </StatsCard>
     );
   }
+
   const width = buckets[0].to - buckets[0].from;
   const count = buckets.length;
   const mean = formatMeanScore(model.scores.mean, scoreFormat) ?? "-";
+
   return (
     <StatsCard
       title={t("anilist.stats.scores")}

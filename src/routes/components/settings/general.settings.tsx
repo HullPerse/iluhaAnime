@@ -322,10 +322,13 @@ export default function SettingsGeneral() {
           variant="destructive"
           onConfirm={async () => {
             const [, error] = await attempt(systemApi.resetData());
+
             if (error) {
               setResetError(error.message);
+
               return;
             }
+
             attemptSync(() => {
               for (const key of [
                 "settings",

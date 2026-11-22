@@ -12,6 +12,7 @@ export function MangaSearchField({
   ...input
 }: AutocompleteInputProps & { onSearch: () => void; trailingAction?: ReactNode }) {
   const { t } = useI18n();
+
   return (
     <form
       className="ui-toolbar ui-panel w-full flex-row"

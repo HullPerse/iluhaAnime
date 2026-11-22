@@ -21,7 +21,9 @@ const GIFT: GiftItem = {
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_gifts") return Promise.resolve([{ ...GIFT, claimedAt: null }]);
+
     if (command === "cards_mark_gift_claimed") return Promise.resolve(GIFT);
+
     return Promise.resolve(null);
   });
 });

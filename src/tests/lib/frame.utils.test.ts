@@ -23,7 +23,9 @@ function response(flags: number, payload?: number[], size = LOW_FRAME_BYTES): Ar
   const audio = (flags & FRAME_FLAG_XO) !== 0 ? XO_AUDIO_BYTES : 0;
   const bytes = new Uint8Array(FRAME_HEADER_BYTES + audio + size);
   bytes[0] = flags;
+
   if (payload) bytes.set(payload, FRAME_HEADER_BYTES + audio);
+
   return bytes.buffer;
 }
 

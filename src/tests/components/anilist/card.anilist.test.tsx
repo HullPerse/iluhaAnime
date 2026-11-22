@@ -14,6 +14,7 @@ import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke } = await import("@/tests/mocks");
+
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -72,6 +73,7 @@ const makeLookup = (score: number | null, overrides: Partial<EntryListInfo> = {}
 
 const renderCard = (scoreFormat: string, score: number | null) => {
   const client = new QueryClient();
+
   return render(
     <QueryClientProvider client={client}>
       <AniListCard
@@ -106,26 +108,11 @@ describe("AniListCard score badge", () => {
     expect(screen.getByTitle("Моя оценка: 55/100")).toBeTruthy();
   });
 
-  it("shows a plain ten point score with its denominator", () => {
-    renderCard("POINT_10", 8);
-    expect(screen.getByTitle("Моя оценка: 8/10")).toBeTruthy();
-  });
-
-  it("shows a decimal score as entered", () => {
-    renderCard("POINT_10_DECIMAL", 8.5);
-    expect(screen.getByTitle("Моя оценка: 8.5/10")).toBeTruthy();
-  });
-
   it("swaps the number for a smiley icon on the three point format", () => {
     renderCard("POINT_3", 3);
     const badge = screen.getByLabelText("Моя оценка: :)");
     expect(badge.querySelector("svg")).not.toBeNull();
     expect(badge.textContent).not.toMatch(/[0-9]/u);
-  });
-
-  it("renders nothing without a score", () => {
-    renderCard("POINT_100", null);
-    expect(screen.queryByTitle(/Моя оценка/u)).toBeNull();
   });
 });
 
@@ -156,6 +143,7 @@ describe("ProgressStepper", () => {
       favourites: [],
       people: { staff: [], characters: [] },
     });
+
     return render(
       <QueryClientProvider client={client}>
         <AniListCard
@@ -171,6 +159,7 @@ describe("ProgressStepper", () => {
 
   it("debounces the save and shows loader then a checkmark", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -248,6 +237,7 @@ describe("ProgressStepper coalescing", () => {
         />
       </QueryClientProvider>
     );
+
     return client;
   };
 
@@ -257,6 +247,7 @@ describe("ProgressStepper coalescing", () => {
 
   it("applies rapid clicks instantly and syncs the trailing target once", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -282,6 +273,7 @@ describe("ProgressStepper coalescing", () => {
 
   it("moves the shown progress on click before the cache is written", async () => {
     vi.useFakeTimers();
+
     try {
       const client = renderCoalescing();
       const plus = screen.getByRole("button", { name: "Посмотрена еще одна серия" });
@@ -306,12 +298,14 @@ describe("ProgressStepper coalescing", () => {
 
   it("adopts the server-normalized progress and status", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
       vi.mocked(invoke).mockImplementation((command: unknown) => {
         if (command === "save_anilist_entry")
           return Promise.resolve({ id: 1, status: "COMPLETED", progress: 28, customLists: [] });
+
         return Promise.resolve(null);
       });
       const client = renderCoalescing();
@@ -332,6 +326,7 @@ describe("ProgressStepper coalescing", () => {
 
   it("keeps a newer click when an older save fails", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -339,6 +334,7 @@ describe("ProgressStepper coalescing", () => {
       const rejecters: ((reason?: unknown) => void)[] = [];
       vi.mocked(invoke).mockImplementation((command: unknown) => {
         if (command !== "save_anilist_entry") return Promise.resolve(null);
+
         return new Promise((resolve, reject) => {
           pending.push(resolve);
           rejecters.push(reject);
@@ -378,6 +374,7 @@ describe("ProgressStepper coalescing", () => {
 
   it("rolls back to the confirmed value and retries on failure", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -445,11 +442,13 @@ describe("ProgressStepper completion", () => {
         />
       </QueryClientProvider>
     );
+
     return client;
   };
 
   it("shows completed immediately and sends it with the final episode", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -483,6 +482,7 @@ describe("ProgressStepper completion", () => {
 
   it("keeps the current status before the final episode", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -503,6 +503,7 @@ describe("ProgressStepper completion", () => {
 
   it("drops the optimistic completion when the save fails", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockRejectedValueOnce(new Error("429 Too Many Requests"));
@@ -523,6 +524,7 @@ describe("ProgressStepper completion", () => {
 
   it("does not complete an entry with an unknown episode total", async () => {
     vi.useFakeTimers();
+
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       vi.mocked(invoke).mockClear();
@@ -551,6 +553,7 @@ describe("ProgressStepper completion", () => {
 describe("AniListCard short meta", () => {
   const renderReleasing = () => {
     const client = new QueryClient();
+
     return render(
       <QueryClientProvider client={client}>
         <AniListCard

@@ -6,8 +6,10 @@ import type { ResolvedKeybind } from "@/types/search/resolveHotkeys";
 
 export function BindingCell({ row, scopeLabel }: { row: ResolvedKeybind; scopeLabel: string }) {
   const { t } = useI18n();
+
   if (row.shadowedChord) {
     const winner = KEYBIND_MANIFEST.find((entry) => entry.id === row.shadowedBy);
+
     return (
       <span className="flex w-60 min-w-0 shrink-0 items-center gap-1" role="cell">
         <span className="text-hint shrink-0 text-xs select-none">{scopeLabel}:</span>
@@ -29,6 +31,7 @@ export function BindingCell({ row, scopeLabel }: { row: ResolvedKeybind; scopeLa
       </span>
     );
   }
+
   return (
     <span className="flex w-60 min-w-0 shrink-0 items-center gap-1" role="cell">
       <span className="text-hint shrink-0 text-xs select-none">{scopeLabel}:</span>

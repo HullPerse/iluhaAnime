@@ -58,7 +58,9 @@ export default function GameRoute() {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape" && !storeOpen && draftPath === null) setExpanded(false);
     };
+
     window.addEventListener("keydown", onKeyDown);
+
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [expanded, storeOpen, draftPath]);
 
@@ -66,10 +68,13 @@ export default function GameRoute() {
     const [selected, error] = await attempt(
       openDialog({ multiple: false, directory: false, filters: ROM_FILTERS })
     );
+
     if (error !== null) {
       reportBackgroundError("game.import.pick", error);
+
       return;
     }
+
     if (typeof selected !== "string") return;
     setDraftPath(selected);
   };
@@ -78,10 +83,13 @@ export default function GameRoute() {
     const [, error] = await attempt(
       importRom.mutateAsync({ name: draft.name, path: draft.path, platform: draft.platform })
     );
+
     if (error !== null) {
       showError(t("common.error"), t("game.import.error"));
+
       return;
     }
+
     setDraftPath(null);
   };
 
@@ -92,13 +100,18 @@ export default function GameRoute() {
         title: t("game.delete.title"),
       })
     );
+
     if (error !== null) {
       reportBackgroundError("game.delete.confirm", error);
+
       return;
     }
+
     if (confirmed !== true) return;
+
     if (session.runtime.info?.id === rom.id) session.stop();
     const [, deleteError] = await attempt(deleteRom.mutateAsync(rom.id));
+
     if (deleteError !== null) showError(t("common.error"), t("game.delete.error"));
   };
 

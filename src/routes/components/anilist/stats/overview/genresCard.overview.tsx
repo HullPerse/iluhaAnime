@@ -19,6 +19,7 @@ export function GenresCard({
   onDrill: (data: StatsDrillData) => void;
 }) {
   const { t, locale } = useI18n();
+
   return (
     <StatsCard title={t("anilist.stats.top.genres")}>
       <BarChart
@@ -27,6 +28,7 @@ export function GenresCard({
         formatValue={(value) => formatCompact(value, locale)}
         tooltip={(datum, index) => {
           const row = model.genres[index];
+
           return {
             title: datum.label,
             rows: [
@@ -44,6 +46,7 @@ export function GenresCard({
         }}
         onActivate={(index) => {
           const row = model.genres[index];
+
           if (row) {
             onDrill({ title: `${row.genre} (${row.mediaIds.length})`, ids: row.mediaIds });
           }

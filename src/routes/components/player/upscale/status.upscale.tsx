@@ -14,6 +14,7 @@ export function UpscaleStatusPanels({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+
   if (localError && !activeItem) {
     return (
       <div className="flex flex-col items-center gap-2 p-1">
@@ -22,6 +23,7 @@ export function UpscaleStatusPanels({
       </div>
     );
   }
+
   if (activeItem?.status === "error") {
     return (
       <div className="flex flex-col items-center gap-2 p-1">
@@ -32,6 +34,7 @@ export function UpscaleStatusPanels({
       </div>
     );
   }
+
   if (activeItem?.status === "done") {
     return (
       <div className="flex flex-col items-center gap-2 p-1">
@@ -41,5 +44,6 @@ export function UpscaleStatusPanels({
       </div>
     );
   }
+
   return null;
 }

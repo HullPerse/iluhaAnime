@@ -9,8 +9,11 @@ import type { TranslationKey } from "@/types/core/i18n";
 
 function startLabelFor(view: DailyModeView | undefined): TranslationKey {
   if (view?.result) return "collection.game.result";
+
   if ((view?.attempts ?? 0) > 0) return "collection.game.continue";
+
   if (view?.state === "failed") return "collection.game.retry";
+
   return "collection.game.start";
 }
 

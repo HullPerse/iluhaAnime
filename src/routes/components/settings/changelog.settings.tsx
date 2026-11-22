@@ -20,6 +20,7 @@ export function SettingsChangelog() {
     <div className="flex flex-col gap-1">
       {CHANGELOG.map((entry) => {
         const expanded = open[entry.version] ?? false;
+
         return (
           <div key={entry.version} className="ui-panel flex flex-col p-1">
             <button

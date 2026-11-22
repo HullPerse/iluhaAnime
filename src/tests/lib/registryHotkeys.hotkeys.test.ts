@@ -24,6 +24,7 @@ describe("createHotkeyRegistry", () => {
 
   it("skips invalid chords and keeps the first of a clash", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
     try {
       const registry = createHotkeyRegistry([
         { id: "first", chord: "Space", repeat: "once" },

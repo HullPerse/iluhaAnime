@@ -17,12 +17,16 @@ interface TimedEntry<V> {
 function createTimedLoader<V>() {
   const cache = createLruCache<string, TimedEntry<V>>(CAPACITY);
   const inflight = new Map<string, Promise<V>>();
+
   return (key: string, load: () => Promise<V>): Promise<V> => {
     const hit = cache.get(key);
+
     if (hit && Date.now() - hit.at < TTL_MS) return Promise.resolve(hit.value);
+
     return inflightFetch(inflight, key, () =>
       load().then((value) => {
         cache.set(key, { value, at: Date.now() });
+
         return value;
       })
     );
@@ -61,5 +65,6 @@ export async function prefetchNativeSources(
       await attempt(loadSources(episodeId, buildVariantId(variant)));
     }
   };
+
   await Promise.all(Array.from({ length: Math.min(3, queue.length) }, worker));
 }

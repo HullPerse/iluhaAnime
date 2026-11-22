@@ -12,8 +12,10 @@ const MIN_DISTANCE = 28;
 
 export function hexToRgb(hex: string): RGB | null {
   const match = hex.trim().match(/^#([\da-f]{6})$/i);
+
   if (!match) return null;
   const value = Number.parseInt(match[1], 16);
+
   return { b: value & 0xff, g: (value >> 8) & 0xff, r: (value >> 16) & 0xff };
 }
 
@@ -26,25 +28,30 @@ export function rgbToHex({ r, g, b }: RGB): string {
     Math.max(0, Math.min(255, Math.round(value)))
       .toString(16)
       .padStart(2, "0");
+
   return `#${channel(r)}${channel(g)}${channel(b)}`;
 }
 
 function relativeLuminance({ r, g, b }: RGB): number {
   const linear = (value: number) => {
     const channel = value / 255;
+
     return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
   };
+
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
 export function contrastRatio(a: string, b: string): number {
   const first = hexToRgb(a);
   const second = hexToRgb(b);
+
   if (first === null || second === null) return 1;
   const one = relativeLuminance(first);
   const two = relativeLuminance(second);
   const lighter = Math.max(one, two);
   const darker = Math.min(one, two);
+
   return (lighter + 0.05) / (darker + 0.05);
 }
 
@@ -52,6 +59,7 @@ export function getTitleText(color: string): string {
   if (hexToRgb(color) === null) return "#ffffff";
   const dark = contrastRatio(color, "#000000");
   const light = contrastRatio(color, "#ffffff");
+
   return dark >= light ? "#000000" : "#ffffff";
 }
 
@@ -65,40 +73,51 @@ export const WINDOW_TINT_MAX = 0.95;
 
 export function windowTintAlpha(face: string, text: string): number {
   const base = hexToRgb(face);
+
   if (base === null) return WINDOW_TINT_MAX;
   let required = 0;
+
   for (const desktop of DESKTOP_EXTREMES) {
     const under = hexToRgb(desktop);
+
     if (under === null) continue;
     let satisfied = 1;
+
     for (let alpha = 0; alpha <= 1.0001; alpha += 0.01) {
       const blended = rgbToHex({
         b: under.b + (base.b - under.b) * alpha,
         g: under.g + (base.g - under.g) * alpha,
         r: under.r + (base.r - under.r) * alpha,
       });
+
       if (contrastRatio(blended, text) >= AA_CONTRAST) {
         satisfied = alpha;
         break;
       }
     }
+
     required = Math.max(required, satisfied);
   }
+
   return Math.min(WINDOW_TINT_MAX, Math.max(WINDOW_TINT_MIN, Number(required.toFixed(2))));
 }
 
 function saturation({ r, g, b }: RGB): number {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
+
   return max === 0 ? 0 : (max - min) / max;
 }
 
 export function mixHex(a: string, b: string, amount: number): string {
   const first = hexToRgb(a);
   const second = hexToRgb(b);
+
   if (first === null) return b;
+
   if (second === null) return a;
   const weight = Math.max(0, Math.min(1, amount));
+
   return rgbToHex({
     b: first.b + (second.b - first.b) * weight,
     g: first.g + (second.g - first.g) * weight,
@@ -117,12 +136,15 @@ function distance(a: RGB, b: RGB): number {
 export function colorDistance(a: string, b: string): number {
   const first = hexToRgb(a);
   const second = hexToRgb(b);
+
   if (first === null || second === null) return 0;
+
   return distance(first, second);
 }
 
 function quantizePalette(pixels: Uint8ClampedArray | Uint8Array, limit = PALETTE_LIMIT): string[] {
   const buckets = new Map<number, { count: number; r: number; g: number; b: number }>();
+
   for (let index = 0; index + 3 < pixels.length; index += 4) {
     if (pixels[index + 3] < MIN_ALPHA) continue;
     const r = pixels[index];
@@ -130,6 +152,7 @@ function quantizePalette(pixels: Uint8ClampedArray | Uint8Array, limit = PALETTE
     const b = pixels[index + 2];
     const key = ((r >> BUCKET_SHIFT) << 8) | ((g >> BUCKET_SHIFT) << 4) | (b >> BUCKET_SHIFT);
     const bucket = buckets.get(key);
+
     if (bucket === undefined) buckets.set(key, { b, count: 1, g, r });
     else {
       bucket.count += 1;
@@ -147,11 +170,14 @@ function quantizePalette(pixels: Uint8ClampedArray | Uint8Array, limit = PALETTE
     .sort((a, b) => b.count - a.count);
 
   const picked: RGB[] = [];
+
   for (const entry of ranked) {
     if (picked.length >= limit) break;
+
     if (picked.some((color) => distance(color, entry.color) < MIN_DISTANCE)) continue;
     picked.push(entry.color);
   }
+
   return picked.map(rgbToHex);
 }
 
@@ -161,11 +187,13 @@ export function readImagePalette(image: HTMLImageElement, size = PALETTE_SAMPLE_
   canvas.width = size;
   canvas.height = size;
   const context = canvas.getContext("2d");
+
   if (context === null || typeof context.getImageData !== "function") return [];
   context.drawImage(image, 0, 0, size, size);
   const [palette, error] = attemptSync(() =>
     quantizePalette(context.getImageData(0, 0, size, size).data)
   );
+
   return error === null ? palette : [];
 }
 
@@ -179,13 +207,16 @@ function mostSaturated(palette: RGB[], used: Set<string>): RGB | null {
 
 function mostBiased(palette: RGB[], bias: (color: RGB) => number): RGB | null {
   const best = [...palette].sort((a, b) => bias(b) - bias(a))[0];
+
   return best !== undefined && bias(best) > 0 ? best : null;
 }
 
 export function deriveFieldColor(field: unknown, primary: string): string {
   if (typeof field === "string" && hexToRgb(field) !== null) return field;
   const rgb = hexToRgb(primary);
+
   if (rgb === null || relativeLuminance(rgb) >= 0.5) return "#ffffff";
+
   return shade(primary, -0.3);
 }
 
@@ -194,6 +225,7 @@ export function buildThemeColors(palette: string[]): ThemeDefinition["colors"] {
     .map((color) => hexToRgb(color))
     .filter((color): color is RGB => color !== null);
   const fallback = { ...DEFAULT_THEME_COLORS } satisfies ThemeDefinition["colors"];
+
   if (rgb.length === 0) return fallback;
 
   const byLuminance = [...rgb].sort((a, b) => relativeLuminance(a) - relativeLuminance(b));

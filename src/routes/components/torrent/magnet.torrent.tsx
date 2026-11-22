@@ -23,22 +23,30 @@ export default function AddTorrentModal({
 
   useEffect(() => {
     if (!open) return;
+
     if (initialMagnet) {
       setMagnetInput(initialMagnet);
+
       return;
     }
+
     let active = true;
     (async () => {
       const [text, error] = await attempt(readText());
+
       if (!active) return;
+
       if (error) {
         reportBackgroundError("magnet.clipboard", error);
+
         return;
       }
+
       if (text && MAGNET_RX.test(text.trim())) {
         setMagnetInput(text.trim());
       }
     })();
+
     return () => {
       active = false;
     };
@@ -76,9 +84,11 @@ export default function AddTorrentModal({
                 filters: [{ name: "Torrent", extensions: ["torrent"] }],
               });
               let files: string[] = [];
+
               if (selection !== null) {
                 files = Array.isArray(selection) ? selection : [selection];
               }
+
               if (files.length > 0) {
                 handleClose();
                 onAddFiles(files);

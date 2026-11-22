@@ -5,6 +5,7 @@ import { splashProgress, splashStageLabel } from "@/lib/splash/stages.utils";
 export function XpSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: SplashVariantProps) {
   const progress = splashProgress(stages);
   const percent = Math.round(progress * 100);
+
   return (
     <div
       role="status"

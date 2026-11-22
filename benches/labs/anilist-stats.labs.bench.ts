@@ -107,19 +107,25 @@ const MEDIA_IDS = Array.from({ length: 500 }, (_, index) => index * 3 + 1);
 
 function onePassGenreCompletion(lists: AniListCollection[]): number {
   const counts = new Map<string, { started: number; completed: number }>();
+
   for (const item of collectAllEntries(lists)) {
     if (item.list_status === "PLANNING") continue;
+
     for (const genre of item.media.genres) {
       const row = counts.get(genre) ?? { started: 0, completed: 0 };
       row.started += 1;
+
       if (item.list_status === "COMPLETED") row.completed += 1;
       counts.set(genre, row);
     }
   }
+
   let total = 0;
+
   for (const row of counts.values()) {
     if (row.started >= 5) total += row.completed / row.started;
   }
+
   return total;
 }
 
@@ -127,17 +133,21 @@ function naiveGenreCompletion(lists: AniListCollection[]): number {
   const entries = collectAllEntries(lists).filter((item) => item.list_status !== "PLANNING");
   const genres = new Set(entries.flatMap((item) => item.media.genres));
   let total = 0;
+
   for (const genre of genres) {
     const inGenre = entries.filter((item) => item.media.genres.includes(genre));
+
     if (inGenre.length < 5) continue;
     total += inGenre.filter((item) => item.list_status === "COMPLETED").length / inGenre.length;
   }
+
   return total;
 }
 
 group("anilist stats @anilist @quick", () => {
   bench("overview, 3000 entries x200", () => {
     let sum = 0;
+
     for (let index = 0; index < 200; index++) {
       const model = buildStatsOverview({
         statistics: STATISTICS,
@@ -146,24 +156,31 @@ group("anilist stats @anilist @quick", () => {
       });
       sum += model.genres.length + model.completion.length;
     }
+
     return sum;
   });
 
   bench("genre completion, one pass x200", () => {
     let sum = 0;
+
     for (let index = 0; index < 200; index++) sum += onePassGenreCompletion(LISTS);
+
     return sum;
   });
 
   bench("genre completion, naive x20", () => {
     let sum = 0;
+
     for (let index = 0; index < 20; index++) sum += naiveGenreCompletion(LISTS);
+
     return sum;
   });
 
   bench("drill-down rows, 500 ids x300", () => {
     let sum = 0;
+
     for (let index = 0; index < 300; index++) sum += buildMediaRows(MEDIA_IDS, LISTS).length;
+
     return sum;
   });
 });

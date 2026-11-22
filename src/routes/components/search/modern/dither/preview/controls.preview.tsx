@@ -12,6 +12,7 @@ export default function DitherControls({
   onPatch: (partial: Partial<DitherEffectOptions>) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-col gap-2">
       {DITHER_SLIDER_GROUPS.map((group) => (
@@ -19,7 +20,9 @@ export default function DitherControls({
           <h3 className="windows95-text text-xs font-bold">{t(group.title)}</h3>
           {group.fields.map((field) => {
             const def = ditherSliderDef(field);
+
             if (!def) return null;
+
             return (
               <Slider
                 key={field}

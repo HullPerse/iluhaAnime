@@ -25,6 +25,7 @@ const WALLPAPER: UserImageFile = {
 
 const renderModern = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <SearchModern />
@@ -73,6 +74,7 @@ describe("SearchModern wallpaper gate", () => {
     });
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_dither_image") return pending;
+
       return false;
     });
     const { container } = renderModern();
@@ -87,6 +89,7 @@ describe("SearchModern wallpaper gate", () => {
     patchSettings({ selectedDitherId: "real-id" });
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_dither_image") throw new Error("gone");
+
       return false;
     });
     const { container } = renderModern();

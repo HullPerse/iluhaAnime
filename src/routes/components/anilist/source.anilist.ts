@@ -33,6 +33,7 @@ export function buildAniListSource(params: {
   friendData: FriendSourceData | null;
 }): AniListSource {
   const { user, lists, favourites, entryLookup, favouriteIds, friend, friendData } = params;
+
   if (friend && friendData) {
     return {
       caps: FRIEND_CAPS,
@@ -48,6 +49,7 @@ export function buildAniListSource(params: {
       user,
     };
   }
+
   return {
     caps: SELF_CAPS,
     displayFavouriteIds: favouriteIds,

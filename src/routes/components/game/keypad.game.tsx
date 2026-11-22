@@ -18,6 +18,7 @@ export default function GameKeypad({ pressedKeys, enabled, onPress }: GameKeypad
           <div key={row[0].code} className="flex gap-0.5">
             {row.map((entry) => {
               const pressed = pressedKeys.has(entry.key);
+
               return (
                 <button
                   key={entry.code}

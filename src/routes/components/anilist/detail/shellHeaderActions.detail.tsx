@@ -23,6 +23,7 @@ export function ShellHeaderActions({
   siteId: number;
 }) {
   const { t } = useI18n();
+
   return (
     <>
       <CopyLinkButton animeId={animeId} />

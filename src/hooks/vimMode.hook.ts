@@ -61,6 +61,7 @@ function isKeyboardExcludedRoute(pathname: string): boolean {
 
 function letterFromCode(code: string): string | null {
   const match = LETTER_CODE.exec(code);
+
   return match ? match[1].toLowerCase() : null;
 }
 
@@ -113,6 +114,7 @@ export function useVimMode(): void {
       if (pinTimer === null) pinTimer = createPinTimer(() => setVimPinned(null));
       pinTimer.maybeExecute();
     };
+
     const cancelPinTimer = (): void => pinTimer?.cancel();
 
     const closeLayer = (): void => {
@@ -128,8 +130,10 @@ export function useVimMode(): void {
       if (badge.variant === "focus") {
         dispatchFocus(badge.element);
         closeLayer();
+
         return;
       }
+
       dispatchClick(badge.element, badge.variant);
       flashTarget(badge.element);
       const row =
@@ -143,39 +147,51 @@ export function useVimMode(): void {
     const handleActiveKey = (event: KeyboardEvent): void => {
       if (event.ctrlKey || event.metaKey) return;
       const letter = letterFromCode(event.code);
+
       if (!letter || !VIM_LABEL_ALPHABET.includes(letter)) return;
       event.preventDefault();
       event.stopPropagation();
       const { badges, buffer } = vimAtoms.hints.get();
       const result = reduceHintKey(badges, buffer, letter, event.altKey);
+
       if (result.outcome === "activate" && result.badge) {
         activate(result.badge);
+
         return;
       }
+
       if (result.outcome === "pin" && result.badge) {
         setVimPinned(result.badge.label);
         setVimBuffer(result.buffer);
         armPinTimer();
+
         return;
       }
+
       setVimBuffer(result.buffer);
     };
 
     const resolveSurface = (): HTMLElement | null => {
       const fromHover = closestScrollable(hovered);
+
       if (fromHover) return fromHover;
       const active = document.activeElement;
       const fromFocus = closestScrollable(active instanceof HTMLElement ? active : null);
+
       if (fromFocus) return fromFocus;
       const marked = document.querySelector<HTMLElement>(VIM_CONTENT_SELECTOR);
+
       return marked ? closestScrollable(marked) : null;
     };
 
     const scroll = (command: VimCommand): void => {
       const direction = SCROLL_DIRECTIONS[command];
+
       if (!direction) return;
+
       if (topLayerElement()) return;
       const surface = resolveSurface();
+
       if (!surface) return;
       surface.scrollTop += scrollAmount(direction, surface.clientHeight, VIM_SCROLL_LINE_PX);
     };
@@ -183,6 +199,7 @@ export function useVimMode(): void {
     const openLayer = (): void => {
       closeOpenContextMenus();
       const { badges, overflow } = scanHintTargets(topLayerElement() ?? document);
+
       if (badges.length === 0) return;
       openHints(badges, overflow);
       setHintsLayerVisible(true);
@@ -197,8 +214,10 @@ export function useVimMode(): void {
     const scrollEdge = (edge: "top" | "middle" | "bottom"): void => {
       if (topLayerElement()) return;
       const surface = resolveSurface();
+
       if (!surface) return;
       const max = Math.max(0, surface.scrollHeight - surface.clientHeight);
+
       if (edge === "top") surface.scrollTop = 0;
       else if (edge === "bottom") surface.scrollTop = max;
       else surface.scrollTop = max / 2;
@@ -206,6 +225,7 @@ export function useVimMode(): void {
 
     const treeRowFromEvent = (event: KeyboardEvent): HTMLElement | null => {
       const target = event.target instanceof HTMLElement ? event.target : null;
+
       return target?.closest<HTMLElement>(TREE_ROW_SELECTOR) ?? null;
     };
 
@@ -213,10 +233,13 @@ export function useVimMode(): void {
       const count = vimAtoms.count.get();
       setVimCount("");
       const parsed = Number.parseInt(count, 10);
+
       if (Number.isNaN(parsed)) {
         focusTreeSibling(row, command === "first" ? 1 : -1);
+
         return;
       }
+
       focusTreeSibling(row, parsed);
     };
 
@@ -234,39 +257,55 @@ export function useVimMode(): void {
         const row = resolveKeybinds(stateRef.current.overrides).find(
           (entry) => entry.entry.id === id
         );
+
         return row?.activeChord ?? null;
       },
       onCommand: (command, event) => {
         if (command === "hints") {
           openLayer();
+
           return;
         }
+
         if (command === "first" || command === "last") {
           const row = treeRowFromEvent(event);
+
           if (row) {
             focusTreeIndex(row, command);
+
             return;
           }
+
           scrollEdge(command === "first" ? "top" : "bottom");
+
           return;
         }
+
         if (command === "scroll.down" || command === "scroll.up") {
           if (treeRowFromEvent(event)) return;
           scroll(command);
+
           return;
         }
+
         if (command === "edge.top") {
           scrollEdge("top");
+
           return;
         }
+
         if (command === "edge.middle") {
           scrollEdge("middle");
+
           return;
         }
+
         if (command === "edge.bottom") {
           scrollEdge("bottom");
+
           return;
         }
+
         scroll(command);
       },
       onActiveKey: (event) => handleActiveKey(event),
@@ -277,6 +316,7 @@ export function useVimMode(): void {
 
     const blurOnEscape = (event: KeyboardEvent): void => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
+
       if (
         !shouldBlurOnEscape(event.target, {
           hintsOpen: engine?.state() === "hints",
@@ -285,10 +325,12 @@ export function useVimMode(): void {
       ) {
         return;
       }
+
       event.preventDefault();
       event.stopPropagation();
       blurEditable(event.target);
     };
+
     engine.attach();
     window.addEventListener("pointerover", trackPointer, true);
     window.addEventListener("keydown", blurOnEscape, true);
@@ -296,6 +338,7 @@ export function useVimMode(): void {
       if (engine?.state() !== "hints") return;
       closeLayer();
     };
+
     window.addEventListener("pointerdown", dismissOnPointer, true);
     window.addEventListener("contextmenu", dismissOnPointer, true);
 

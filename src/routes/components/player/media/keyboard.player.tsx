@@ -31,11 +31,14 @@ function Keyboard({
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if (event.key !== "F11" || event.repeat) return;
+
       if (shouldIgnorePlayerHotkeys(event)) return;
       event.preventDefault();
       fullscreenRef.current?.();
     };
+
     window.addEventListener("keydown", handleKeydown);
+
     return () => {
       window.removeEventListener("keydown", handleKeydown);
     };
@@ -49,11 +52,13 @@ function Keyboard({
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       if (shouldIgnoreHotkeys(event.target)) return;
+
       if (isInsideScrollable(event.target)) return;
       wheelRef.current?.(event.deltaY > 0 ? -1 : 1);
     };
 
     window.addEventListener("wheel", handleWheel, { passive: true });
+
     return () => {
       window.removeEventListener("wheel", handleWheel);
     };

@@ -28,6 +28,7 @@ describe("splash signals contract", () => {
 
   it("times out when the cache never settles", async () => {
     vi.useFakeTimers();
+
     try {
       const pending = awaitCacheReady(100);
       const assertion = expect(pending).resolves.toBe(false);

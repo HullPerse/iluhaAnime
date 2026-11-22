@@ -2,6 +2,12 @@ export type NewsBlockKind = "paragraph" | "quote";
 
 export type NewsAttachmentKind = "image" | "youtube" | "vk";
 
+export type NewsReaderMode =
+  | { kind: "post" }
+  | { kind: "image"; images: readonly string[]; index: number }
+  | { kind: "youtube"; youtubeId: string }
+  | { kind: "vk"; url: string; pageUrl: string };
+
 /** Inline run of article text; only bold, italic and http(s) links survive normalization. */
 export interface NewsRun {
   text: string;

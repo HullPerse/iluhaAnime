@@ -28,12 +28,14 @@ export function TorrentProgress({ item }: { item: TorrentInfo }) {
   useEffect(() => {
     if (!initializing) return;
     const { cancel } = createInterval(() => setNowTick((x) => x + 1), 1000);
+
     return cancel;
   }, [initializing]);
   const initElapsedSecs =
     initializing && sinceSecs !== undefined && sinceSecs > 0
       ? Math.max(0, Math.floor(Date.now() / 1000) - sinceSecs)
       : null;
+
   return (
     <section className="flex w-full flex-row items-start justify-between gap-1">
       <div className="flex w-full flex-col">

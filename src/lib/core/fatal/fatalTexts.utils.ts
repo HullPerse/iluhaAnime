@@ -6,6 +6,7 @@ import type { DbTexts, SplashTexts } from "@/types/core/fatalTexts";
 
 export function resolveFatalTexts(kind: FatalInfo["kind"]): FatalTexts {
   const pick = (key: TranslationKey): string => translate(key);
+
   return {
     kindLabel: pick(toLocaleKey(`fatal.kind.${kind}`)),
     yorhaBanner: pick("fatal.yorha.banner"),
@@ -29,6 +30,7 @@ export function resolveFatalTexts(kind: FatalInfo["kind"]): FatalTexts {
 
 export function resolveSplashTexts(): SplashTexts {
   const pick = (key: TranslationKey): string => translate(key);
+
   return {
     theme: pick("splash.stage.theme"),
     migrations: pick("splash.stage.migrations"),
@@ -50,6 +52,7 @@ export function resolveSplashTexts(): SplashTexts {
 
 export function resolveDbTexts(): DbTexts {
   const pick = (key: TranslationKey): string => translate(key);
+
   return {
     title: pick("db.title"),
     hint: pick("db.hint"),

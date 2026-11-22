@@ -17,6 +17,7 @@ export function YearColumnsCard({
   onDrill: (data: StatsDrillData) => void;
 }) {
   const { t, locale } = useI18n();
+
   return (
     <StatsCard title={title}>
       <ColumnChart
@@ -33,6 +34,7 @@ export function YearColumnsCard({
         })}
         onActivate={(index) => {
           const row = rows[index];
+
           if (row) {
             onDrill({ title: `${title} (${row.mediaIds.length})`, ids: row.mediaIds });
           }

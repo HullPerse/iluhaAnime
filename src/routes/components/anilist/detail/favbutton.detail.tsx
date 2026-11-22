@@ -21,6 +21,7 @@ export function PersonFavButton({
   const heart = (
     <Heart className={cn("size-4", isFav ? "fill-red-500 text-red-500" : "text-text")} />
   );
+
   if (labelled) {
     return (
       <Button
@@ -34,6 +35,7 @@ export function PersonFavButton({
       </Button>
     );
   }
+
   return (
     <Button
       size="icon"

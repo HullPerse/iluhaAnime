@@ -7,5 +7,6 @@ export function excerptOf(blocks: readonly NewsBlock[], limit = 260): string {
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
+
   return text.length > limit ? `${text.slice(0, limit).trimEnd()}...` : text;
 }

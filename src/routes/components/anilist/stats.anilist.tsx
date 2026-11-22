@@ -27,7 +27,9 @@ import { TabButtons } from "@/routes/components/anilist/stats/modal/tabs.modal";
 
 function calendarModalWidth(tab: StatsTab, view: StatsCalendarView): string {
   if (tab === "overview") return "w-7xl";
+
   if (tab === "calendar" && view === "week") return "w-5xl";
+
   return "w-3xl";
 }
 
@@ -83,8 +85,10 @@ export default function StatsModal({
     if (month === 0) {
       setYear((y) => y - 1);
       setMonth(11);
+
       return;
     }
+
     setMonth((m) => m - 1);
   };
 
@@ -92,8 +96,10 @@ export default function StatsModal({
     if (month === 11) {
       setYear((y) => y + 1);
       setMonth(0);
+
       return;
     }
+
     setMonth((m) => m + 1);
   };
 
@@ -122,6 +128,7 @@ export default function StatsModal({
     setSelectedDay(null);
     setDrill(null);
   };
+
   const changeCalendarView = (next: StatsCalendarView) => {
     if (next === calendarView) return;
     setCalendarView(next);
@@ -147,6 +154,7 @@ export default function StatsModal({
   const drillTitle = drill == null || dayTitle != null ? null : drill.title;
 
   let backAction: (() => void) | undefined;
+
   if (dayTitle != null) {
     backAction = () => setSelectedDay(null);
   } else if (drillTitle != null) {

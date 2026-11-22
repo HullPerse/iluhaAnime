@@ -48,6 +48,7 @@ vi.mock("@/routes/game.route", () => ({
 const renderAt = (href: string) => {
   const router = createAppRouter(createMemoryHistory({ initialEntries: [href] }));
   render(<RouterProvider router={router} />);
+
   return router;
 };
 

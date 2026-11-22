@@ -1,9 +1,10 @@
-import { keepPreviousData } from "@tanstack/react-query";
+import { hashKey, keepPreviousData } from "@tanstack/react-query";
 import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 
 import { cardsApi } from "@/api/cards.api";
 import { useAppInfiniteQuery, useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import { isRecord } from "@/lib/core/text/record.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { CardsCollectionSort, CardsSortDir } from "@/types/store/cards";
 import type {
@@ -14,7 +15,6 @@ import type {
   CardsCollectionParams,
   CardsShell,
   CardsStats,
-  CardsUnread,
   CollectionPage,
   CollectionRosterPage,
   CollectionShelfItem,
@@ -43,6 +43,7 @@ export function useCardsShell() {
 
 export function useCardsStarterStatus() {
   const proxy = anilistProxy();
+
   return useAppQuery<StarterStatus>("slow", {
     queryKey: queryKeys.cardsStarterStatus(proxy),
     queryFn: () => cardsApi.starterStatus(proxy || null),
@@ -51,6 +52,7 @@ export function useCardsStarterStatus() {
 
 export function useCardsPacks() {
   const proxy = anilistProxy();
+
   return useAppQuery<CardPackRow[]>("slow", {
     queryKey: queryKeys.cardsPacks(proxy),
     queryFn: () => cardsApi.packs(),
@@ -61,10 +63,21 @@ export function useCardsPacks() {
 
 export function useCardsCollection(params: CardsCollectionParams = {}, enabled = true) {
   const proxy = anilistProxy();
+  const scope = hashKey(queryKeys.cardsCollection({ ...params, page: undefined }, proxy));
+
   return useAppQuery<CollectionPage>("slow", {
     queryKey: queryKeys.cardsCollection(params, proxy),
     queryFn: () => cardsApi.collection(params, proxy || null),
-    placeholderData: keepPreviousData,
+    placeholderData: (previous, query) => {
+      const filters = query?.queryKey[1];
+
+      if (!isRecord(filters) || query?.queryKey[2] !== proxy) return undefined;
+      const previousScope = hashKey(
+        queryKeys.cardsCollection({ ...filters, page: undefined }, proxy)
+      );
+
+      return scope === previousScope ? previous : undefined;
+    },
     enabled,
   });
 }
@@ -74,6 +87,7 @@ export function useCardsCollectionInfinite(
   enabled = true
 ) {
   const proxy = anilistProxy();
+
   return useAppInfiniteQuery<CollectionPage, Error, InfiniteData<CollectionPage>, QueryKey, number>(
     "slow",
     {
@@ -83,7 +97,6 @@ export function useCardsCollectionInfinite(
       initialPageParam: 1,
       getNextPageParam: (lastPage) =>
         lastPage.page * lastPage.pageSize < lastPage.total ? lastPage.page + 1 : undefined,
-      placeholderData: keepPreviousData,
       enabled,
     }
   );
@@ -91,6 +104,7 @@ export function useCardsCollectionInfinite(
 
 export function useCardsCollections(sort: CardsCollectionSort, sortDir: CardsSortDir) {
   const proxy = anilistProxy();
+
   return useAppQuery<CollectionShelfItem[]>("slow", {
     queryKey: queryKeys.cardsCollections(sort, sortDir, proxy),
     queryFn: () => cardsApi.collections(sort, sortDir, proxy || null),
@@ -115,6 +129,7 @@ export function useCardsCardFavorite(kind: CollectionItem["kind"], entityId: num
 
 export function useCardsGallery(kind: CollectionItem["kind"], entityId: number, enabled = true) {
   const proxy = anilistProxy();
+
   return useAppQuery<CardGallery>("slow", {
     queryKey: queryKeys.cardsGallery(kind, entityId, proxy),
     queryFn: () => cardsApi.gallery(kind, entityId, proxy || null),
@@ -124,6 +139,7 @@ export function useCardsGallery(kind: CollectionItem["kind"], entityId: number, 
 
 export function useCardsAnimeCollection(animeId: number | null, kind: "anime" | "manga" = "anime") {
   const proxy = anilistProxy();
+
   return useAppQuery<AnimeCollectionPage>("slow", {
     queryKey: queryKeys.cardsAnimeCollection(animeId ?? 0, kind, proxy),
     queryFn: () => cardsApi.animeCollection(animeId ?? 0, kind, proxy || null),
@@ -134,20 +150,22 @@ export function useCardsAnimeCollection(animeId: number | null, kind: "anime" | 
 export function useCardsCollectionRoster(
   mediaId: number,
   kind: "anime" | "manga",
-  page: number | null
+  firstPage: number | null
 ) {
   const proxy = anilistProxy();
-  return useAppQuery<CollectionRosterPage>("slow", {
-    queryKey: queryKeys.cardsCollectionRoster(mediaId, kind, page ?? 0, proxy),
-    queryFn: () => cardsApi.collectionRoster(mediaId, kind, page ?? 1, proxy || null),
-    enabled: page !== null,
-  });
-}
 
-export function useCardsUnread(packsSince: number, cardsSince: number) {
-  return useAppQuery<CardsUnread>("static", {
-    queryKey: queryKeys.cardsUnread(packsSince, cardsSince),
-    queryFn: () => cardsApi.unread(packsSince, cardsSince),
+  return useAppInfiniteQuery<
+    CollectionRosterPage,
+    Error,
+    InfiniteData<CollectionRosterPage>,
+    QueryKey,
+    number
+  >("slow", {
+    queryKey: queryKeys.cardsCollectionRoster(mediaId, kind, firstPage ?? 0, proxy),
+    queryFn: ({ pageParam }) => cardsApi.collectionRoster(mediaId, kind, pageParam, proxy || null),
+    initialPageParam: firstPage ?? 1,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
+    enabled: firstPage !== null,
   });
 }
 

@@ -123,6 +123,7 @@ export function UpscaleConfigPanel({
         null
       ),
   });
+
   if (activeTab === "convert") {
     return (
       <div className="flex flex-col gap-2 pt-2">

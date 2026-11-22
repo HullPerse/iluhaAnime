@@ -45,6 +45,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
     hideTracks,
     stream,
   } = props;
+
   if (variant === "slim") {
     return (
       <PlayerSlimBar
@@ -59,6 +60,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
       />
     );
   }
+
   if (playerType === "modern") {
     return (
       <ModernControls
@@ -91,6 +93,7 @@ function PlayerBottomBar(props: PlayerBottomBarProps) {
       />
     );
   }
+
   return (
     <>
       <Timeline

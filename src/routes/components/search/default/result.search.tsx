@@ -18,7 +18,7 @@ import TorrentActions from "@/routes/components/search/default/actions.search";
 import CoverCorrectionModal from "@/routes/components/search/default/correction.search";
 import { removeResolvedCover } from "@/store/cover.store";
 import { settingsAtoms } from "@/store/settings.store";
-import type { ResultSearchProps as Props } from "@/types/search/search";
+import type { Anime } from "@/types/torrent/torrent";
 
 function SearchResultItem({
   item,
@@ -29,7 +29,16 @@ function SearchResultItem({
   onDownload,
   onOpenLink,
   onOpenDetails,
-}: Props) {
+}: {
+  item: Anime;
+  source: string;
+  busy: boolean;
+  onCopyMagnet: (item: Anime) => void;
+  onOpenMagnet: (item: Anime) => void;
+  onDownload: (item: Anime) => void;
+  onOpenLink: (item: Anime) => void;
+  onOpenDetails: (item: Anime) => void;
+}) {
   const colors = getLanguageColors();
   const { t } = useI18n();
   const sourceInfo = SOURCE_INFOS.find((info) => info.value === source);
@@ -58,6 +67,7 @@ function SearchResultItem({
       queryClient.invalidateQueries({ queryKey: queryKeys.coverResolveScope(cover.coverKey) })
     );
   };
+
   const total = item.seeders + item.leechers;
   const share = total > 0 ? Math.round((item.seeders / total) * 100) : 0;
 

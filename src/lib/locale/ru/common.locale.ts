@@ -210,7 +210,6 @@ const common = {
   "stream.tabDisabled": "Вкладка потокового вещания отключена в настройках.",
   "stream.source": "Источник",
   "stream.login": "Войти",
-  "stream.login.hint": "Вход в AnimeLib через окно сайта",
   "stream.account.title": "Аккаунт AnimeLib",
   "stream.account.logout": "Выйти из аккаунта",
   "stream.account.logout.title": "Выйти из AnimeLib?",

@@ -15,6 +15,7 @@ export function ColorPickerTrigger({
   container?: HTMLElement | null;
 }) {
   const [open, setOpen] = useState<boolean>(false);
+
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger

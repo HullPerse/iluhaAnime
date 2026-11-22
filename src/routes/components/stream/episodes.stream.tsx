@@ -42,7 +42,9 @@ export default function StreamEpisodes({
 
   const visible = useMemo(() => {
     const needle = filter.trim().toLowerCase();
+
     if (!needle) return episodes;
+
     return episodes.filter((episode) =>
       `${episode.number} ${episode.title ?? ""}`.toLowerCase().includes(needle)
     );
@@ -50,7 +52,9 @@ export default function StreamEpisodes({
 
   const activeRow = useMemo(() => {
     const selectedIndex = visible.findIndex((episode) => episode.id === selectedId);
+
     if (selectedIndex !== -1) return selectedIndex;
+
     return Math.min(activeIndex, Math.max(visible.length - 1, 0));
   }, [activeIndex, selectedId, visible]);
 
@@ -139,8 +143,10 @@ export default function StreamEpisodes({
             const watched = isEpisodeWatched(entry);
             const resume = entry && !watched && entry.position > 0 ? entry.position : 0;
             let rowTone = "text-text hover:bg-surface";
+
             if (selected) rowTone = "bg-secondary text-title-text font-bold";
             else if (watched) rowTone = "text-hint hover:bg-surface";
+
             return (
               <div
                 key={episode.id}
@@ -154,8 +160,10 @@ export default function StreamEpisodes({
                 onMouseEnter={(event) => {
                   if (!preview) {
                     setHover(null);
+
                     return;
                   }
+
                   const rect = event.currentTarget.getBoundingClientRect();
                   setHover({
                     url: preview,

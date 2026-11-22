@@ -60,8 +60,10 @@ export function PlayerFileActions({
             onClick={async (e) => {
               e.stopPropagation();
               const full = upscaledExtra?.fullPath;
+
               if (!full) return;
               const [, error] = await attempt(torrentApi.deleteExtraFile(full));
+
               if (error) showError(t("common.error"), error.message);
               else onDeleteExtraFile?.();
             }}
@@ -82,6 +84,7 @@ export function PlayerFileActions({
               data-file-action="builtin"
               onClick={(e) => {
                 e.stopPropagation();
+
                 if (onPlay) onPlay(fullPath, file.displayName);
                 else onOpenInApp?.(fullPath);
               }}
@@ -141,6 +144,7 @@ export function PlayerFileActions({
               data-file-action="builtin"
               onClick={(e) => {
                 e.stopPropagation();
+
                 if (onPlay) onPlay(joinMediaPath(path, file.name), file.displayName);
                 else if (path) onOpenInApp?.(joinMediaPath(path, file.name));
               }}
@@ -157,6 +161,7 @@ export function PlayerFileActions({
               data-file-action="external"
               onClick={(e) => {
                 e.stopPropagation();
+
                 if (path) {
                   openFileInPlayer(joinMediaPath(path, file.name));
                 }

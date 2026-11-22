@@ -14,6 +14,7 @@ export function FavHeartButton({
   onToggle: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <button
       type="button"

@@ -77,8 +77,10 @@ export function ProxyField({
             onChange={(next) => {
               if (next === "custom") {
                 inputRef.current?.focus();
+
                 return;
               }
+
               const resolved = next || null;
               onChange(resolved);
               commit(resolved);
@@ -100,6 +102,7 @@ export function ProxyField({
             onBlur={() => commit(value)}
             onKeyDown={(event) => {
               if (event.nativeEvent.isComposing) return;
+
               if (event.key === "Enter") event.currentTarget.blur();
             }}
             placeholder={placeholder ?? presets[0] ?? "socks5://127.0.0.1:10808"}

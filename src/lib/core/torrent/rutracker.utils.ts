@@ -21,9 +21,12 @@ const ERROR_KEYS: Record<RutrackerErrorCode, TranslationKey> = {
 export function mapError(raw: string, t: (key: TranslationKey) => string): string {
   const code = raw.split(":")[0].trim() as RutrackerErrorCode;
   const label = t(ERROR_KEYS[code] ?? "search.rutracker.err.unknown");
+
   if (code === "network") {
     const detail = raw.split(":").slice(1).join(":").trim();
+
     if (detail) return `${label}\n${detail}`;
   }
+
   return label;
 }

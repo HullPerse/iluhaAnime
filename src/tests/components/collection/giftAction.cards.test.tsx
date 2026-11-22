@@ -14,26 +14,20 @@ beforeEach(() => {
     if (command === "cards_create_gift") {
       return Promise.resolve({ id: "gift-new", cards: makeGiftCards(2) });
     }
+
     return Promise.resolve(null);
   });
 });
 
 describe("collection gift action", () => {
-  it("opens the gift flow from the header button", () => {
+  it("offers a gift even for a single copy and opens the flow on click", () => {
     const onOpen = vi.fn();
     renderWithCardsClient(<GiftAction onOpen={onOpen} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Создать подарок" }));
-
+    const button = screen.getByRole("button", { name: "Создать подарок" }) as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    fireEvent.click(button);
     expect(onOpen).toHaveBeenCalledOnce();
-  });
-
-  it("offers a gift even for a single copy", () => {
-    renderWithCardsClient(<GiftAction onOpen={() => undefined} />);
-
-    expect(
-      (screen.getByRole("button", { name: "Создать подарок" }) as HTMLButtonElement).disabled
-    ).toBe(false);
   });
 });
 
@@ -68,6 +62,7 @@ describe("collection gift flow", () => {
 
     const closeButtons = screen.getAllByRole("button", { name: "Закрыть" });
     const footerClose = closeButtons.at(-1);
+
     if (footerClose === undefined) throw new Error("close button is missing");
     fireEvent.click(footerClose);
     expect(onClose).toHaveBeenCalledOnce();

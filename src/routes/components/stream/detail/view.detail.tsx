@@ -50,6 +50,7 @@ export function StreamDetailView({
       reportBackgroundError("stream.copy-link", error)
     );
   };
+
   return (
     <Modal
       header={anime?.title ?? t("stream.detail.loading")}

@@ -6,6 +6,7 @@ import { anilistMangaMode, trackedManga } from "@/store/anilistManga.store";
 
 export function AniListMediaMode({ manga = false }: { manga?: boolean }) {
   const { t } = useI18n();
+
   return (
     <div role="group" aria-label={t("manga.tracking.switch")} className="flex shrink-0 gap-1">
       <Button

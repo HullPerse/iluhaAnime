@@ -40,6 +40,10 @@ describe("settings signal migration", () => {
     expect(result.anilistPageSize).toBe(10);
   });
 
+  it("keeps the manga reader zoom when the settings are reloaded", () => {
+    expect(settings.migrateSettingsData({ mangaReaderZoom: 150 }, 63).mangaReaderZoom).toBe(150);
+  });
+
   it("defaults card art fill off and preserves an enabled choice", () => {
     expect(settings.migrateSettingsData({}, 61).cardImageFill).toBe(false);
     expect(settings.migrateSettingsData({ cardImageFill: true }, 61).cardImageFill).toBe(true);

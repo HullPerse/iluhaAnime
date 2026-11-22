@@ -28,17 +28,22 @@ export default function CopyLinkButton({
 
   const copy = async () => {
     const [, error] = await attempt(writeText(value));
+
     if (error !== null) {
       hideRef.current?.cancel();
       setCopied(false);
       onError?.();
+
       return;
     }
+
     setCopied(true);
     onCopied?.();
+
     if (hideRef.current === null) {
       hideRef.current = new Debouncer(() => setCopied(false), { wait: 2000 });
     }
+
     hideRef.current.maybeExecute();
   };
 

@@ -15,6 +15,7 @@ export function VolumeBar() {
   const setAt = useCallback(
     (clientX: number) => {
       const rect = barRef.current?.getBoundingClientRect();
+
       if (!rect || rect.width === 0) return;
       volume?.setVolume(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)));
     },
@@ -54,6 +55,7 @@ export function VolumeBar() {
       }}
       onKeyDown={(event) => {
         if (event.key === "ArrowRight" || event.key === "ArrowUp") step(VOLUME_STEP);
+
         if (event.key === "ArrowLeft" || event.key === "ArrowDown") step(-VOLUME_STEP);
       }}
     >

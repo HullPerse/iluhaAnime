@@ -99,7 +99,7 @@ export const CONFIG_REGISTRY: readonly ConfigRegistryEntry[] = [
   {
     domain: "settings",
     file: "settings/keybinds.config.ts",
-    keys: ["DIGIT_KEYS", "KEYBINDS", "OFFSET_*", "PLAYER_HOTKEYS", "SEEK_STEP", "VIEW_MODE_DIGITS"],
+    keys: ["DIGIT_KEYS", "KEYBINDS", "OFFSET_*", "PLAYER_HOTKEYS", "SEEK_STEP"],
   },
   {
     domain: "settings",

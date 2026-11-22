@@ -10,6 +10,7 @@ export default function LabBinderPage() {
     >
       {Array.from({ length: 12 }, (_, index) => {
         const card = LAB_BINDER[index];
+
         return (
           <div
             key={index}

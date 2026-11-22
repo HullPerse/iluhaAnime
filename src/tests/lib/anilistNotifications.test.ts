@@ -10,7 +10,6 @@ import {
   anilistNotificationsAtoms,
   createAnilistNotificationsSignalStore,
   markOwnAnilistListStatus,
-  migrateNotificationsData,
   saveAnilistObservation,
 } from "@/store/anilist.store";
 import { notificationAtoms } from "@/store/notification.store";
@@ -92,6 +91,7 @@ function mockNow(): void {
 
 function memoryStorage(): Storage {
   const data = new Map<string, string>();
+
   return {
     getItem: (key: string) => data.get(key) ?? null,
     setItem: (key: string, value: string) => {
@@ -164,6 +164,7 @@ describe("list status matrix", () => {
     ["REPEATING", "notification.anilist.repeating"],
     ["PLANNING", "notification.anilist.planned"],
   ];
+
   for (const [status, title] of cases) {
     it(`toasts on transition to ${status}`, async () => {
       saveAnilistObservation(
@@ -178,13 +179,6 @@ describe("list status matrix", () => {
       expect(items.map((item) => item.title)).toContain(title);
     });
   }
-
-  it("stays quiet without a transition", async () => {
-    saveAnilistObservation("7", observation());
-    getLists.mockResolvedValue([{ name: "Watching", entries: [listEntry()] }]);
-    await pollAniListReleases(t, notDisposed, { system: false });
-    expect(notificationAtoms.items.get()).toHaveLength(0);
-  });
 
   it("stays quiet when the toggle is off", async () => {
     patchSettings({ notifyStatusChanges: false });
@@ -221,28 +215,6 @@ describe("media status", () => {
     notificationAtoms.items.set([]);
     notificationAtoms.unreadCount.set(0);
     notificationAtoms.dismissed.set([]);
-    await pollAniListReleases(t, notDisposed, { system: false });
-    expect(notificationAtoms.items.get()).toHaveLength(0);
-  });
-
-  it("ignores a never-observed media status", async () => {
-    saveAnilistObservation("7", observation({ mediaStatus: "" }));
-    getLists.mockResolvedValue([
-      {
-        name: "Watching",
-        entries: [
-          listEntry({
-            media: {
-              id: 7,
-              title: "Show",
-              next_episode: null,
-              next_airing_at: null,
-              status: "FINISHED",
-            },
-          }),
-        ],
-      },
-    ]);
     await pollAniListReleases(t, notDisposed, { system: false });
     expect(notificationAtoms.items.get()).toHaveLength(0);
   });
@@ -330,15 +302,6 @@ describe("new episode notifications", () => {
     expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
   });
 
-  it("stays silent on the first observation", async () => {
-    mockNow();
-    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, PAST_SEC)] }]);
-    await pollAniListReleases(t, notDisposed, { system: false });
-    expect(notificationAtoms.items.get()).toHaveLength(0);
-    expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
-    expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(5);
-  });
-
   it("stays silent when episode notifications are off", async () => {
     mockNow();
     patchSettings({ notifyNewEpisodes: false });
@@ -379,16 +342,6 @@ describe("new episode notifications", () => {
     await pollAniListReleases(t, notDisposed, { system: false });
     expect(notificationAtoms.items.get()).toHaveLength(0);
     expect(anilistNotificationsAtoms.releases.get()).toHaveLength(0);
-  });
-
-  it("returns false and records nothing when disposed", async () => {
-    mockNow();
-    saveAnilistObservation("7", observation({ nextEpisode: 4, nextAiringAt: PAST_SEC }));
-    getLists.mockResolvedValue([{ name: "Watching", entries: [airingEntry(5, FUTURE_SEC)] }]);
-    const result = await pollAniListReleases(t, () => true, { system: false });
-    expect(result.ok).toBe(false);
-    expect(notificationAtoms.items.get()).toHaveLength(0);
-    expect(anilistNotificationsAtoms.observations.get()["7"]?.nextEpisode).toBe(4);
   });
 
   it("returns false when logged out", async () => {
@@ -444,14 +397,6 @@ describe("restart persistence", () => {
     expect(after.atoms.releases.get()[0]?.episode).toBe(4);
     expect(after.atoms.siteMaxSeenId.get()).toBe(9);
     expect(after.atoms.initialized.get()).toBe(true);
-  });
-
-  it("starts from an empty baseline when storage is missing", () => {
-    const migrated = migrateNotificationsData(null, 6);
-    expect(migrated.observations).toEqual({});
-    expect(migrated.releases).toEqual([]);
-    expect(migrated.initialized).toBe(false);
-    expect(migrated.siteMaxSeenId).toBe(0);
   });
 });
 

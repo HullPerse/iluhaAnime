@@ -7,6 +7,7 @@ export function flashTarget(element: Element): () => void {
   const timer = scheduleTask("timeout", TARGET_FLASH_MS, () => {
     element.classList.remove("target-flash");
   });
+
   return () => {
     timer.cancel();
     element.classList.remove("target-flash");

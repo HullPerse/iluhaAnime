@@ -1,4 +1,3 @@
-
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
@@ -12,8 +11,10 @@ import type { LearningStatRow, SearchAnimeSuggestion, SearchSuggestion } from ".
 function argument(name: string): string | undefined {
   const prefix = `--${name}=`;
   const inline = process.argv.find((entry) => entry.startsWith(prefix));
+
   if (inline) return inline.slice(prefix.length);
   const index = process.argv.indexOf(`--${name}`);
+
   return index !== -1 ? process.argv[index + 1] : undefined;
 }
 
@@ -78,6 +79,7 @@ const PARAMS: Record<string, Params> = {
 };
 
 const VARIANTS = ["none", "new", "old", "half5", "half20", "cap160", "cap40"] as const;
+
 type Variant = (typeof VARIANTS)[number];
 
 const CLICK_BY_RANK = [1, 0.85, 0.65, 0.45, 0.3, 0.2, 0.15, 0.1];
@@ -86,10 +88,12 @@ const IGNORE_ABOVE = 0.5;
 
 function mulberry32(seed: number): () => number {
   let state = seed >>> 0;
+
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
     let value = Math.imul(state ^ (state >>> 15), state | 1);
     value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+
     return ((value ^ (value >>> 14)) >>> 0) / 4_294_967_296;
   };
 }
@@ -105,6 +109,7 @@ function feedbackWith(counters: RankingCounters | null, nowMs: number, params: P
     capped(counters.useCount, params.useWeight, params.useCap);
   const negative = capped(counters.ignoredCount, params.ignoredWeight, params.ignoredCap);
   const ageHours = Math.max(0, (nowMs - counters.lastUsedAt) / 3_600_000);
+
   return (positive - negative) * 0.5 ** (ageHours / params.halflifeHours);
 }
 
@@ -112,6 +117,7 @@ function oldFeedback(counters: RankingCounters | null, nowMs: number): number {
   if (!counters) return 0;
   const ageHours = Math.max(0, (nowMs - counters.lastUsedAt) / 3_600_000);
   const recency = ageHours <= 24 ? 60 : ageHours <= 168 ? 30 : ageHours <= 720 ? 15 : 6;
+
   return (
     Math.min(120, counters.useCount * 2) +
     recency +
@@ -122,8 +128,11 @@ function oldFeedback(counters: RankingCounters | null, nowMs: number): number {
 
 function feedbackFor(counters: RankingCounters | null, nowMs: number, variant: Variant): number {
   if (!counters) return 0;
+
   if (variant === "none") return 0;
+
   if (variant === "old") return oldFeedback(counters, nowMs);
+
   return feedbackWith(counters, nowMs, PARAMS[variant] ?? BASE_PARAMS);
 }
 
@@ -146,6 +155,7 @@ db.close();
 const animeIndex: SearchAnimeSuggestion[] = animeRows.map((row, index) => {
   const metadata = JSON.parse(row.metadata_json || "{}") as Record<string, unknown>;
   const rawId = Number(metadata.animeId ?? row.id.replace("anime:", ""));
+
   return {
     aliases: Array.isArray(metadata.aliases) ? (metadata.aliases as string[]) : [],
     favourite: Boolean(metadata.favourite),
@@ -168,24 +178,32 @@ const evalQueries: SimQuery[] = evalSet.queries.map((entry) => ({
 function buildHardQueries(index: SearchAnimeSuggestion[]): SimQuery[] {
   const seen = new Map<string, string>();
   const ambiguous = new Set<string>();
+
   for (const anime of index) {
     const base = normalizeSearchText(anime.title);
+
     if (base.length < 5) continue;
     const hasExtension = index.some((other) => {
       if (other === anime) return false;
       const title = normalizeSearchText(other.title);
+
       return title !== base && title.startsWith(`${base} `);
     });
+
     if (!hasExtension) continue;
     const prefix = anime.title.slice(0, 6).trim();
+
     if (prefix.length < 4) continue;
     const key = normalizeSearchText(prefix);
+
     if (seen.has(key)) {
       ambiguous.add(key);
       continue;
     }
+
     seen.set(key, anime.title);
   }
+
   return [...seen]
     .filter(([key]) => !ambiguous.has(key))
     .map(([, title]) => ({
@@ -202,6 +220,7 @@ const EMPTY_MAPS = { queryStats: {}, suggestionStats: {} };
 
 function rowList(nowMs: number): LearningStatRow[] {
   const nowSeconds = Math.floor(nowMs / 1000);
+
   return [...rows].map(([value, row]) => ({
     id: `sim:${value}`,
     ignoredCount: row.ignored,
@@ -218,6 +237,7 @@ function record(value: string, action: "select" | "ignore", nowMs: number): void
   const key = normalizeSearchText(value);
   const nowSeconds = Math.floor(nowMs / 1000);
   const row = rows.get(key) ?? { ignored: 0, lastUsedAt: nowSeconds, selected: 0, use: 0 };
+
   if (action === "select") row.selected += 1;
   else row.ignored += 1;
   row.lastUsedAt = nowSeconds;
@@ -234,6 +254,7 @@ function rankVariant(
     .map((candidate) => {
       const stat = maps.suggestionStats[normalizeSearchText(candidate.value)];
       const counters = stat ? countersOf(stat) : null;
+
       return { ...candidate, score: candidate.score + feedbackFor(counters, nowMs, variant) };
     })
     .sort(
@@ -259,6 +280,7 @@ function measure(
   nowMs: number
 ): Record<Variant, Measure> {
   const result = {} as Record<Variant, Measure>;
+
   for (const variant of VARIANTS) {
     const ranked = rankVariant(candidates, variant === "none" ? EMPTY_MAPS : maps, nowMs, variant);
     const rank =
@@ -270,6 +292,7 @@ function measure(
     current.top3 += rank > 0 && rank <= 3 ? 1 : 0;
     result[variant] = current;
   }
+
   return result;
 }
 
@@ -278,9 +301,11 @@ function average(
   total: number
 ): Record<Variant, Measure> {
   const result = {} as Record<Variant, Measure>;
+
   for (const variant of VARIANTS) {
     result[variant] = { found: 0, mrr: 0, top1: 0, top3: 0 };
   }
+
   for (const measureSet of measures) {
     for (const variant of VARIANTS) {
       result[variant].found += measureSet[variant].found;
@@ -289,12 +314,14 @@ function average(
       result[variant].top3 += measureSet[variant].top3;
     }
   }
+
   for (const variant of VARIANTS) {
     result[variant].found /= total;
     result[variant].mrr /= total;
     result[variant].top1 /= total;
     result[variant].top3 /= total;
   }
+
   return result;
 }
 
@@ -357,21 +384,27 @@ for (let round = 0; round <= rounds; round++) {
       record(wrong[0].value, "select", nowMs);
       continue;
     }
+
     if (expected) {
       const click = CLICK_BY_RANK[expectedIndex] ?? 0.1;
+
       if (random() < click) {
         record(expected.value, "select", nowMs);
+
         if (expectedIndex > 0 && random() < IGNORE_ABOVE) {
           record(shown[0].value, "ignore", nowMs);
         }
+
         continue;
       }
     }
+
     if (shown[0]) record(shown[0].value, "ignore", nowMs);
   }
 }
 
 const final = reports.at(-1);
+
 if (!final) throw new Error("no simulation report was produced");
 const totalSelects = [...rows.values()].reduce((sum, row) => sum + row.selected, 0);
 const totalIgnores = [...rows.values()].reduce((sum, row) => sum + row.ignored, 0);
@@ -415,9 +448,11 @@ if (jsonOnly) {
     `model: clickByRank=${CLICK_BY_RANK.join("/")} misclick=${MISCLICK} ignoreAbove=${IGNORE_ABOVE}`
   );
   console.log("");
+
   for (const field of ["top1", "mrr"] as const) {
     console.log(`${field.toUpperCase()} (hard set)`);
     console.log(`round ${VARIANTS.map((variant) => variant.padStart(8)).join(" ")}`);
+
     for (const entry of reports) {
       console.log(
         `${String(entry.round).padStart(5)} ${VARIANTS.map((variant) =>
@@ -425,17 +460,22 @@ if (jsonOnly) {
         ).join(" ")}`
       );
     }
+
     console.log("");
   }
+
   console.log("Final hard set");
+
   for (const variant of VARIANTS) {
     const value = final.hard[variant];
     console.log(
       `${variant.padEnd(7)} top1=${value.top1.toFixed(3)} top3=${value.top3.toFixed(3)} MRR=${value.mrr.toFixed(3)} found=${value.found.toFixed(3)}`
     );
   }
+
   console.log("");
   console.log("Final eval set (sanity, not the target)");
+
   for (const variant of VARIANTS) {
     const value = final.eval[variant];
     console.log(

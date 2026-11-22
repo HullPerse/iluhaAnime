@@ -20,15 +20,20 @@ export function detectMigrations(): StoreMigration[] {
   if (typeof localStorage === "undefined") return [];
   attemptSync(() => localStorage.removeItem("iluha.v1.collection-ui"));
   const found: StoreMigration[] = [];
+
   for (const tracked of TRACKED_STORES) {
     const [raw, readError] = attemptSync(() => localStorage.getItem(`iluha.v1.${tracked.store}`));
+
     if (readError !== null || !raw) continue;
     const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
     if (parseError !== null || typeof parsed !== "object" || parsed === null) continue;
     const stored = (parsed as { sv?: unknown }).sv;
+
     if (typeof stored === "number" && stored < tracked.current) {
       found.push({ store: tracked.store, from: stored, to: tracked.current });
     }
   }
+
   return found;
 }

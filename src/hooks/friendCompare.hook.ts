@@ -8,6 +8,7 @@ import type { AniFriendBundle } from "@/types/anilist/anilist";
 
 function messageOf(error: unknown): string | null {
   if (error == null) return null;
+
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -21,6 +22,7 @@ export function useFriendCompare(friendId: number | null, enabled: boolean) {
   const retry = useCallback(() => {
     ignore(query.refetch());
   }, [query]);
+
   return {
     friendLists: query.data?.lists ?? [],
     friendFavourites: query.data?.favourites ?? [],

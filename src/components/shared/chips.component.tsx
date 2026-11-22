@@ -6,7 +6,9 @@ import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 
 function ChipsRow({ items, onRemove }: { items: string[]; onRemove: (v: string) => void }) {
   const { t } = useI18n();
+
   if (items.length === 0) return null;
+
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((v) => (

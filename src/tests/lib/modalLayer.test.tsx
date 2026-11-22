@@ -20,6 +20,7 @@ const box = (node: HTMLElement): HTMLElement => {
     y: 10,
     toJSON: () => ({}),
   });
+
   return node;
 };
 
@@ -41,9 +42,11 @@ describe("modal-scoped hints", () => {
       </Modal>
     );
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+
     if (!dialog) throw new Error("dialog missing");
     box(dialog);
     const inside = box(screen.getByRole("button", { name: "ok" }));
+
     return { dialog, inside, behind };
   };
 
@@ -71,6 +74,7 @@ describe("modal-scoped hints", () => {
   it("labels the dialog's own controls and nothing behind it", () => {
     const { inside, behind } = openModal();
     const layer = topLayerElement();
+
     if (!layer) throw new Error("layer missing");
 
     const found = scanHintTargets(layer).badges.map((badge) => badge.element);

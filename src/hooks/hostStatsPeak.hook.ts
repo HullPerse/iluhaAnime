@@ -5,5 +5,6 @@ export function useSessionPeak(value: number): number {
   useEffect(() => {
     setPeak((previous) => Math.max(previous, value));
   }, [value]);
+
   return Math.max(peak, value, 1);
 }

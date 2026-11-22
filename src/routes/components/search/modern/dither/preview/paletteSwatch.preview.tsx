@@ -18,6 +18,7 @@ export function PaletteSwatchStrip({
 
   const patch = (index: number, hex: string) => {
     const rgba = hexToRgba(hex);
+
     if (!rgba) return;
     const next = [...palette];
     next[index] = [rgba.r, rgba.g, rgba.b];

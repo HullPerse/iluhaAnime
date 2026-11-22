@@ -39,6 +39,7 @@ export default function CoverCorrectionModal({
     queryKey: queryKeys.coverManualSearch(debouncedQuery),
     queryFn: async () => {
       const data = await anilistApi.search<AniMedia>({ query: debouncedQuery, perPage: 5 });
+
       return data.map(mediaToCandidate);
     },
     enabled: debouncedQuery.length >= 2,
@@ -54,10 +55,13 @@ export default function CoverCorrectionModal({
 
   const apply = (): void => {
     const selected = [...picked, ...fresh].find((candidate) => candidate.id === selectedId);
+
     if (!selected) return;
+
     if (cover.anilistId && cover.anilistId !== selected.id) {
       rejectCoverCandidate(cover.coverKey, cover.anilistId);
     }
+
     setCoverOverride(cover.coverKey, {
       id: selected.id,
       coverUrl: selected.coverUrl ?? null,
@@ -75,6 +79,7 @@ export default function CoverCorrectionModal({
 
   const applyOnEnter = (event: React.KeyboardEvent<HTMLInputElement>): void => {
     if (event.nativeEvent.isComposing) return;
+
     if (event.key === "Enter" && selectedId !== null) apply();
   };
 

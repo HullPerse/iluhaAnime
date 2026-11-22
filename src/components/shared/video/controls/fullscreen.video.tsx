@@ -18,12 +18,15 @@ export function FullscreenToggle({
     const sync = () => setFullscreen(document.fullscreenElement === iframeRef.current);
     sync();
     document.addEventListener("fullscreenchange", sync);
+
     return () => document.removeEventListener("fullscreenchange", sync);
   }, [iframeRef]);
 
   const toggle = () => {
     const iframe = iframeRef.current;
+
     if (!iframe) return;
+
     if (fullscreen) {
       document
         .exitFullscreen?.()

@@ -35,6 +35,7 @@ function notifyEpisode(
   silent: boolean
 ): boolean {
   if (!settingsAtoms.notifyNewEpisodes.get()) return false;
+
   if (notificationAtoms.items.get().some((item) => item.eventKey === key)) return false;
   const id = addNotification(
     t("notification.anilist.new.episode"),
@@ -43,6 +44,7 @@ function notifyEpisode(
     key,
     { system, silent, target: { source: "anilist", id: animeId as AniListId } }
   );
+
   return id > 0;
 }
 
@@ -63,8 +65,10 @@ function notifyStatus(
   silent: boolean
 ): boolean {
   if (!settingsAtoms.notifyStatusChanges.get()) return false;
+
   if (entry.list_status === previous.status) return false;
   const toast = LIST_STATUS_TOAST[entry.list_status];
+
   if (!toast) return false;
   const target = { source: "anilist", id: entry.media.id as AniListId } as const;
   const id = addNotification(t(toast.titleKey), toast.type, entry.media.title, undefined, {
@@ -72,6 +76,7 @@ function notifyStatus(
     silent,
     target,
   });
+
   return id > 0;
 }
 
@@ -89,8 +94,10 @@ function notifyMediaStatus(
   silent: boolean
 ): boolean {
   if (!settingsAtoms.notifyMediaStatus.get()) return false;
+
   if (!previous.mediaStatus || entry.media.status === previous.mediaStatus) return false;
   const toast = MEDIA_STATUS_TOAST[entry.media.status];
+
   if (!toast) return false;
   const target = { source: "anilist", id: entry.media.id as AniListId } as const;
   const id = addNotification(t(toast.titleKey), toast.type, entry.media.title, undefined, {
@@ -98,11 +105,13 @@ function notifyMediaStatus(
     silent,
     target,
   });
+
   return id > 0;
 }
 
 function buildSignature(entry: AniNotificationEntry): string {
   const m = entry.media;
+
   return `${m.status}|${m.next_episode ?? ""}|${m.next_airing_at ?? ""}|${entry.list_status}`;
 }
 
@@ -131,7 +140,9 @@ function notifyMissedEpisodes(
   let count = 0;
   const from = previous.nextEpisode;
   const to = media.next_episode;
+
   if (from == null || to == null) return count;
+
   for (let episode = from; episode < to; episode++) {
     if (notifyEpisode(media.id, media.title, episode, `${key}:${episode}`, t, system, silent)) {
       count++;
@@ -144,6 +155,7 @@ function notifyMissedEpisodes(
       });
     }
   }
+
   return count;
 }
 
@@ -174,12 +186,14 @@ function processEntry(
   const previous = anilistNotificationsAtoms.observations.get()[key];
   let notified = 0;
   let added = 0;
+
   if (previous) {
     if (hasMissedEpisode(previous, now, media)) {
       const missed = notifyMissedEpisodes(media, previous, key, t, system, silent);
       notified += missed;
       added += missed;
     }
+
     if (hasAiringNow(media, previous, signature, now)) {
       if (
         notifyEpisode(
@@ -203,9 +217,12 @@ function processEntry(
         });
       }
     }
+
     if (notifyStatus(entry, previous, t, system, silent)) added++;
+
     if (notifyMediaStatus(entry, previous, t, system, silent)) added++;
   }
+
   saveAnilistObservation(key, {
     signature,
     status: entry.list_status,
@@ -215,6 +232,7 @@ function processEntry(
     nextEpisode: media.next_episode,
     nextAiringAt: media.next_airing_at,
   });
+
   return {
     hadPrevious: Boolean(previous),
     airing: media.next_airing_at != null,
@@ -229,14 +247,19 @@ export async function pollAniListReleases(
   options?: AniListPollOptions
 ): Promise<AniListPollResult> {
   const [result, error] = await attempt(pollAniListReleasesOnce(t, isDisposed, options));
+
   if (error !== null || !result) return { ok: false, added: 0 };
+
   return result;
 }
 
 function siteToastBody(item: AniSiteNotification): string {
   if (item.text) return item.text;
+
   if (item.context) return item.context;
+
   if (item.contexts.length > 0) return item.contexts.join(" ");
+
   return item.anime_title ?? "";
 }
 
@@ -257,6 +280,7 @@ function notifySiteItem(
       ? { target: { source: "anilist", id: animeId as AniListId } as const }
       : {}),
   });
+
   return id > 0;
 }
 
@@ -294,6 +318,7 @@ function processSiteItem(
 ): boolean {
   if (item.id <= maxSeen) return false;
   const key = `site:${item.id}`;
+
   if (item.kind === "subscribed" && toggles.replies) {
     return notifySiteItem(
       key,
@@ -305,6 +330,7 @@ function processSiteItem(
       null
     );
   }
+
   if (item.kind === "sequel" && toggles.sequel) {
     return notifySiteItem(
       key,
@@ -316,6 +342,7 @@ function processSiteItem(
       item.anime_id
     );
   }
+
   if ((item.kind === "merged" || item.kind === "deleted") && toggles.merge) {
     return notifySiteItem(
       key,
@@ -327,6 +354,7 @@ function processSiteItem(
       item.anime_id
     );
   }
+
   return false;
 }
 
@@ -341,21 +369,29 @@ export async function pollSiteNotifications(
     merge: settings.notifyMediaMerge,
     sequel: settings.notifySequel,
   };
+
   if (!toggles.replies && !toggles.merge && !toggles.sequel) return { ok: true, added: 0 };
   const [items, error] = await attempt(anilistApi.getSiteNotifications());
+
   if (error !== null || isDisposed()) return { ok: error === null, added: 0 };
   const system = options?.system ?? true;
   const silent = options?.silent ?? false;
   const maxSeen = anilistNotificationsAtoms.siteMaxSeenId.get();
+
   if (maxSeen === 0) {
     if (items.length > 0) setSiteMaxSeenId(maxSiteId(items));
+
     return { ok: true, added: 0 };
   }
+
   let added = 0;
+
   for (const item of items) {
     if (processSiteItem(item, maxSeen, toggles, t, system, silent)) added++;
   }
+
   if (items.length > 0) setSiteMaxSeenId(maxSiteId(items));
+
   return { ok: true, added };
 }
 
@@ -365,19 +401,24 @@ async function pollAniListReleasesOnce(
   options?: AniListPollOptions
 ): Promise<AniListPollResult> {
   const user = await anilistApi.checkAuth();
+
   if (!user || isDisposed()) return { ok: false, added: 0 };
   const lists = await anilistApi.getLists(user.id, true);
+
   if (isDisposed()) return { ok: false, added: 0 };
   const system = options?.system ?? true;
   const silent = options?.silent ?? false;
   const scope = settingsAtoms.anilistNotifyLists.get();
   const covers: Record<number, string | null> = {};
+
   for (const list of lists) {
     if (scope?.length && !scope.includes(list.name)) continue;
+
     for (const entry of list.entries) {
       if (entry.media.cover_url) covers[entry.media.id] = entry.media.cover_url;
     }
   }
+
   setAnilistReleaseCovers(covers);
   const stats = lists
     .flatMap((list) =>
@@ -386,10 +427,13 @@ async function pollAniListReleasesOnce(
         : []
     )
     .map((entry) => processEntry(entry, Math.floor(Date.now() / 1000), t, system, silent));
+
   if (!anilistNotificationsAtoms.initialized.get()) setAnilistInitialized(true);
+
   if (import.meta.env.DEV)
     console.warn(
       `[anilist:release-poll] airing=${stats.filter((item) => item.airing).length} withPrevious=${stats.filter((item) => item.hadPrevious).length} notified=${stats.reduce((sum, item) => sum + item.notified, 0)} initialized=${anilistNotificationsAtoms.initialized.get()}`
     );
+
   return { ok: true, added: stats.reduce((sum, item) => sum + item.added, 0) };
 }

@@ -55,6 +55,7 @@ function escapeXml(value: string): string {
 function art(label: string, kind: CardKind, rarity: CardRarity, seed: number): string {
   const key = `${label}:${kind}:${rarity}:${seed}`;
   const cached = artCache.get(key);
+
   if (cached !== undefined) return cached;
   const [from, to] = PALETTES[kind];
   const shift = seed % 3;
@@ -63,12 +64,14 @@ function art(label: string, kind: CardKind, rarity: CardRarity, seed: number): s
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="540" viewBox="0 0 360 540"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="360" height="540" fill="url(#g)"/><circle cx="${cx}" cy="${cy}" r="170" fill="rgba(255,255,255,0.16)"/><path d="M0 420 L360 280 L360 540 L0 540 Z" fill="rgba(0,0,0,0.3)"/><text x="180" y="458" text-anchor="middle" fill="#ffffff" font-family="Arial,sans-serif" font-size="28" font-weight="700">${escapeXml(label)}</text><text x="180" y="490" text-anchor="middle" fill="rgba(255,255,255,0.82)" font-family="Arial,sans-serif" font-size="16">${escapeXml(rarity)} / ${escapeXml(kind)}</text></svg>`;
   const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
   artCache.set(key, url);
+
   return url;
 }
 
 function cardValue(rarity: CardRarity, variant: CardVariant, tierPosition: number): number {
   const base = BASE_VALUES[rarity];
   const multiplier = VARIANT_MULTIPLIERS[variant];
+
   return Math.round(base * (1 + 0.5 * tierPosition) * multiplier);
 }
 
@@ -82,6 +85,7 @@ function makeCard(
   const title = TITLES[kind][rarityIndex] ?? TITLES[kind][0] ?? kind;
   const entityId = 10_000 + KINDS.indexOf(kind) * 100 + rarityIndex * 10 + variantIndex;
   const tierPosition = rarityIndex / (RARITIES.length - 1);
+
   return {
     kind,
     entityId,
@@ -118,9 +122,11 @@ function pick(kind: CardKind, rarity: CardRarity, variant: CardVariant): OpenedC
   const found = LAB_CARDS.find(
     (card) => card.kind === kind && card.rarity === rarity && card.variant === variant
   );
+
   if (found === undefined) {
     throw new Error(`Lab fixture is missing: ${kind}/${rarity}/${variant}`);
   }
+
   return found;
 }
 
@@ -168,6 +174,7 @@ export interface LabShelfItem {
 /** A shelf page of source anime with owned and missing roster slots. */
 export const LAB_SHELF: LabShelfItem[] = Array.from({ length: 4 }, (_, index) => {
   const title = TITLES.anime[index] ?? "Anime";
+
   return {
     id: 20_000 + index,
     title,
@@ -248,3 +255,9 @@ export const LAB_WALLET = 500;
 export function labCombinationCount(): number {
   return KINDS.length * RARITIES.length * VARIANTS.length;
 }
+
+export const LAB_SCALES = [
+  { label: "100%", width: "9rem" },
+  { label: "150%", width: "13.5rem" },
+  { label: "200%", width: "18rem" },
+] as const;

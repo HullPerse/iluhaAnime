@@ -19,6 +19,7 @@ export const STREAM_YEAR_MIN = 1960;
 export function streamYearMax(): number {
   return new Date().getFullYear() + 1;
 }
+
 export const STREAM_EPISODES_MAX = 2000;
 
 export const STREAM_ORDER_LABELS: Record<StreamSortBy, TranslationKey> = {
@@ -34,9 +35,13 @@ export function countActiveStreamFilters(filters: StreamCatalogFilters): number 
     filters.genres.length +
     filters.statuses.length +
     filters.ageRatings.length;
+
   if (filters.adult) count += 1;
+
   if (filters.yearMin !== null || filters.yearMax !== null) count += 1;
+
   if (filters.episodesMin !== null || filters.episodesMax !== null) count += 1;
+
   return count;
 }
 
@@ -55,6 +60,7 @@ export function withoutAdultFilters(
   genres: StreamGenreOption[]
 ): StreamCatalogFilters {
   const adultIds = new Set(genres.filter((genre) => genre.adult).map((genre) => genre.id));
+
   return {
     ...filters,
     adult: false,

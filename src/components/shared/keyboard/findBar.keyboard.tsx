@@ -20,8 +20,10 @@ export default function PageFindBar() {
       onAction: (_id, event) => {
         if (findBarAtoms.bar.get().open) {
           document.querySelector<HTMLElement>("[data-find-bar] input")?.focus();
+
           return;
         }
+
         const target = event.target instanceof HTMLElement ? event.target : null;
         restoreRef.current = target;
         setVirtualOnly(target?.closest(VIRTUAL_LIST_SELECTOR) !== null);
@@ -32,6 +34,7 @@ export default function PageFindBar() {
 
   useEffect(() => {
     if (!bar.open) return undefined;
+
     return registerOverlay(() => {
       restoreRef.current?.focus();
       closeFindBar();
@@ -39,5 +42,6 @@ export default function PageFindBar() {
   }, [bar.open]);
 
   if (!bar.open) return null;
+
   return <FindPanel virtualOnly={virtualOnly} />;
 }

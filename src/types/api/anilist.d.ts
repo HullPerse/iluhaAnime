@@ -1,3 +1,4 @@
+import type { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import type { ApiTransport } from "@/types/core/transport";
 import type { AniMediaType } from "@/types/anilist/anilist";
 
@@ -21,3 +22,9 @@ export interface SaveAnilistEntryInput {
   startedAt?: string | null;
   completedAt?: string | null;
 }
+
+export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>> & {
+  mediaType?: AniMediaType;
+};
+
+export type AnilistFilterPageParams = AnilistSearchParams & { page: number };

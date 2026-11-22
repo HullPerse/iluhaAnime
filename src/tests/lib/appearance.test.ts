@@ -14,7 +14,9 @@ import type { ThemeDefinition } from "@/types/graphics/theme";
 
 function theme(name: string): ThemeDefinition {
   const found = THEMES.find((item) => item.name === name);
+
   if (!found) throw new Error(`missing built-in theme ${name}`);
+
   return found;
 }
 
@@ -37,9 +39,11 @@ describe("theme state", () => {
   it("fills every token binding for every built-in theme", () => {
     for (const item of THEMES) {
       const state = buildThemeState(item);
+
       for (const binding of THEME_VAR_BINDINGS) {
         expect(state.vars[binding.varName], `${item.name} ${binding.varName}`).toBeTruthy();
       }
+
       expect(state.datasets.theme).toBe(item.name);
     }
   });
@@ -74,6 +78,7 @@ describe("theme state", () => {
     expect(payload.themeName).toBe("yorha");
     expect(payload.datasets).toEqual(state.datasets);
     expect(Object.keys(payload.vars).sort()).toEqual(Object.keys(state.vars).sort());
+
     for (const binding of THEME_VAR_BINDINGS) {
       expect(payload.vars[binding.varName]).toBe(state.vars[binding.varName]);
     }
@@ -92,6 +97,7 @@ describe("theme application", () => {
     expect(root.dataset.bevel).toBe("raised");
     expect(root.dataset.themeOverlay).toBe("grid");
     expect(root.dataset.themeTitlebarArt).toBe("on");
+
     for (const binding of THEME_VAR_BINDINGS) {
       expect(root.style.getPropertyValue(binding.varName), binding.varName).toBeTruthy();
     }

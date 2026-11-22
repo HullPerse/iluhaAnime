@@ -20,6 +20,7 @@ function readMediaEntry(value: unknown): MediaEntry | null {
     typeof entry === "number" && Number.isFinite(entry) ? entry : undefined;
   const optionalString = (entry: unknown): string | undefined =>
     typeof entry === "string" && entry.length > 0 ? entry : undefined;
+
   return {
     path: value.path,
     position: number(value.position),
@@ -46,8 +47,10 @@ function readMediaEntry(value: unknown): MediaEntry | null {
 
 function readMediaEntries(value: unknown): MediaEntry[] {
   if (!Array.isArray(value)) return [];
+
   return value.flatMap((entry) => {
     const normalized = readMediaEntry(entry);
+
     return normalized ? [normalized] : [];
   });
 }
@@ -65,11 +68,13 @@ function touch(entries: MediaEntry[], path: string, now: number): MediaEntry[] {
         audioOffset: 0,
         lastPlayed: now,
       };
+
   return [entry, ...rest].slice(0, MAX_ENTRIES);
 }
 
 function patchEntry(entries: MediaEntry[], path: string, patch: Partial<MediaEntry>): MediaEntry[] {
   const now = Date.now();
+
   return touch(entries, path, now).map((entry) =>
     entry.path === path ? { ...entry, ...patch } : entry
   );
@@ -79,12 +84,16 @@ function readLegacyMedia(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("mediaState"));
+
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
+
   return {
     data: { entries: readMediaEntries(state.entries) },
     schemaVersion: MEDIA_SCHEMA_VERSION,
@@ -154,13 +163,16 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
       entries.set(patchEntry(entries.get(), path, { audioOffset: offset })),
     hydrate: async (path, storedOverride) => {
       let stored = storedOverride;
+
       if (stored === undefined) {
         const [loaded] = await attempt(
           invokeValidated<WatchState | null>("player_load_watch", WatchStateSchema, { path })
         );
         stored = loaded;
       }
+
       const entry = getEntry(path);
+
       if (!stored) return entry;
       const merged: MediaEntry = {
         path,
@@ -175,6 +187,7 @@ export function createMediaSignalStore(options: MediaSignalOptions = {}): MediaS
         lastPlayed: entry?.lastPlayed ?? Date.now(),
       };
       entries.set(patchEntry(entries.get(), path, merged));
+
       return merged;
     },
     clearEntries: () => entries.set([]),

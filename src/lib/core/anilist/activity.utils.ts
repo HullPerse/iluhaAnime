@@ -28,8 +28,11 @@ export function groupLabel(unix: number, t: ActivityTranslate, locale: Locale): 
   const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const startDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diffDays = Math.round((startToday.getTime() - startDay.getTime()) / 86_400_000);
+
   if (diffDays === 0) return t("anilist.activity.today");
+
   if (diffDays === 1) return t("anilist.activity.yesterday");
+
   return d.toLocaleDateString(locale);
 }
 
@@ -37,11 +40,13 @@ export function dayKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
+
   return `${y}-${m}-${d}`;
 }
 
 export function buildScoreByMedia(lists: AniListCollection[]): Map<number, number> {
   const scores = new Map<number, number>();
+
   for (const list of lists) {
     for (const entry of list.entries) {
       if (entry.score != null && !scores.has(entry.media.id)) {
@@ -49,17 +54,21 @@ export function buildScoreByMedia(lists: AniListCollection[]): Map<number, numbe
       }
     }
   }
+
   return scores;
 }
 
 export function isMentionOf(text: string | null, name: string): boolean {
   if (!text || !name.trim()) return false;
+
   return text.toLowerCase().includes(`@${name.trim().toLowerCase()}`);
 }
 
 function completedDayKey(completedAt: string): string | null {
   const [year, month, day] = completedAt.split("-").map(Number);
+
   if (!year || !month || !day) return null;
+
   return dayKey(new Date(year, month - 1, day));
 }
 
@@ -71,16 +80,19 @@ export function buildActivityMap(
 
   const addEvent = (key: string, kind: string, item: DayActivityItem) => {
     let day = map.get(key);
+
     if (!day) {
       day = { added: 0, progress: 0, completed: 0, count: 0, items: [] };
       map.set(key, day);
     }
+
     if (kind === "added") day.added++;
     else if (kind === "progress") day.progress++;
     else day.completed++;
     day.count++;
 
     const existing = day.items.find((it) => it.id === item.id);
+
     if (existing) {
       if (!existing.events.includes(kind)) {
         existing.events = `${existing.events}, ${kind}`;
@@ -105,11 +117,15 @@ export function buildActivityMap(
         progress: entry.progress,
         events: "",
       };
+
       if (entry.created_at) {
         addEvent(dayKey(new Date(entry.created_at * 1000)), "added", item);
       }
+
       const completedKey = entry.completed_at ? completedDayKey(entry.completed_at) : null;
+
       if (completedKey) addEvent(completedKey, "completed", item);
+
       if (entry.updated_at) {
         addEvent(dayKey(new Date(entry.updated_at * 1000)), "progress", item);
       }
@@ -124,6 +140,7 @@ export function buildActivityMap(
         .join(" - ");
     }
   }
+
   return map;
 }
 
@@ -141,8 +158,10 @@ export function buildYearGrid(
 
   let totalCount = 0;
   let maxCount = 0;
+
   for (const [key, act] of activity) {
     if (!key.startsWith(`${year}-`)) continue;
+
     if (act.count > maxCount) maxCount = act.count;
     totalCount += act.count;
   }
@@ -150,8 +169,10 @@ export function buildYearGrid(
   const buckets = maxCount > 0 ? (maxCount - 1) / 3 : 1;
   const columns: { month: number; cells: YearGridCell[] }[] = [];
   const cursor = new Date(start);
+
   while (cursor <= lastDay) {
     const cells: YearGridCell[] = [];
+
     for (let i = 0; i < 7; i++) {
       const d = new Date(cursor);
       d.setDate(cursor.getDate() + i);
@@ -164,9 +185,11 @@ export function buildYearGrid(
         count: act?.count ?? 0,
       });
     }
+
     columns.push({ month: cursor.getMonth(), cells });
     cursor.setDate(cursor.getDate() + 7);
   }
+
   return { columns, totalCount };
 }
 
@@ -184,9 +207,12 @@ export function selectInitialDayKey(
   const prefix = `${year}-`;
   const limit = today.getFullYear() === year ? dayKey(today) : `${year}-12-31`;
   let best: string | null = null;
+
   for (const [key, day] of activity) {
     if (day.count <= 0 || !key.startsWith(prefix) || key > limit) continue;
+
     if (best === null || key > best) best = key;
   }
+
   return best;
 }

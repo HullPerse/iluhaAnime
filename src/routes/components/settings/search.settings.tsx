@@ -49,6 +49,7 @@ export default function SettingsSearch() {
       : [...visibleSources, value];
     next.sort((a, b) => (rank.get(a) ?? rank.size) - (rank.get(b) ?? rank.size));
     patchSettings({ visibleSources: next });
+
     if (!next.includes(defaultSearchSource) && next.length > 0) {
       patchSettings({ defaultSearchSource: next[0] });
     }

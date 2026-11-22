@@ -59,11 +59,13 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
   const scheduleCamera = useCallback(
     (next: FranchiseCamera) => {
       pendingCameraRef.current = next;
+
       if (rafTaskRef.current !== null) return;
       rafTaskRef.current = scheduleTask("raf", 0, () => {
         rafTaskRef.current = null;
         const pending = pendingCameraRef.current;
         pendingCameraRef.current = null;
+
         if (pending) applyCamera(pending);
       });
     },
@@ -83,13 +85,16 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     (target: FranchiseCamera, durationMs: number) => {
       cancelAnimation();
       const from = cameraRef.current;
+
       if (
         durationMs <= 0 ||
         (from.x === target.x && from.y === target.y && from.scale === target.scale)
       ) {
         applyCamera(target);
+
         return;
       }
+
       const start = performance.now();
       let loop: AnimationLoopTask | null = null;
       loop = createAnimationLoop((now) => {
@@ -102,6 +107,7 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
         };
         cameraRef.current = next;
         setCamera(next);
+
         if (t >= 1) {
           animationRef.current = null;
           loop?.cancel();
@@ -118,6 +124,7 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     (elementId: string, targetScale: number, animationDurationMs = 300) => {
       const wrapper = wrapperRef.current;
       const element = document.querySelector(`#${elementId}`);
+
       if (!wrapper || !element) return;
       const wrapperRect = wrapper.getBoundingClientRect();
       const elementRect = element.getBoundingClientRect();
@@ -139,7 +146,9 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
   const handleWheel = useCallback(
     (event: WheelEvent) => {
       const wrapper = wrapperRef.current;
+
       if (!wrapper) return;
+
       if (!event.ctrlKey) return;
       event.preventDefault();
       const rect = wrapper.getBoundingClientRect();
@@ -166,17 +175,21 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
     if (!isPanning) return;
     const handleMouseMove = (event: MouseEvent) => {
       const start = panStartRef.current;
+
       if (!start) return;
       scheduleCamera(
         panCameraBy(start.camera, event.clientX - start.clientX, event.clientY - start.clientY)
       );
     };
+
     const handleMouseUp = () => {
       panStartRef.current = null;
       setIsPanning(false);
     };
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -192,6 +205,7 @@ export function useFranchiseViewport(options: UseFranchiseViewportOptions = {}):
       wheelCleanupRef.current?.();
       wheelCleanupRef.current = null;
       wrapperRef.current = node;
+
       if (node) {
         node.addEventListener("wheel", handleWheel, { passive: false });
         wheelCleanupRef.current = () => node.removeEventListener("wheel", handleWheel);

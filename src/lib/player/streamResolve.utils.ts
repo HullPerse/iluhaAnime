@@ -48,9 +48,11 @@ export async function resolvePlayable(
   ]);
   const [rows, rowsFailure] = rowsResult;
   const variant = rows ? pickVariant(rows, prefs) : null;
+
   if (rowsFailure || !variant) {
     return { failure: rowsFailure?.message ?? "" };
   }
+
   const variantId = `${variant.player}:${variant.id}`;
   const [sources, sourcesFailure] =
     remembered === variantId && rememberedSources
@@ -58,9 +60,11 @@ export async function resolvePlayable(
       : await attempt(loadSources(episodeId, variantId));
   const quality = prefs?.quality || defaultQuality;
   const source = sources ? pickSource(sources, quality) : null;
+
   if (sourcesFailure || !sources || !source) {
     return { failure: sourcesFailure?.message ?? "" };
   }
+
   return { playable: { variant, source, sources, variants: rows }, prefs, resume };
 }
 
@@ -75,7 +79,9 @@ export async function prefetchEpisode(mediaId: string, episodeId: string): Promi
 
 async function resumePosition(watchKey: string): Promise<number | undefined> {
   const [watch] = await attempt(loadWatch(watchKey));
+
   if (!watch || watch.position < RESUME_MIN) return undefined;
   const finished = watch.duration > 0 && watch.position >= watch.duration - RESUME_END_MARGIN;
+
   return finished ? undefined : watch.position;
 }

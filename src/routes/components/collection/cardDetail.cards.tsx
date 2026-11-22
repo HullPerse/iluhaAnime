@@ -29,16 +29,21 @@ import GiftFlow from "@/routes/components/collection/giftFlow.cards";
 
 function animeIdOf(card: CollectionItem): number | null {
   if (card.kind === "anime") return card.entityId;
+
   if (card.kind === "character") return card.collectionAnimeId;
+
   return null;
 }
 
 function anilistProfileOf(card: CollectionItem, fallbackName: string): AniListOverlayScreen | null {
   const name = card.title.trim() || fallbackName;
+
   if (card.kind === "staff") return { kind: "staff", id: card.entityId, name };
+
   if (card.kind === "studio") {
     return { kind: "studio", id: card.entityId, name, image: card.collage[0] ?? null };
   }
+
   return null;
 }
 
@@ -50,6 +55,7 @@ function pickOwnedCard(
   const sameRarity = owned.find(
     (entry) => entry.variant === pickedVariant && entry.rarity === item.rarity
   );
+
   return sameRarity ?? owned.find((entry) => entry.variant === pickedVariant) ?? item;
 }
 
@@ -60,10 +66,12 @@ function sourceLine(
 ): string {
   if (sourceMaterial !== null) {
     const labelKey = animeSourceLabelKeys[sourceMaterial];
+
     return labelKey === undefined
       ? sourceMaterial.replaceAll("_", " ").toLowerCase()
       : translate(labelKey);
   }
+
   return card.collectionTitle?.trim() || translate("collection.detail.no.source");
 }
 

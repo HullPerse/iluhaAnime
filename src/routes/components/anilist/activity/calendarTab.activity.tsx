@@ -49,6 +49,7 @@ export function CalendarTab({
     setYear(clamped);
     setSelectedKey(selectInitialDayKey(activity, clamped));
   };
+
   const goPrevYear = () => goYear(year - 1);
   const goNextYear = () => goYear(year + 1);
 
@@ -84,8 +85,11 @@ export function CalendarTab({
               {grid.columns.map((col, ci) => {
                 if (col.month === grid.columns[ci - 1]?.month) return null;
                 let run = 1;
+
                 while (grid.columns[ci + run]?.month === col.month) run += 1;
+
                 if (run < 4) return null;
+
                 return (
                   <span
                     key={`m${ci}`}
@@ -109,6 +113,7 @@ export function CalendarTab({
                     const key = dayKey(cell.date);
                     const isActive = cell.count > 0;
                     const isSelected = key === activeKey;
+
                     return (
                       <button
                         type="button"

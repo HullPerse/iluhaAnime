@@ -31,6 +31,7 @@ function AniListMetadata({
   const openSeason = () => {
     if (anime.season) onSeason?.(anime.season, anime.season_year);
   };
+
   const coverSrc = useRemoteImage(anime.cover_url);
   const airingAt = anime.next_airing_at;
   const airingLocal = formatAiringLocal(airingAt, locale);
@@ -38,6 +39,7 @@ function AniListMetadata({
 
   useEffect(() => {
     const { cancel } = createInterval(() => setNow(Date.now()), AIRING_TICK_MS);
+
     return cancel;
   }, []);
 

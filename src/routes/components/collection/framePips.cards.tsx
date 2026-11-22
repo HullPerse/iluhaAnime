@@ -20,6 +20,7 @@ export function FramePips({
 }) {
   const { t } = useI18n();
   const interactive = onSelect !== undefined && result === null;
+
   return (
     <div className="daily-pips" aria-hidden={!interactive}>
       {Array.from({ length: total }, (_, index) => {
@@ -37,6 +38,7 @@ export function FramePips({
               : index === attempts
                 ? "current"
                 : "future";
+
         if (!interactive) {
           return (
             <span key={index} className="daily-pip" data-state={state}>
@@ -44,6 +46,7 @@ export function FramePips({
             </span>
           );
         }
+
         return (
           <button
             key={index}

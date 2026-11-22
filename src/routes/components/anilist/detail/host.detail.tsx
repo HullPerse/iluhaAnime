@@ -22,6 +22,7 @@ export default function AniListDetailModalHost({
   onSaved,
 }: AniListDetailModalHostProps) {
   if (!selectedAnime) return null;
+
   return (
     <Details
       animeId={selectedAnime.animeId}

@@ -18,6 +18,7 @@ export function TabButtons({
   manga?: boolean;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="mb-1 flex gap-1">
       {TABS.map((item) => (

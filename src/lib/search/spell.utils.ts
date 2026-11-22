@@ -7,7 +7,9 @@ const EMPTY_SPELL_RANGES: readonly HighlightRange[] = [];
 
 export const spellSpansOf = (check: SpellCheck | null): SpellWordSpan[] => {
   if (!check) return [];
+
   if (check.spans && check.spans.length > 0) return check.spans;
+
   return [
     {
       start: check.start,
@@ -21,20 +23,25 @@ export const spellSpansOf = (check: SpellCheck | null): SpellWordSpan[] => {
 
 export const spellRangeOf = (check: SpellCheck | null): readonly HighlightRange[] => {
   if (!check) return EMPTY_SPELL_RANGES;
+
   return spellSpansOf(check).map((span) => {
     const kind: HighlightRange["kind"] = span.severity === "error" ? "spell-error" : "spell-warn";
+
     return { start: span.start, end: span.end, kind };
   });
 };
 
 export const spellSeverityOf = (kind: HighlightToken["kind"]): "warn" | "error" | undefined => {
   if (kind === "spell-error") return "error";
+
   if (kind === "spell-warn") return "warn";
+
   return undefined;
 };
 
 export const spellRectsOf = (backdrop: HTMLDivElement | null): DOMRect[] => {
   if (!backdrop) return [];
+
   return [...backdrop.querySelectorAll("[data-spell]")]
     .filter((span): span is HTMLElement => span instanceof HTMLElement)
     .map((span) => span.getBoundingClientRect());
@@ -42,6 +49,7 @@ export const spellRectsOf = (backdrop: HTMLDivElement | null): DOMRect[] => {
 
 const spellHit = (rect: DOMRect | null, clientX: number, clientY: number): boolean => {
   if (!rect) return false;
+
   return (
     clientX >= rect.left &&
     clientX <= rect.right &&
@@ -56,6 +64,7 @@ export const spellHitIndex = (rects: DOMRect[], clientX: number, clientY: number
 
 const caretSpanIndex = (spans: SpellWordSpan[], selectionStart: number | null): number => {
   if (selectionStart == null) return -1;
+
   return spans.findIndex((span) => selectionStart >= span.start && selectionStart <= span.end);
 };
 
@@ -73,9 +82,11 @@ export const handleSpellTab = (
   ) {
     return false;
   }
+
   event.preventDefault();
   const index = caretSpanIndex(spellSpansOf(spellCheck), event.currentTarget.selectionStart);
   onApplySpellCorrection(index < 0 ? undefined : index);
+
   return true;
 };
 
@@ -93,8 +104,10 @@ export const handleSpellSaveTab = (
   ) {
     return false;
   }
+
   event.preventDefault();
   const index = caretSpanIndex(spellSpansOf(spellCheck), event.currentTarget.selectionStart);
   onAddWordToDictionary(index < 0 ? undefined : index);
+
   return true;
 };

@@ -12,6 +12,7 @@ export function DayEntriesList({
   onEntryClick: (id: number) => void;
 }) {
   const { t, locale } = useI18n();
+
   return (
     <section className="windows95-border bg-field min-h-80 overflow-y-auto">
       {dayEntries.map((entry) => (

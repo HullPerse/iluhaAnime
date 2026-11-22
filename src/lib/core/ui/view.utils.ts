@@ -10,6 +10,7 @@ export function resolveViewChrome(input: ViewChromeInput): ViewChrome {
       barsHidden: !input.barsVisible && !input.menuOpen,
     };
   }
+
   if (input.mode === "compact") {
     return {
       fullBleed: true,
@@ -19,7 +20,9 @@ export function resolveViewChrome(input: ViewChromeInput): ViewChrome {
       barsHidden: false,
     };
   }
+
   const immersive = input.cinema || input.fullscreen;
+
   return {
     fullBleed: immersive,
     showHeader: true,

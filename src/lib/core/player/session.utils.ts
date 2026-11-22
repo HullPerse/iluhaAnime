@@ -3,6 +3,7 @@ import type { SessionConfigPayload } from "@/types/ui/settings";
 
 export function toSessionConfig(): SessionConfigPayload {
   const s = getSettingsSnapshot();
+
   return {
     fastresume: s.fastresumeEnabled,
     ipv4Only: s.ipv4Only,

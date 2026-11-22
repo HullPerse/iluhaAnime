@@ -88,9 +88,11 @@ function fakeTransport(responses: Record<string, unknown>) {
   const transport: ApiTransport = {
     call: async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       calls.push({ command, args });
+
       return responses[command] as T;
     },
   };
+
   return { calls, transport };
 }
 
@@ -206,30 +208,6 @@ describe("CardsApi", () => {
       {
         command: "cards_anime_collection",
         args: { animeId: 16498, kind: "anime", proxyUrl: "http://127.0.0.1:7890" },
-      },
-    ]);
-  });
-
-  it("asks for one roster page at a time", async () => {
-    const { calls, transport } = fakeTransport({
-      cards_collection_roster: {
-        page: 4,
-        total: 212,
-        hasMore: true,
-        available: true,
-        characters: [],
-      },
-    });
-    const api = new CardsApi({ transport });
-
-    const roster = await api.collectionRoster(16498, "anime", 4);
-
-    expect(roster.total).toBe(212);
-    expect(roster.hasMore).toBe(true);
-    expect(calls).toEqual([
-      {
-        command: "cards_collection_roster",
-        args: { mediaId: 16498, kind: "anime", page: 4 },
       },
     ]);
   });

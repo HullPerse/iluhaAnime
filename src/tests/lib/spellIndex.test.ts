@@ -50,6 +50,7 @@ describe("LazySpellIndex", () => {
     expect(lazy.ready).toBe(false);
     expect(lazy.pump(1)).toBe(false);
     expect(lazy.ready).toBe(false);
+
     while (!lazy.pump(2));
     expect(lazy.ready).toBe(true);
 
@@ -114,6 +115,7 @@ describe("roman numerals", () => {
     for (const value of ["i", "ii", "iii", "iv", "ix", "xii", "xx", "xl", "cm", "mix"]) {
       expect(isRomanNumeral(value), value).toBe(true);
     }
+
     for (const value of ["frieren", "abc", "", "iiii", "vx", "four", "im"]) {
       expect(isRomanNumeral(value), value).toBe(false);
     }

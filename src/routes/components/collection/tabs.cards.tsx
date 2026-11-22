@@ -42,6 +42,7 @@ export default function TabsCards() {
       {NAV_GROUPS.map((group) => {
         const groupActive = group.tabs.includes(tab);
         const single = group.tabs[0];
+
         if (group.tabs.length === 1 && single !== undefined) {
           return (
             <div key={group.id} role="tablist" aria-orientation="vertical">
@@ -63,6 +64,7 @@ export default function TabsCards() {
             </div>
           );
         }
+
         return (
           <div key={group.id} className="flex flex-col gap-0.5">
             <Button
@@ -73,6 +75,7 @@ export default function TabsCards() {
               disabled={groupActive}
               onClick={() => {
                 const first = group.tabs[0];
+
                 if (first !== undefined) setCardsTab(first);
               }}
             >
@@ -96,6 +99,7 @@ export default function TabsCards() {
                 const active = value === tab;
                 const unreadCount =
                   value === "packs" ? unreadPacks : value === "album" ? unreadCards : 0;
+
                 return (
                   <div key={value} className="flex flex-col gap-0.5">
                     <Button

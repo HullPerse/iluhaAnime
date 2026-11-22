@@ -33,13 +33,14 @@ function NekoBtApiModal({
     if (!apiKey.trim()) return;
     setLoading(true);
     setError("");
-    try {
+    await (async () => {
       const [, error] = await attempt(torrentApi.nekobtSetApiKey(apiKey));
+
       if (error) setError(String(error));
       else handleSuccess();
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   return (

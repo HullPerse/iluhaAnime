@@ -59,6 +59,7 @@ export function TorrentFiles({
       item.sequential_download ? downloadOrderPositions(files, item.download_order) : undefined,
     [files, item.download_order, item.sequential_download]
   );
+
   return (
     <section>
       <div

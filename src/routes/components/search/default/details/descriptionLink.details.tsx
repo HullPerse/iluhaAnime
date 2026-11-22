@@ -4,8 +4,10 @@ import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 export function DescriptionLink({ text, href }: { text: string; href: string }) {
   const open = async () => {
     const [, openError] = await attempt(openUrl(href));
+
     if (openError) reportBackgroundError("details.open-link", openError);
   };
+
   return (
     <button
       type="button"

@@ -38,7 +38,9 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
   const normalized = query.trim().toLowerCase();
   const visible = entries.filter((entry) => {
     if (platform !== ALL_PLATFORMS && entry.platform !== platform) return false;
+
     if (normalized.length === 0) return true;
+
     return (
       entry.title.toLowerCase().includes(normalized) ||
       entry.authors.join(" ").toLowerCase().includes(normalized)
@@ -56,6 +58,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
   const handleInstall = async (entry: GameStoreEntry) => {
     setProgress(null);
     const [, error] = await attempt(install.mutateAsync(entry.key));
+
     if (error !== null) {
       showError(t("common.error"), t("game.store.install.error"));
     }
@@ -95,6 +98,7 @@ export default function GameStoreModal({ onClose }: GameStoreModalProps) {
         {visible.map((entry) => {
           const installing = installingKey === entry.key;
           const rowProgress = progress !== null && progress.key === entry.key ? progress : null;
+
           return (
             <div key={entry.key} className="flex items-center gap-2 px-1 py-0.5">
               <div className="min-w-0 flex-1">

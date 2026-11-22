@@ -11,11 +11,13 @@ const DEFAULT_KEYS = keysOf(DEFAULT_SETTINGS).filter((key) => !INTERNAL_KEYS.has
 
 function changedSignature(snapshot: SettingsData): string {
   const changed: string[] = [];
+
   for (const key of DEFAULT_KEYS) {
     if (JSON.stringify(snapshot[key]) !== JSON.stringify(DEFAULT_SETTINGS[key])) {
       changed.push(key);
     }
   }
+
   return changed.join("\n");
 }
 
@@ -26,6 +28,7 @@ function keysForSignature(signature: string): ReadonlySet<string> {
   if (cachedSignature === signature) return cachedKeys;
   cachedSignature = signature;
   cachedKeys = signature.length === 0 ? new Set<string>() : new Set(signature.split("\n"));
+
   return cachedKeys;
 }
 
@@ -38,8 +41,10 @@ export function useChangedSettingsKeys(): ReadonlySet<string> {
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       let current = getSnapshot();
+
       return subscribeSettings(() => {
         const next = getSnapshot();
+
         if (next === current) return;
         current = next;
         onStoreChange();
@@ -47,5 +52,6 @@ export function useChangedSettingsKeys(): ReadonlySet<string> {
     },
     [getSnapshot]
   );
+
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

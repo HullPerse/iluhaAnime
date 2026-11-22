@@ -20,8 +20,11 @@ export function resolveFriendState(
   isError: boolean
 ): "loading" | "error" | null {
   if (!friend) return null;
+
   if (isLoading) return "loading";
+
   if (isError) return "error";
+
   return null;
 }
 
@@ -39,8 +42,10 @@ export function buildAnimeBackHandler(
   setSelectedAnime: (anime: AniListAnime) => void
 ): (() => void) | undefined {
   if (animeHistory.length === 0) return undefined;
+
   return () => {
     const prev = animeHistory.at(-1);
+
     if (prev) {
       setAnimeHistory((h) => h.slice(0, -1));
       setSelectedAnime(prev);
@@ -55,6 +60,7 @@ export function pickDisplayEntries(
   globalSort: GlobalSort
 ): AniMedia[] {
   if (global) return sortAniMediaList(searchResults, globalSort.key, globalSort.dir);
+
   return sortedEntries.map((e) => e.media);
 }
 
@@ -66,6 +72,7 @@ export function buildAnilistSourceKey(params: {
   filters: AniListFilters;
 }): string {
   const local = params.global ? "" : localFilterSignature(params.filters);
+
   return `${params.currentList}|${params.sort.key}|${params.sort.dir}|${params.searchTerms}|${params.global}|${local}`;
 }
 
@@ -84,14 +91,22 @@ export function resolveAniListView(params: {
   friendState?: "loading" | "error" | null;
 }): AniListViewState | null {
   if (params.friendState === "loading") return "friendLoading";
+
   if (params.friendState === "error") return "friendError";
+
   if (params.isLoading && !params.hasLists) return "loading";
+
   if (params.global) {
     if (params.loadingSearch) return "globalLoading";
+
     if (!params.hasSearchResults) return "globalEmpty";
+
     return null;
   }
+
   if (params.isLocal) return "localEmpty";
+
   if (!params.hasUser) return "login";
+
   return null;
 }

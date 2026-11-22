@@ -11,9 +11,11 @@ export function HostStatsBars({ stats }: { stats: HostStats | null }) {
   const { t } = useI18n();
   const net = stats ? stats.netRxBps + stats.netTxBps : 0;
   const netScale = useSessionPeak(net);
+
   if (!stats) return null;
 
   const memoryPercent = stats.memoryTotal > 0 ? (stats.memoryUsed / stats.memoryTotal) * 100 : 0;
+
   return (
     <span className="flex items-center gap-2">
       <StatBar

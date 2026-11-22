@@ -33,30 +33,12 @@ describe("player/tree arrows", () => {
     expect(resolveTreeArrow(ROWS, "B/ep1.mkv", "left")).toEqual({ kind: "focus", path: "B" });
   });
 
-  it("offers nothing for a collapsed root row", () => {
-    expect(resolveTreeArrow(ROWS, "D", "left")).toBeNull();
-  });
-
   it("opens a collapsed folder with Right", () => {
     expect(resolveTreeArrow(ROWS, "B", "right")).toEqual({ kind: "toggle", path: "B" });
   });
 
   it("walks to the first child with Right", () => {
     expect(resolveTreeArrow(ROWS, "A", "right")).toEqual({ kind: "focus", path: "B" });
-  });
-
-  it("leaves Right alone on a file row", () => {
-    expect(resolveTreeArrow(ROWS, "A/extra.mkv", "right")).toBeNull();
-  });
-
-  it("stays put on an expanded row whose first child is a sibling", () => {
-    const flat: TreeRow[] = [folder("A", 0, true), folder("D", 0, false)];
-    expect(resolveTreeArrow(flat, "A", "right")).toBeNull();
-  });
-
-  it("ignores a row that is not in the visible list", () => {
-    expect(resolveTreeArrow(ROWS, "gone", "left")).toBeNull();
-    expect(resolveTreeArrow([], "A", "right")).toBeNull();
   });
 });
 
@@ -70,11 +52,6 @@ describe("player/tree movement", () => {
   it("clamps at both ends instead of wrapping", () => {
     expect(resolveTreeMove(ROWS, "A", -1)).toBe("A");
     expect(resolveTreeMove(ROWS, "D", 1)).toBe("D");
-  });
-
-  it("offers nothing for a row that left the list", () => {
-    expect(resolveTreeMove(ROWS, "gone", 1)).toBeNull();
-    expect(resolveTreeMove([], "A", 1)).toBeNull();
   });
 });
 

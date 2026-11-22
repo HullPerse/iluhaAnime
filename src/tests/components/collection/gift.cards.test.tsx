@@ -31,6 +31,7 @@ const GIFT: CardGiftDeepLink = {
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_claim_gift") return Promise.resolve(makeGiftCards(2));
+
     return Promise.resolve(null);
   });
 });

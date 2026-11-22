@@ -25,6 +25,7 @@ export function filterGraph(graph: FranchiseGraph, filters: Set<RelationFilter>)
       .map((n) => [n.id, n])
   );
   const edges = filteredEdges.filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target));
+
   return { edges, ids, nodeMap };
 }
 
@@ -32,6 +33,7 @@ export function relationGroup(relType: string): RelationFilter {
   for (const group of RELATION_FILTERS) {
     if (FILTER_GROUPS[group].includes(relType)) return group;
   }
+
   return "OTHER";
 }
 
@@ -40,13 +42,16 @@ export function groupFranchiseNodes(
   relationMap: Map<number, string>
 ): { group: RelationFilter; items: FranchiseNode[] }[] {
   const buckets = new Map<RelationFilter, FranchiseNode[]>();
+
   for (const node of nodes) {
     const rel = relationMap.get(node.id) ?? "UNKNOWN";
     const group = relationGroup(rel);
     const bucket = buckets.get(group);
+
     if (bucket) bucket.push(node);
     else buckets.set(group, [node]);
   }
+
   return RELATION_FILTERS.map((group) => ({
     group,
     items: sortFranchiseNodes(buckets.get(group) ?? []),
@@ -56,6 +61,7 @@ export function groupFranchiseNodes(
 export function sortFranchiseNodes(nodes: FranchiseNode[]): FranchiseNode[] {
   return [...nodes].sort((a, b) => {
     if (a.year !== b.year) return (a.year ?? 0) - (b.year ?? 0);
+
     return a.title.localeCompare(b.title);
   });
 }
@@ -67,18 +73,26 @@ export function computeMainlineIds(
 ): Set<number> {
   const mainline = new Set<number>([rootId]);
   const adj = new Map<number, number[]>();
+
   for (const edge of graph.edges) {
     if (edge.relation_type !== "SEQUEL" && edge.relation_type !== "PREQUEL") continue;
+
     if (!nodeMap.has(edge.source) || !nodeMap.has(edge.target)) continue;
+
     if (!adj.has(edge.source)) adj.set(edge.source, []);
+
     if (!adj.has(edge.target)) adj.set(edge.target, []);
     adj.get(edge.source)?.push(edge.target);
     adj.get(edge.target)?.push(edge.source);
   }
+
   const queue = [rootId];
+
   while (queue.length > 0) {
     const cur = queue.shift();
+
     if (cur === undefined) break;
+
     for (const next of adj.get(cur) ?? []) {
       if (!mainline.has(next)) {
         mainline.add(next);
@@ -86,6 +100,7 @@ export function computeMainlineIds(
       }
     }
   }
+
   return mainline;
 }
 
@@ -95,18 +110,24 @@ export function computeNodeRelationMap(
 ): Map<number, string> {
   const relation = new Map<number, string>([[graph.root_id, "ROOT"]]);
   const adj = new Map<number, { node: number; type: string }[]>();
+
   for (const e of graph.edges) {
     if (!nodeMap.has(e.source) || !nodeMap.has(e.target)) continue;
+
     if (!adj.has(e.source)) adj.set(e.source, []);
+
     if (!adj.has(e.target)) adj.set(e.target, []);
     adj.get(e.source)?.push({ node: e.target, type: e.relation_type });
     adj.get(e.target)?.push({ node: e.source, type: e.relation_type });
   }
 
   const queue = [graph.root_id];
+
   while (queue.length > 0) {
     const cur = queue.shift();
+
     if (cur === undefined) break;
+
     for (const { node, type } of adj.get(cur) ?? []) {
       if (!relation.has(node)) {
         relation.set(node, type);
@@ -114,6 +135,7 @@ export function computeNodeRelationMap(
       }
     }
   }
+
   return relation;
 }
 
@@ -122,13 +144,16 @@ export function filterFranchiseNodesBySearch(
   query: string
 ): Set<number> | null {
   const lower = query.toLowerCase().trim();
+
   if (!lower) return null;
   const ids = new Set<number>();
+
   for (const node of nodeMap.values()) {
     if (node.title.toLowerCase().includes(lower)) {
       ids.add(node.id);
     }
   }
+
   return ids;
 }
 

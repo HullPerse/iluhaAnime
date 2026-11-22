@@ -12,7 +12,9 @@ import type { TorrentListState } from "@/types/torrent/torrentCommon";
 
 export function sameDownloadOrder(prev: number[] | undefined, next: number[] | undefined): boolean {
   if (prev === next) return true;
+
   if (!prev || !next) return false;
+
   return prev.length === next.length && prev.every((index, i) => index === next[i]);
 }
 
@@ -21,7 +23,9 @@ export function sameExternalChangedFiles(
   next: string[] | undefined
 ): boolean {
   if (prev === next) return true;
+
   if (!prev || !next) return false;
+
   return prev.length === next.length && prev.every((name, i) => name === next[i]);
 }
 
@@ -60,6 +64,7 @@ export const TORRENT_WATCHDOG_MS = 5_000;
 
 export function shouldHealTorrentPoll(lastEventAtMs: number, nowMs: number): boolean {
   if (lastEventAtMs <= 0) return false;
+
   return nowMs - lastEventAtMs >= TORRENT_EVENT_STALE_MS;
 }
 
@@ -68,7 +73,9 @@ export function shouldHealTorrentChannel(
   nowMs: number
 ): boolean {
   const lastContact = Math.max(state.lastEventAt, state.watchStartedAt, state.lastHealAt);
+
   if (lastContact <= 0) return false;
+
   return shouldHealTorrentPoll(lastContact, nowMs);
 }
 
@@ -82,13 +89,20 @@ export function getDisplayState(
   now: number
 ): TorrentDisplayState {
   if (item.missing_files) return "missing";
+
   if (item.error) return "error";
+
   if (item.finished) return item.state === "live" ? "seeding" : "done";
+
   if (item.state === "paused") return "paused";
+
   if (item.total_bytes === 0) return "initializing";
+
   if (isCheckingFiles(item)) return "checking";
+
   if (item.download_speed > 0) return "downloading";
   const last = (lastActiveAt[item.id] ?? 0) * 1000;
+
   return now - last >= STALL_AFTER_MS ? "stalled" : "downloading";
 }
 
@@ -122,17 +136,21 @@ export function displayStateLabel(state: TorrentDisplayState, t: TFunc): string 
 
 export function findNewErrors(prev: TorrentInfo[], next: TorrentInfo[]): TorrentInfo[] {
   const prevError = new Set(prev.filter((t) => t.error).map((t) => t.id));
+
   return next.filter((t) => t.error && !prevError.has(t.id));
 }
+
 export function findJustFinished(
   prev: TorrentInfo[],
   next: TorrentInfo[],
   seedPreferences: Record<number, boolean>
 ): TorrentInfo[] {
   const prevById = new Map(prev.map((t) => [t.id, t]));
+
   return next.filter((t) => {
     if (!t.finished || t.state !== "live" || seedPreferences[t.id]) return false;
     const was = prevById.get(t.id);
+
     return was === undefined || !was.finished;
   });
 }
@@ -151,11 +169,14 @@ export function countLiveTorrents(torrents: readonly TorrentInfo[]): {
 } {
   let active = 0;
   let seeding = 0;
+
   for (const item of torrents) {
     if (item.state !== "live") continue;
+
     if (item.finished) seeding += 1;
     else active += 1;
   }
+
   return { active, seeding };
 }
 
@@ -190,6 +211,7 @@ export function getLifecycleLabel(lifecycle: TorrentLifecycle, t: TFunc): string
 
 export function stateLabel(state: string, t: TFunc): string {
   const key: TranslationKey | undefined = STATE_LABEL_KEY[state];
+
   return key === undefined ? state : t(key);
 }
 
@@ -198,6 +220,7 @@ export function withoutPendingRemoved(
   pendingIds: ReadonlySet<number>
 ): TorrentInfo[] {
   if (pendingIds.size === 0) return torrents;
+
   return torrents.filter((t) => !pendingIds.has(t.id));
 }
 
@@ -207,20 +230,25 @@ export function mergeTorrentDelta(
   pendingIds: ReadonlySet<number> = new Set<number>()
 ): TorrentInfo[] {
   if (payload.reset) return withoutPendingRemoved(payload.updates, pendingIds);
+
   if (payload.updates.length === 0 && payload.removed.length === 0) return prev;
 
   const updates = new Map(payload.updates.map((torrent) => [torrent.id, torrent]));
   const removed = new Set(payload.removed);
+
   for (const id of pendingIds) removed.add(id);
   const next: TorrentInfo[] = [];
+
   for (const torrent of prev) {
     if (removed.has(torrent.id)) continue;
     next.push(updates.get(torrent.id) ?? torrent);
     updates.delete(torrent.id);
   }
+
   for (const torrent of payload.updates) {
     if (updates.has(torrent.id) && !removed.has(torrent.id)) next.push(torrent);
   }
+
   return next;
 }
 
@@ -228,9 +256,11 @@ export function pendingRemoveIds(
   opInFlight: Readonly<Record<number, "pause" | "resume" | "remove">>
 ): Set<number> {
   const ids = new Set<number>();
+
   for (const [key, op] of Object.entries(opInFlight)) {
     if (op === "remove") ids.add(Number(key));
   }
+
   return ids;
 }
 
@@ -246,18 +276,22 @@ export function reduceTorrentEvent(
   let stampsChanged = false;
   const prevById = new Map(prev.map((t) => [t.id, t]));
   const nextIds = new Set<number>();
+
   for (const t of next) {
     nextIds.add(t.id);
     const p = prevById.get(t.id);
     const activeNow =
       t.download_speed > 0 || (p !== undefined && t.progress_bytes !== p.progress_bytes);
+
     if ((p === undefined || activeNow) && stamps[t.id] !== tick) {
       stamps[t.id] = tick;
       stampsChanged = true;
     }
   }
+
   for (const key of Object.keys(stamps)) {
     const id = Number(key);
+
     if (!nextIds.has(id)) {
       delete stamps[id];
       stampsChanged = true;
@@ -265,10 +299,13 @@ export function reduceTorrentEvent(
   }
 
   let changed = next.length !== prev.length || next.some((t, i) => prev[i]?.id !== t.id);
+
   if (!changed) {
     changed = next.some((t) => {
       const p = prevById.get(t.id);
+
       if (!p) return true;
+
       return (
         !sameTorrentFields(p, t) ||
         !sameExternalChangedFiles(p.external_changed_files, t.external_changed_files) ||
@@ -279,6 +316,7 @@ export function reduceTorrentEvent(
 
   if (stampsChanged)
     return changed ? { torrents: next, lastActiveAt: stamps } : { lastActiveAt: stamps };
+
   return changed ? { torrents: next } : {};
 }
 
@@ -327,12 +365,18 @@ export function torrentErrorText(raw: string, t: TFunc, code?: string | null): s
   if (code === "torrent_files_kept") {
     return `${t("download.error.files.kept")} ${raw}`;
   }
+
   const coded = code === undefined || code === null ? undefined : KNOWN_TORRENT_ERROR_CODES[code];
+
   if (coded !== undefined) return t(coded);
+
   if (raw.startsWith("torrent deleted, but could not delete files:")) {
     return `${t("download.error.files.kept")} ${raw}`;
   }
+
   const known = KNOWN_TORRENT_ERRORS.find((entry) => entry.match(raw));
+
   if (known === undefined) return raw;
+
   return t(known.key);
 }

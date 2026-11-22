@@ -1,27 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-
 import { Button } from "@/components/ui/button.component";
 import { useBinderColumns } from "@/hooks/cards/binderColumns.hook";
-import { useCardsAnimeCollection, useCardsCollectionRoster } from "@/hooks/cards/queries.hook";
+import { useCardsAnimeCollection } from "@/hooks/cards/queries.hook";
+import { useCollectionRoster } from "@/hooks/cards/collectionRoster.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { CollectionItem, RosterCharacter } from "@/types/api/cards";
-import type { CollectionSlot } from "@/types/ui/collection";
+import type { CollectionItem } from "@/types/api/cards";
 
 import CollectionSilhouette from "@/routes/components/collection/silhouette.cards";
 import MissingMediaCard from "@/routes/components/collection/missingMediaCard.cards";
 import BinderPocket from "@/routes/components/collection/pocket.cards";
 import RosterFooter from "@/routes/components/collection/rosterFooter.cards";
-
-const PREFETCH_PAGES = 2;
-
-function mergeRoster(base: RosterCharacter[], extra: RosterCharacter[]): RosterCharacter[] {
-  const seen = new Set<number>();
-  return [...base, ...extra].filter((character) => {
-    if (seen.has(character.entityId)) return false;
-    seen.add(character.entityId);
-    return true;
-  });
-}
 
 export default function CollectionPageCards({
   animeId,
@@ -38,81 +25,14 @@ export default function CollectionPageCards({
   const collection = useCardsAnimeCollection(animeId, collectionKind);
   const { ref: binderRef, columns } = useBinderColumns(undefined, collection.data !== undefined);
   const pageSize = columns * 3;
-  const [page, setPage] = useState(0);
-  const [extraRoster, setExtraRoster] = useState<RosterCharacter[]>([]);
-  const [loadedRosterPage, setLoadedRosterPage] = useState<number | null>(null);
-  const [rosterHasMore, setRosterHasMore] = useState<boolean | null>(null);
-  const [requestedRosterPage, setRequestedRosterPage] = useState<number | null>(null);
-  const rosterPageQuery = useCardsCollectionRoster(animeId, collectionKind, requestedRosterPage);
-  const collectionIdentity = `${animeId}:${collectionKind}`;
-  const previousIdentity = useRef(collectionIdentity);
-  const prefetchedRoster = useRef(false);
-
-  useEffect(() => {
-    if (previousIdentity.current === collectionIdentity) return;
-    previousIdentity.current = collectionIdentity;
-    prefetchedRoster.current = false;
-    setPage(0);
-    setExtraRoster([]);
-    setLoadedRosterPage(null);
-    setRosterHasMore(null);
-    setRequestedRosterPage(null);
-  }, [collectionIdentity]);
-
   const collectionData = collection.data;
-  const roster = useMemo(
-    () => mergeRoster(collectionData?.roster ?? [], extraRoster),
-    [collectionData?.roster, extraRoster]
-  );
-
-  const slots = useMemo<CollectionSlot[]>(() => {
-    if (collectionData === undefined) return [];
-    const characterItems = collectionData.items.filter((item) => item.kind === "character");
-    const owned = characterItems.map<CollectionSlot>((card) => ({ kind: "owned", card }));
-    const ownedCharacters = new Set(characterItems.map((item) => item.entityId));
-    const missing = roster
-      .filter((character) => !character.owned && !ownedCharacters.has(character.entityId))
-      .map<CollectionSlot>((character) => ({
-        kind: "missing",
-        entityId: character.entityId,
-      }));
-    return [...owned, ...missing];
-  }, [collectionData, roster]);
-
-  const pageCount = Math.max(1, Math.ceil(slots.length / pageSize));
-  const currentPage = Math.min(page, pageCount - 1);
-  const loadedPage = loadedRosterPage ?? collectionData?.rosterPage ?? 0;
-  const hasMoreRoster = rosterHasMore ?? collectionData?.rosterHasMore ?? false;
-  const rosterPageData = rosterPageQuery.data;
-
-  useEffect(() => {
-    if (rosterPageData === undefined) return;
-    setExtraRoster((current) => mergeRoster(current, rosterPageData.characters));
-    setLoadedRosterPage(rosterPageData.page);
-    setRosterHasMore(rosterPageData.hasMore);
-    setRequestedRosterPage(null);
-  }, [rosterPageData]);
-
-  useEffect(() => {
-    if (collectionData === undefined || !hasMoreRoster) return;
-    if (requestedRosterPage !== null || rosterPageQuery.isFetching) return;
-    const nearEnd = currentPage >= pageCount - PREFETCH_PAGES;
-    if (!nearEnd && prefetchedRoster.current) return;
-    prefetchedRoster.current = true;
-    setRequestedRosterPage(loadedPage + 1);
-  }, [
-    collectionData,
-    hasMoreRoster,
-    requestedRosterPage,
-    rosterPageQuery.isFetching,
-    currentPage,
-    pageCount,
-    loadedPage,
-  ]);
+  const rosterView = useCollectionRoster(animeId, collectionKind, collectionData, pageSize);
+  const { roster, slots, pageCount, currentPage } = rosterView;
 
   if (collection.isPending) {
     return <p className="windows95-text text-hint p-2">{t("collection.loading")}</p>;
   }
+
   if (collection.isError || collectionData === undefined) {
     return (
       <div className="flex flex-col items-center gap-2 p-6">
@@ -134,8 +54,6 @@ export default function CollectionPageCards({
   const ownedCharacters = new Set(characterItems.map((item) => item.entityId)).size;
   const pageSlots = slots.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
   const rosterById = new Map(roster.map((character) => [character.entityId, character]));
-  const rosterLoading = rosterPageQuery.isFetching;
-  const rosterFailed = rosterPageQuery.isError && requestedRosterPage !== null;
 
   return (
     <div
@@ -192,7 +110,7 @@ export default function CollectionPageCards({
         </div>
       </div>
 
-      <div className="cards-binder" aria-busy={rosterLoading}>
+      <div className="cards-binder" aria-busy={rosterView.loading}>
         <div className="cards-binder-rings" aria-hidden>
           {Array.from({ length: 6 }, (_, index) => (
             <span key={index} />
@@ -205,9 +123,11 @@ export default function CollectionPageCards({
           >
             {Array.from({ length: pageSize }, (_, index) => {
               const slot = pageSlots[index];
+
               if (slot === undefined) {
                 return <BinderPocket key={`empty-${index}`} card={null} index={index} />;
               }
+
               if (slot.kind === "owned") {
                 return (
                   <BinderPocket
@@ -218,7 +138,9 @@ export default function CollectionPageCards({
                   />
                 );
               }
+
               const character = rosterById.get(slot.entityId);
+
               return character === undefined ? (
                 <BinderPocket key={`missing-${slot.entityId}`} card={null} index={index} />
               ) : (
@@ -230,14 +152,14 @@ export default function CollectionPageCards({
       </div>
 
       <RosterFooter
-        hasMore={hasMoreRoster}
-        failed={rosterFailed}
-        loading={rosterLoading}
-        disabled={rosterLoading || requestedRosterPage !== null}
+        hasMore={rosterView.hasMore}
+        failed={rosterView.failed}
+        loading={rosterView.loading}
+        disabled={rosterView.busy}
         onRetry={async () => {
-          await rosterPageQuery.refetch();
+          await rosterView.retry();
         }}
-        onMore={() => setRequestedRosterPage(loadedPage + 1)}
+        onMore={() => rosterView.requestMore()}
       />
 
       {pageCount > 1 && (
@@ -245,7 +167,7 @@ export default function CollectionPageCards({
           <Button
             className="h-6 px-2 text-xs"
             disabled={currentPage === 0}
-            onClick={() => setPage((value) => Math.max(0, value - 1))}
+            onClick={() => rosterView.goToPage(currentPage - 1)}
           >
             {t("collection.collection.prev")}
           </Button>
@@ -255,7 +177,7 @@ export default function CollectionPageCards({
           <Button
             className="h-6 px-2 text-xs"
             disabled={currentPage >= pageCount - 1}
-            onClick={() => setPage((value) => Math.min(pageCount - 1, value + 1))}
+            onClick={() => rosterView.goToPage(currentPage + 1)}
           >
             {t("collection.collection.next")}
           </Button>

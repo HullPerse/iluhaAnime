@@ -5,6 +5,7 @@ import { listStatusLabels } from "@/config/system/labels.config";
 
 export function StatusDot({ status }: { status: string }) {
   const { t } = useI18n();
+
   return (
     <span
       className="windows95-border mt-0.5 shrink-0"

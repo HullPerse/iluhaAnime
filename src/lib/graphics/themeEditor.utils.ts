@@ -95,8 +95,11 @@ export function buildComponents(
   cardMeta: NonNullable<ThemeComponents["cardMeta"]>
 ): ThemeComponents | undefined {
   const components: ThemeComponents = {};
+
   if (titlebarArt) components.titlebarArt = true;
+
   if (cardMeta !== "full") components.cardMeta = cardMeta;
+
   return Object.keys(components).length > 0 ? components : undefined;
 }
 
@@ -107,6 +110,7 @@ export function buildThemeName(
   baseTheme: ThemeDefinition | undefined
 ): string {
   if (patchMode && baseTheme) return baseTheme.name;
+
   return theme?.name ?? `custom-${name.trim().toLowerCase().replaceAll(/\s+/g, "-")}`;
 }
 
@@ -118,11 +122,15 @@ export function saveTheme(
 ): void {
   if (patchMode && baseTheme) {
     const patch = diffTheme(baseTheme, draft);
+
     if (patch) setThemePatch(baseTheme.name, patch);
     else clearThemePatch(baseTheme.name);
+
     return;
   }
+
   addCustomTheme(draft);
+
   if (currentTheme === draft.name) setTheme(draft.name);
 }
 
@@ -134,6 +142,8 @@ export function editorHeaderKey({
   isEdit: boolean;
 }): TranslationKey {
   if (patchMode) return "settings.theme.customize";
+
   if (isEdit) return "settings.theme.edit.title";
+
   return "settings.theme.create.title";
 }

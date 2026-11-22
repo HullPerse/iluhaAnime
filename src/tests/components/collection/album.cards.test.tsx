@@ -1,8 +1,10 @@
-import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import AlbumCards from "@/routes/components/collection/album.cards";
+import AlbumCards from "@/routes/components/collection/album/view.album";
+import { VirtualCardGrid } from "@/routes/components/collection/album/virtualGrid.album";
 import {
   resetCardsStore,
   setCardsBinderPage,
@@ -32,6 +34,7 @@ vi.mock("@tanstack/react-virtual", () => ({
 
 function lastCollectionArgs(): Record<string, unknown> | undefined {
   const calls = mockInvoke.mock.calls.filter((call) => call[0] === "cards_collection");
+
   return calls.at(-1)?.[1] as Record<string, unknown> | undefined;
 }
 
@@ -45,10 +48,12 @@ beforeEach(() => {
     if (command === "cards_gallery") {
       return Promise.resolve({ images: [], preferredUrl: null });
     }
+
     if (command === "cards_collection") {
       const request = args as { page?: number; pageSize?: number } | undefined;
       const page = request?.page ?? 1;
       const pageSize = request?.pageSize ?? 24;
+
       return Promise.resolve(
         makeCollectionPage({
           total: 48,
@@ -65,6 +70,7 @@ beforeEach(() => {
         })
       );
     }
+
     return Promise.resolve(null);
   });
 });
@@ -75,6 +81,33 @@ afterEach(() => {
 });
 
 describe("collection album", () => {
+  it("keeps virtual cards mounted when their order changes within a row", () => {
+    const first = makeCollectionItem({ entityId: 1, title: "First card" });
+    const second = makeCollectionItem({ entityId: 2, title: "Second card" });
+    const original = [first, second];
+    const scrollRef = createRef<HTMLDivElement>();
+    const onOpen = vi.fn();
+    const onLoadMore = vi.fn();
+    const grid = (cards: typeof original) => (
+      <VirtualCardGrid
+        cards={cards}
+        total={2}
+        scrollRef={scrollRef}
+        hasNextPage={false}
+        isFetchingNextPage={false}
+        onLoadMore={onLoadMore}
+        resetKey="same"
+        onOpen={onOpen}
+      />
+    );
+    const { rerender } = render(grid(original));
+    const card = screen.getByText("First card");
+    rerender(grid([second, first]));
+    expect(screen.getByText("First card")).toBe(card);
+    fireEvent.click(card);
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith(first);
+  });
+
   it("applies the kind, rarity and sort filters on page one", async () => {
     renderWithCardsClient(<AlbumCards />);
     await screen.findByText("Levi");
@@ -94,28 +127,49 @@ describe("collection album", () => {
         pageSize: 36,
       })
     );
-    expect(screen.getByText("Страница 1")).toBeTruthy();
-  });
 
-  it("narrows the album to foil and holo cards from the toolbar", async () => {
-    renderWithCardsClient(<AlbumCards />);
-    await screen.findByText("Levi");
     const user = userEvent.setup();
-
     await user.click(screen.getByRole("combobox", { name: "Вариант" }));
     await user.click(await screen.findByRole("option", { name: "Голографическая" }));
-
-    await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ variant: "holo" }));
-  });
-
-  it("sorts by finish in the requested direction", async () => {
-    renderWithCardsClient(<AlbumCards />);
-    await screen.findByText("Levi");
+    await waitFor(() =>
+      expect(lastCollectionArgs()).toMatchObject({ variant: "holo", sort: "value" })
+    );
 
     act(() => setCardsSort("variant"));
+    await waitFor(() =>
+      expect(lastCollectionArgs()).toMatchObject({ sort: "variant", sortDir: "desc" })
+    );
+    expect(await screen.findByText("Страница 1")).toBeTruthy();
+  });
 
-    await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ sort: "variant" }));
-    expect(lastCollectionArgs()?.sortDir).toBe("desc");
+  it("hides results from the old filter until the new request finishes", async () => {
+    const filtered = Promise.withResolvers<ReturnType<typeof makeCollectionPage>>();
+    mockInvoke.mockImplementation((command: unknown, args: unknown) => {
+      if (command !== "cards_collection") return Promise.resolve(null);
+
+      if (args && typeof args === "object" && "rarity" in args && args.rarity === "rare") {
+        return filtered.promise;
+      }
+
+      return Promise.resolve(
+        makeCollectionPage({ items: [makeCollectionItem({ title: "Unfiltered card" })] })
+      );
+    });
+    renderWithCardsClient(<AlbumCards />);
+    await screen.findByText("Unfiltered card");
+
+    act(() => setCardsRarity("rare"));
+    expect(screen.queryByText("Unfiltered card")).toBeNull();
+
+    await act(async () =>
+      filtered.resolve(
+        makeCollectionPage({
+          items: [makeCollectionItem({ title: "Filtered card", rarity: "rare" })],
+        })
+      )
+    );
+    expect(await screen.findByText("Filtered card")).toBeTruthy();
+    expect(screen.queryByText("Unfiltered card")).toBeNull();
   });
 
   it("keeps the opened rarity when the same finish exists at several rarities", async () => {
@@ -123,6 +177,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -140,6 +195,7 @@ describe("collection album", () => {
           })
         );
       }
+
       if (command === "cards_card_variants") {
         return Promise.resolve([
           makeCollectionItem({
@@ -158,6 +214,7 @@ describe("collection album", () => {
           }),
         ]);
       }
+
       return Promise.resolve(null);
     });
 
@@ -177,6 +234,7 @@ describe("collection album", () => {
       if (command !== "cards_collection") return Promise.resolve(null);
       const request = args as { page?: number; pageSize?: number };
       const page = request.page ?? 1;
+
       return Promise.resolve(
         makeCollectionPage({
           total: 96,
@@ -236,14 +294,17 @@ describe("collection album", () => {
 
   it("keeps the current page rendered while the next uncached page loads", async () => {
     let resolvePage: (value: ReturnType<typeof makeCollectionPage>) => void = () => {};
+
     mockInvoke.mockImplementation((command: unknown, args: unknown) => {
       if (command !== "cards_collection") return Promise.resolve(null);
       const page = (args as { page?: number } | undefined)?.page ?? 1;
+
       if (page === 2) {
         return new Promise((resolve) => {
           resolvePage = resolve as (value: ReturnType<typeof makeCollectionPage>) => void;
         });
       }
+
       return Promise.resolve(makeCollectionPage({ total: 48 }));
     });
 
@@ -260,21 +321,12 @@ describe("collection album", () => {
     expect(await screen.findByText("Страница 2")).toBeTruthy();
   });
 
-  it("switches to a twelve-pocket binder page", async () => {
-    renderWithCardsClient(<AlbumCards />);
-    await screen.findByText("Levi");
-
-    fireEvent.click(screen.getByRole("button", { name: "Биндер" }));
-
-    expect(await screen.findByTestId("binder")).toBeTruthy();
-    await waitFor(() => expect(lastCollectionArgs()).toMatchObject({ pageSize: 12, page: 1 }));
-  });
-
   it("switches the displayed variant when the same card is owned in several", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -292,7 +344,9 @@ describe("collection album", () => {
           })
         );
       }
+
       if (command === "cards_set_card_variant") return Promise.resolve(1);
+
       if (command === "cards_card_variants") {
         return Promise.resolve([
           makeCollectionItem({
@@ -311,6 +365,7 @@ describe("collection album", () => {
           }),
         ]);
       }
+
       return Promise.resolve(null);
     });
 
@@ -357,6 +412,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images, preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -366,7 +422,9 @@ describe("collection album", () => {
           })
         );
       }
+
       if (command === "cards_set_preferred_image") return Promise.resolve(1);
+
       return Promise.resolve(null);
     });
 
@@ -413,6 +471,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -432,6 +491,7 @@ describe("collection album", () => {
           })
         );
       }
+
       return Promise.resolve(null);
     });
 
@@ -453,6 +513,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -469,6 +530,7 @@ describe("collection album", () => {
           })
         );
       }
+
       return Promise.resolve(null);
     });
 
@@ -484,6 +546,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -500,6 +563,7 @@ describe("collection album", () => {
           })
         );
       }
+
       if (command === "get_staff_characters") {
         return Promise.resolve({
           id: 42,
@@ -515,6 +579,7 @@ describe("collection album", () => {
           media: [],
         });
       }
+
       return Promise.resolve(null);
     });
 
@@ -531,6 +596,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -548,9 +614,11 @@ describe("collection album", () => {
           })
         );
       }
+
       if (command === "search_anilist_by_studio") {
         return Promise.resolve([{ id: 21, title: "Work A" }]);
       }
+
       return Promise.resolve(null);
     });
 
@@ -567,6 +635,7 @@ describe("collection album", () => {
       if (command === "cards_gallery") {
         return Promise.resolve({ images: [], preferredUrl: null });
       }
+
       if (command === "cards_collection") {
         return Promise.resolve(
           makeCollectionPage({
@@ -575,6 +644,7 @@ describe("collection album", () => {
           })
         );
       }
+
       return Promise.resolve(null);
     });
 

@@ -8,6 +8,7 @@ export function Win95Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
   const progress = splashProgress(stages);
   const cells = 20;
   const filled = Math.round(progress * cells);
+
   return (
     <div
       role="status"

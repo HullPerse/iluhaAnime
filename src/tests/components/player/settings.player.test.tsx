@@ -38,6 +38,7 @@ const renderPanel = (settings: PlayerSettings = PANEL_DEFAULTS, streaming = fals
       {...spies}
     />
   );
+
   return spies;
 };
 

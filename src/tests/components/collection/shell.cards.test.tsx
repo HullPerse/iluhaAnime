@@ -34,10 +34,14 @@ const shell = (
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_shell") return Promise.resolve(shell());
+
     if (command === "cards_mark_seen") return Promise.resolve(NO_SEEN);
+
     if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
     if (command === "cards_collection")
       return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
     return Promise.resolve(null);
   });
 });
@@ -67,9 +71,12 @@ describe("collection shell", () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_shell")
         return Promise.resolve(shell(makeCardsStats({ totalCards: 2, activeGifts: 2 })));
+
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<CollectionShell />);
@@ -83,9 +90,12 @@ describe("collection shell", () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_shell")
         return Promise.resolve(shell(makeCardsStats({ totalCards: 2 }), { packs: 3, cards: 2 }));
+
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<CollectionShell />);
@@ -98,8 +108,11 @@ describe("collection shell", () => {
   it("does not mark already read cards new on a cold mount", async () => {
     const seen = { packsReadAt: 100, albumReadAt: 100 };
     mockInvoke.mockImplementation((command: unknown) => {
-      if (command === "cards_shell") return Promise.resolve(shell(undefined, undefined, undefined, seen));
+      if (command === "cards_shell")
+        return Promise.resolve(shell(undefined, undefined, undefined, seen));
+
       if (command === "cards_mark_seen") return Promise.resolve(seen);
+
       if (command === "cards_collection")
         return Promise.resolve(
           makeCollectionPage({
@@ -107,6 +120,7 @@ describe("collection shell", () => {
             total: 1,
           })
         );
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<CollectionShell />);
@@ -117,21 +131,15 @@ describe("collection shell", () => {
     expect(screen.queryByTestId("card-new")).toBeNull();
   });
 
-  it("switches to the album and renders its empty state", async () => {
-    renderWithCardsClient(<CollectionShell />);
-    await screen.findByRole("tab", { name: "Альбом" });
-
-    fireEvent.click(screen.getByRole("tab", { name: "Альбом" }));
-
-    expect(await screen.findByText("В альбоме пока нет карточек.")).toBeTruthy();
-  });
-
   it("keeps the removed daily test button out of the UI", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_shell") return Promise.resolve(shell());
+
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<CollectionShell />);
@@ -151,7 +159,9 @@ describe("collection shell", () => {
 
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_shell") return Promise.resolve(shell());
+
       if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
       return Promise.resolve(null);
     });
     fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
@@ -162,6 +172,7 @@ describe("collection shell", () => {
   it("hides the starter claim when the profile has no completed anime", async () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_shell") return Promise.resolve(shell(makeCardsStats()));
+
       if (command === "cards_starter_status")
         return Promise.resolve({
           connected: true,
@@ -170,8 +181,10 @@ describe("collection shell", () => {
           granted: false,
           packs: 0,
         });
+
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<CollectionShell />);
@@ -185,8 +198,13 @@ describe("collection shell", () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "cards_shell")
         return Promise.resolve(
-          shell(makeCardsStats(), { packs: 0, cards: 0 }, makeBootstrap({ starterGranted: claimed }))
+          shell(
+            makeCardsStats(),
+            { packs: 0, cards: 0 },
+            makeBootstrap({ starterGranted: claimed })
+          )
         );
+
       if (command === "cards_starter_status")
         return Promise.resolve({
           connected: true,
@@ -195,12 +213,16 @@ describe("collection shell", () => {
           granted: claimed,
           packs: claimed ? 3 : 0,
         });
+
       if (command === "cards_grant_starter") {
         claimed = true;
+
         return Promise.resolve({ granted: true, packs: 3 });
       }
+
       if (command === "cards_collection")
         return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<CollectionShell />);

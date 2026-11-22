@@ -55,9 +55,11 @@ export function StatsOverview({
       </StatsCard>
     );
   }
+
   if (isLoading || model == null) {
     return <TabLoader className="min-h-40" />;
   }
+
   if (model.isEmpty) {
     return (
       <StatsCard title={t("anilist.stats.title")}>

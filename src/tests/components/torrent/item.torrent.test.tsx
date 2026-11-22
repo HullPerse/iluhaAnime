@@ -67,6 +67,7 @@ const props = (overrides: Partial<TorrentItemProps> = {}): TorrentItemProps => {
 
 const renderItem = (overrides: Partial<TorrentItemProps> = {}) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <DndContext>
@@ -82,7 +83,9 @@ beforeEach(() => {
     if (command === "get_torrent_limits") {
       return Promise.resolve({ downloadBps: null, uploadBps: null });
     }
+
     if (command === "get_torrent_source") return Promise.resolve(null);
+
     return Promise.resolve(undefined);
   });
 });
@@ -155,6 +158,7 @@ describe("areTorrentItemsEqual", () => {
 
   it("repaints on queue moves and ignores callback identity", () => {
     const move = () => {};
+
     const queued = props({ queue: { index: 0, total: 2, onMove: move } });
     expect(
       areTorrentItemsEqual(queued, props({ queue: { index: 1, total: 2, onMove: () => {} } }))

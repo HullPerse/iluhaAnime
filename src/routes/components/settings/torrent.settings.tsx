@@ -44,12 +44,16 @@ export default function SettingsTorrent() {
   );
   const clearLeftovers = useCallback(async () => {
     const confirmed = await confirm(t("settings.torrent.leftovers.confirm"));
+
     if (!confirmed) return;
     const [, error] = await attempt(torrentApi.clearPartialLeftovers());
+
     if (error) {
       showError(t("settings.torrent.leftovers.clear.failed"), error.message);
+
       return;
     }
+
     await queryClient.invalidateQueries({ queryKey: queryKeys.partialLeftovers() });
   }, [queryClient, t]);
 
@@ -59,11 +63,13 @@ export default function SettingsTorrent() {
         const [, error] = await attempt(
           torrentApi.saveSessionConfig({ ...toSessionConfig(), ...partial })
         );
+
         if (error) showError(t("settings.torrent.session.save.failed"), error.message);
       })();
     },
     [t]
   );
+
   return (
     <div className="flex flex-col gap-3">
       <section className="ui-panel" data-find-section="torrent.limits">

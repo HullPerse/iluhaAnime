@@ -17,6 +17,7 @@ export default function RosterFooter({
   onMore: () => void;
 }) {
   const { t } = useI18n();
+
   if (!hasMore) return null;
 
   if (failed) {

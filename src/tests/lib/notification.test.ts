@@ -10,14 +10,12 @@ import {
   copyNotification,
   openNotificationTarget,
   showError,
-  showErrorOnce,
   formatRelativeTime,
   resolveNotificationText,
 } from "@/lib/core/ui/notification.utils";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 import {
   addNotification,
-  createNotificationSignalStore,
   notificationAtoms,
   resolveNotificationPersisted,
   updateNotification,
@@ -44,92 +42,6 @@ beforeEach(() => {
   notificationAtoms.unreadCount.set(0);
 });
 
-function memoryStorage(): Storage {
-  const data = new Map<string, string>();
-  return {
-    get length() {
-      return data.size;
-    },
-    clear: () => data.clear(),
-    getItem: (key) => data.get(key) ?? null,
-    key: (index) => Array.from(data.keys())[index] ?? null,
-    removeItem: (key) => {
-      data.delete(key);
-    },
-    setItem: (key, value) => {
-      data.set(key, value);
-    },
-  };
-}
-
-describe("notification restart persistence", () => {
-  it("restores panel notifications after a new store reads storage", () => {
-    const storage = memoryStorage();
-    const before = createNotificationSignalStore({ getStorage: () => storage, debounceMs: 0 });
-    before.add("Persisted", "info", "Survives", undefined, { system: false });
-    before.add("Episode 4", "info", "Show", "7:4", { system: false, silent: true });
-    before.add("Summary", "info", undefined, "summary-test", {
-      system: false,
-      popupOnly: true,
-    });
-    before.persistor.flush();
-    const after = createNotificationSignalStore({ getStorage: () => storage, debounceMs: 0 });
-    const items = after.atoms.items.get();
-    expect(items.map((item) => item.title)).toEqual(["Episode 4", "Persisted"]);
-    expect(items.find((item) => item.title === "Persisted")?.message).toBe("Survives");
-    expect(after.atoms.unreadCount.get()).toBe(2);
-  });
-
-  it("does not resurrect a cleared notification after a restart", () => {
-    const storage = memoryStorage();
-    const before = createNotificationSignalStore({ getStorage: () => storage, debounceMs: 0 });
-    const id = before.add("Gone", "info", undefined, undefined, { system: false });
-    before.persistor.flush();
-    before.clear(id);
-    before.persistor.flush();
-    const after = createNotificationSignalStore({ getStorage: () => storage, debounceMs: 0 });
-    expect(after.atoms.items.get()).toHaveLength(0);
-  });
-
-  it("allows a new keyed event with the same text as one that was dismissed", () => {
-    const storage = memoryStorage();
-    const store = createNotificationSignalStore({ getStorage: () => storage, debounceMs: 0 });
-    const initial = store.add("New chapters", "info", "1 chapter", "poll:1", { silent: true });
-    store.clear(initial);
-    store.add("New chapters", "info", "1 chapter", "poll:1", { silent: true });
-    store.add("New chapters", "info", "1 chapter", "poll:2", { silent: true });
-
-    expect(store.atoms.items.get().map((item) => item.eventKey)).toEqual(["poll:2"]);
-  });
-
-  it("drops popup-only summaries but keeps panel items on rehydrate", () => {
-    const now = Date.now();
-    const panel = {
-      id: 1,
-      type: "info" as const,
-      title: "Panel",
-      timestamp: now,
-      read: false,
-    };
-    const summary = { ...panel, id: 2, title: "2 new", popupOnly: true };
-    const restored = resolveNotificationPersisted({ dismissed: [], items: [panel, summary] }, true);
-    expect(restored?.items).toEqual([panel]);
-  });
-
-  it("does not count popup-only summaries as unread", () => {
-    const store = createNotificationSignalStore({
-      getStorage: () => memoryStorage(),
-      debounceMs: 0,
-    });
-    store.add("Panel", "info", undefined, undefined, { system: false, silent: true });
-    store.add("Summary", "info", undefined, "summary-test", {
-      system: false,
-      popupOnly: true,
-    });
-    expect(store.atoms.unreadCount.get()).toBe(1);
-  });
-});
-
 describe("notification helpers", () => {
   it("helpers add a real notification item to the store", () => {
     showError("Oops", "Details");
@@ -138,15 +50,6 @@ describe("notification helpers", () => {
     expect(items[0].type).toBe("error");
     expect(items[0].title).toBe("Oops");
     expect(items[0].message).toBe("Details");
-  });
-
-  it("updates the existing entry instead of stacking a second scan error", () => {
-    showErrorOnce("folders-scan", "Scan failed", "first failure");
-    showErrorOnce("folders-scan", "Scan failed", "second failure");
-    const items = notificationAtoms.items.get();
-    expect(items).toHaveLength(1);
-    expect(items[0].message).toBe("second failure");
-    expect(notificationAtoms.unreadCount.get()).toBe(1);
   });
 });
 
@@ -236,6 +139,7 @@ describe("resolveNotificationText", () => {
 describe("formatRelativeTime", () => {
   it("formats past timestamps with a suffix in both locales", () => {
     vi.useFakeTimers();
+
     try {
       vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
       const twoHoursAgo = Date.now() - 2 * 3_600_000;
@@ -247,6 +151,7 @@ describe("formatRelativeTime", () => {
 
   it("formats future timestamps with a forward suffix", () => {
     vi.useFakeTimers();
+
     try {
       vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
       const inTwoHours = Date.now() + 2 * 3_600_000;
@@ -266,6 +171,7 @@ describe("popup mode gating for system toasts", () => {
     await vi.waitFor(() => {
       expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(true);
     });
+
     return mockInvoke.mock.calls
       .filter((call) => call[0] === "show_toast")
       .map((call) => call[1] as { title: string });

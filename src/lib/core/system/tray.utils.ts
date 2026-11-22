@@ -20,5 +20,6 @@ export function buildTrayMenuEntries(
     { kind: "separator", id: "tray-separator" },
     { kind: "quit", id: "tray-quit", text: quitText }
   );
+
   return entries;
 }

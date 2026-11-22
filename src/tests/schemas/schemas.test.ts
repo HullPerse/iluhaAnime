@@ -20,10 +20,23 @@ const TORRENT_INFO = {
   info_hash: "abc",
   total_bytes: 10,
   progress_bytes: 5,
+  uploaded_bytes: 0,
+  share_ratio: 0,
+  download_speed: 0,
+  upload_speed: 0,
+  peers_connected: 0,
+  progress: 0.5,
   state: "downloading",
+  eta_secs: null,
   finished: false,
+  error: null,
   save_dir: "D:/downloads",
   sequential_download: false,
+  sequential_file: null,
+  download_order: [],
+  missing_files: false,
+  external_changes: false,
+  external_changed_files: [],
 };
 
 describe("IPC response schemas", () => {
@@ -105,8 +118,7 @@ describe("IPC response schemas", () => {
     expect(FollowingPageSchema.safeParse({ users: [], has_next_page: false }).success).toBe(true);
     const favourites = { anime: [], people: { staff: [], characters: [] } };
     expect(
-      AniUserBundleSchema.safeParse({ user: { id: 1, name: "u" }, lists: [], favourites })
-        .success
+      AniUserBundleSchema.safeParse({ user: { id: 1, name: "u" }, lists: [], favourites }).success
     ).toBe(true);
     expect(
       AniFriendBundleSchema.safeParse({

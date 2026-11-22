@@ -19,7 +19,9 @@ const GIFT: GiftItem = {
 beforeEach(() => {
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_gifts") return Promise.resolve([GIFT]);
+
     if (command === "cards_delete_gift") return Promise.resolve({ returned: true });
+
     return Promise.resolve(null);
   });
 });

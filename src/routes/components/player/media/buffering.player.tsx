@@ -24,27 +24,36 @@ function BufferingOverlay({ visible }: { visible: boolean }) {
   useEffect(() => {
     if (!visible) {
       const elapsed = Date.now() - shownAt.current;
+
       if (shown && elapsed < MIN_VISIBLE_MS) {
         const task = scheduleTask("timeout", MIN_VISIBLE_MS - elapsed, () => setShown(false));
+
         return () => task.cancel();
       }
+
       setShown(false);
+
       return;
     }
+
     if (shown) return;
     const task = scheduleTask("timeout", SHOW_DELAY_MS, () => {
       shownAt.current = Date.now();
       setShown(true);
     });
+
     return () => task.cancel();
   }, [visible, shown]);
 
   useEffect(() => {
     if (!shown) {
       setStalled(false);
+
       return;
     }
+
     const task = scheduleTask("timeout", STALL_AFTER_MS, () => setStalled(true));
+
     return () => task.cancel();
   }, [shown]);
 
@@ -57,10 +66,12 @@ function BufferingOverlay({ visible }: { visible: boolean }) {
       : t("player.stream.buffering")
     : t("player.stream.buffering.local");
   const detail: string[] = [];
+
   if (streaming && !stalled) {
     if (ahead !== undefined && ahead > 0) {
       detail.push(t("player.stream.buffering.ahead", { time: formatClock(ahead) }));
     }
+
     if (speed !== undefined) detail.push(formatRate(speed));
   }
 

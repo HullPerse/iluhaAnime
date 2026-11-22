@@ -40,6 +40,7 @@ export function FiltersContent({
       [key]: selected.includes(id) ? selected.filter((value) => value !== id) : [...selected, id],
     });
   };
+
   const patch = (next: Partial<StreamCatalogFilters>) => setLocal({ ...local, ...next });
   const filtersLoading = constants.isPending;
   const filtersFailed = !filtersLoading && constants.error !== null;

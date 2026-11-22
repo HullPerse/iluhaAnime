@@ -26,6 +26,7 @@ export default function TorrentActions({
   label: string;
 }) {
   const { t } = useI18n();
+
   return (
     <div
       className="windows95-border bg-surface flex flex-wrap items-center gap-1 p-1"

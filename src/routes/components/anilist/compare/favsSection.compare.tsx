@@ -10,7 +10,9 @@ export function FavsSection({
   onAnimeClick?: (id: number) => void;
 }) {
   const { t } = useI18n();
+
   if (favourites.length === 0) return null;
+
   return (
     <div className="border-muted border-t p-2">
       <p className="windows95-text mb-1 text-xs font-bold">
@@ -30,6 +32,7 @@ export function FavsSection({
               <p className="windows95-text truncate text-center text-xs">{item.title.romaji}</p>
             </>
           );
+
           return onAnimeClick ? (
             <button
               key={item.id}

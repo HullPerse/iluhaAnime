@@ -46,6 +46,7 @@ export default function StreamToolbar({
     setText("");
     submitStreamSearch("");
   };
+
   const activeFilters = countActiveStreamFilters(filters);
   const accountLabel = account?.login ?? t("stream.account.title");
 
@@ -120,10 +121,11 @@ export default function StreamToolbar({
         </Button>
       ) : (
         <Button
-          title={loginError ?? t("stream.login.hint")}
+          title={loginError ?? t("stream.login")}
           aria-label={t("stream.login")}
           onClick={async () => {
             const signedIn = await login();
+
             if (signedIn) onRefetch();
           }}
           loading={waiting}
@@ -143,6 +145,7 @@ export default function StreamToolbar({
           onConfirm={async () => {
             setLogoutOpen(false);
             const signedOut = await logout();
+
             if (signedOut) onRefetch();
           }}
           onCancel={() => setLogoutOpen(false)}

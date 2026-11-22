@@ -10,9 +10,12 @@ export const paintOffscreen = (
     canvas.width = bounds.width;
     canvas.height = bounds.height;
     const context = canvas.getContext("2d");
+
     if (!context) return undefined;
     paint(context);
+
     return canvas.toDataURL("image/png");
   });
+
   return url ?? undefined;
 };

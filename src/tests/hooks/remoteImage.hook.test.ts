@@ -38,6 +38,7 @@ describe("prefetchRemoteImages", () => {
     let finished = false;
     const second = prefetchRemoteImages(["https://example.com/shared.jpg"]).then(() => {
       finished = true;
+
       return undefined;
     });
     await Promise.resolve();
@@ -154,6 +155,7 @@ describe("prefetchRemoteImages", () => {
     expect(invokeMock).toHaveBeenCalledTimes(4);
 
     setRemoteImageScope([urls[0] as string]);
+
     for (const resolve of resolvers) resolve([]);
     await prefetching;
 
@@ -168,6 +170,7 @@ describe("prefetchRemoteImages", () => {
           lowResolvers.push(resolve);
         });
       }
+
       return Promise.resolve({ id: "high", path: "C:/images/high.jpg" });
     });
     const urls = Array.from(

@@ -65,7 +65,7 @@ interface NotificationSignalStore {
   markRead: (id: number) => void;
 }
 
-export function createNotificationSignalStore(
+function createNotificationSignalStore(
   options: NotificationSignalOptions = {}
 ): NotificationSignalStore {
   let restoredMaxId = 0;
@@ -77,8 +77,10 @@ export function createNotificationSignalStore(
     debounceMs: options.debounceMs,
     onFallback: (get) => {
       const migrated = readLegacyNotifications(get);
+
       if (!migrated) return null;
       restoredMaxId = migrated.maxId;
+
       return { data: migrated.data, schemaVersion: NOTIFICATION_SCHEMA_VERSION };
     },
   });
@@ -93,9 +95,11 @@ export function createNotificationSignalStore(
   const persistedDismissed = Array.isArray(persistedData.dismissed)
     ? persistedData.dismissed.filter(isDismissedEntry)
     : [];
+
   if (persisted) {
     restoredMaxId = persistedItems.reduce((max, item) => Math.max(max, item.id), 0);
   }
+
   const mirror: Record<string, unknown> = { items: persistedItems, dismissed: persistedDismissed };
   const rawItems = store.atom("items", persistedItems);
   const rawDismissed = store.atom("dismissed", persistedDismissed);
@@ -153,6 +157,7 @@ export function createNotificationSignalStore(
   ): void => {
     if (!(system ?? true)) return;
     const mode = settingsAtoms.notificationPopups.get();
+
     if (mode !== "system" && mode !== "both") return;
     systemApi
       .showToast(title, message, target ?? null)
@@ -167,6 +172,7 @@ export function createNotificationSignalStore(
       const target = options?.target;
       const signature = notificationSignature(type, title, message, target);
       const prunedDismissed = pruneDismissed(dismissed.get(), now);
+
       if (
         prunedDismissed.some((entry) =>
           eventKey && entry.eventKey ? entry.eventKey === eventKey : entry.signature === signature
@@ -185,6 +191,7 @@ export function createNotificationSignalStore(
             targetKey(item.target) === targetKey(target) &&
             (Boolean(eventKey) || now - item.timestamp < DEDUP_MS)
       );
+
       if (existing) {
         if (eventKey) return existing.id;
         let unreadDelta = 0;
@@ -192,10 +199,12 @@ export function createNotificationSignalStore(
           current.map((item) => {
             if (item.id !== existing.id) return item;
             unreadDelta = item.read ? 1 : 0;
+
             return { ...item, timestamp: now, read: false };
           })
         );
         unreadCount.set(unreadCount.get() + unreadDelta);
+
         return existing.id;
       }
 
@@ -213,12 +222,16 @@ export function createNotificationSignalStore(
         read: false,
       };
       items.set([item, ...current].slice(0, MAX_ITEMS));
+
       if (!options?.popupOnly) unreadCount.set(unreadCount.get() + 1);
+
       if (!options?.silent) showToast(title, message ?? null, target ?? null, options?.system);
+
       return id;
     },
     update: (id, patch, options) => {
       const current = items.get();
+
       if (!current.some((item) => item.id === id)) return;
       items.set(
         current.map((item) =>
@@ -234,8 +247,10 @@ export function createNotificationSignalStore(
             : item
         )
       );
+
       if (options?.system === true) {
         const updated = items.get().find((item) => item.id === id);
+
         if (!updated) return;
         showToast(updated.title, updated.message ?? null, updated.target ?? null, true);
       }

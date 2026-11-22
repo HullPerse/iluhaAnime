@@ -21,8 +21,10 @@ export function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry
             />
           );
         }
+
         if (entry.kind === "submenu") {
           const text = entry.rawText ?? t(entry.label, entry.labelVars);
+
           return (
             <ContextMenuPrimitive.SubmenuRoot key={entry.id}>
               <ContextMenuPrimitive.SubmenuTrigger disabled={entry.disabled} className={ITEM_CLASS}>
@@ -38,7 +40,9 @@ export function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry
             </ContextMenuPrimitive.SubmenuRoot>
           );
         }
+
         const text = entry.rawText ?? t(entry.label, entry.labelVars);
+
         return (
           <ContextMenuPrimitive.Item
             key={entry.id}

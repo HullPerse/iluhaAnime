@@ -13,6 +13,7 @@ export function CardProgressBlock({
   progress: number | null;
 }) {
   if (entry?.progress == null || progress == null) return null;
+
   if (typeof item.episodes === "number" && item.episodes > 0) {
     return (
       <div className="flex items-center gap-1">
@@ -24,8 +25,10 @@ export function CardProgressBlock({
       </div>
     );
   }
+
   if (progress > 0) {
     return <span className="bg-secondary text-title-text px-1 text-xs">{progress}</span>;
   }
+
   return null;
 }

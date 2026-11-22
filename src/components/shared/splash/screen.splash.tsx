@@ -34,6 +34,7 @@ export function SplashScreen({
   const variant = resolveSplashVariant(themeName, safe);
   const texts = resolveSplashTexts();
   const View = VARIANTS[variant];
+
   return (
     <View
       stages={stages}

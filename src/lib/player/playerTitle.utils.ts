@@ -17,11 +17,13 @@ export function formatParsedTitle(
   const epNumAlt = parsed.episode.numberAlt;
 
   let episodeStr = "";
+
   if (epNum !== undefined && epNum !== null) {
     const showRange = epNumAlt !== undefined && epNumAlt !== null && epNumAlt !== epNum;
     episodeStr = showRange
       ? t("player.title.episodes.range", { from: epNum, to: epNumAlt })
       : t("player.title.episode", { n: epNum });
+
     if (epTitle) episodeStr += `: ${epTitle}`;
   } else if (epTitle) {
     episodeStr = t("player.title.episode.colon", { title: epTitle });

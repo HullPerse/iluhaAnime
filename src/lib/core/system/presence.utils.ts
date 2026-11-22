@@ -1,7 +1,12 @@
 import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { fileNameFromPath, parseMediaPath } from "@hullperse/hp_utils/media/parse";
 import type { AniUser } from "@/types/anilist/anilist";
-import type { DiscordActivity, DiscordButton, DiscordPresenceDetail } from "@/types/core/discord";
+import type {
+  DiscordActivity,
+  DiscordButton,
+  DiscordPresenceDetail,
+  DiscordPresenceReading,
+} from "@/types/core/discord";
 import type { TFunc } from "@/types/core/i18n";
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { PlayerPresenceInput } from "@/types/core/presence";
@@ -36,8 +41,11 @@ export function anilistProfileUrl(name: string): string {
 export function presenceText(value: string, limit = MAX_TEXT_CHARS): string {
   const collapsed = value.replaceAll(/\s+/gu, " ").trim();
   const characters = Array.from(collapsed);
+
   if (characters.length <= limit) return collapsed;
+
   if (limit <= 3) return characters.slice(0, Math.max(0, limit)).join("");
+
   return `${characters.slice(0, limit - 3).join("")}...`;
 }
 
@@ -47,6 +55,7 @@ export function buildIdleActivity(
 ): DiscordActivity {
   if (!user) return { details: t("discord.idle.running") };
   const profile = presenceButton(t("discord.button.profile"), anilistProfileUrl(user.name));
+
   return compactActivity({
     details: t("discord.idle.library", {
       titles: user.anime_count,
@@ -57,6 +66,7 @@ export function buildIdleActivity(
 
 export function buildDetailActivity(detail: DiscordPresenceDetail, t: TFunc): DiscordActivity {
   const button = presenceButton(t("discord.button.anilist"), anilistAnimeUrl(detail.id));
+
   return compactActivity({
     details: presenceText(detail.title),
     state: t("discord.detail.state"),
@@ -68,12 +78,21 @@ export function buildSearchActivity(t: TFunc): DiscordActivity {
   return { details: t("discord.search.details") };
 }
 
+export function buildReadingActivity(reading: DiscordPresenceReading, t: TFunc): DiscordActivity {
+  return compactActivity({
+    details: presenceText(reading.title),
+    state: presenceText(t("discord.manga.reading", { chapter: reading.chapter })),
+    startTimestamp: reading.startedAt,
+  });
+}
+
 export function buildPlayerActivity(
   input: PlayerPresenceInput,
   t: TFunc,
   now = Date.now()
 ): DiscordActivity | null {
   const card = input.stream ? streamCard(input.stream, t) : localCard(input, t);
+
   if (!card) return null;
 
   const state = playerState(card.state, input, t);
@@ -99,8 +118,10 @@ export function samePresenceCard(previous: DiscordActivity, next: DiscordActivit
   ) {
     return false;
   }
+
   const previousButtons = previous.buttons ?? [];
   const nextButtons = next.buttons ?? [];
+
   return (
     previousButtons.length === nextButtons.length &&
     previousButtons.every(
@@ -121,11 +142,15 @@ export function presenceTimestampsDrifted(
 ): boolean {
   const previousStart = previous.startTimestamp;
   const nextStart = next.startTimestamp;
+
   if ((previousStart === undefined) !== (nextStart === undefined)) return true;
   const previousEnd = previous.endTimestamp;
   const nextEnd = next.endTimestamp;
+
   if ((previousEnd === undefined) !== (nextEnd === undefined)) return true;
+
   if (previousStart === undefined || nextStart === undefined) return false;
+
   return (
     Math.abs(nextStart - previousStart) >= PRESENCE_TIMESTAMP_TOLERANCE_MS ||
     Math.abs((nextEnd ?? 0) - (previousEnd ?? 0)) >= PRESENCE_TIMESTAMP_TOLERANCE_MS
@@ -137,7 +162,9 @@ export function samePresence(
   next: DiscordActivity | null
 ): boolean {
   if (previous === next) return true;
+
   if (!previous || !next) return false;
+
   return (
     samePresenceCard(previous, next) &&
     previous.startTimestamp === next.startTimestamp &&
@@ -147,19 +174,24 @@ export function samePresence(
 
 function localCard(input: PlayerPresenceInput, t: TFunc): PlayerCard | null {
   if (!input.hasFile || !input.path) return null;
+
   if (!input.parseTitles) {
     const name = fileNameFromPath(input.path);
+
     return {
       details: presenceText(name),
       buttonLabel: t("discord.button.search"),
       buttonUrl: anilistSearchUrl(stripExtension(name)),
     };
   }
+
   const parsed = parseMediaPath(input.path);
   const details = parsed.arc ? `${parsed.title}: ${parsed.arc}` : parsed.title;
   const parts: string[] = [];
+
   if (parsed.season) parts.push(t("player.title.season", { n: parsed.season }));
   const episode = parsed.episode.number ?? parsed.episode.numberAlt;
+
   if (episode !== undefined) {
     parts.push(
       parsed.episode.title
@@ -169,6 +201,7 @@ function localCard(input: PlayerPresenceInput, t: TFunc): PlayerCard | null {
   } else if (parsed.episode.title) {
     parts.push(t("player.title.episode.colon", { title: parsed.episode.title }));
   }
+
   return {
     details: presenceText(details),
     state: parts.length > 0 ? parts.join(", ") : undefined,
@@ -179,6 +212,7 @@ function localCard(input: PlayerPresenceInput, t: TFunc): PlayerCard | null {
 
 function streamCard(stream: StreamOpen, t: TFunc): PlayerCard {
   const episodeTitle = stream.episodeTitle.trim();
+
   return {
     details: presenceText(stream.mediaTitle),
     state: episodeTitle
@@ -198,6 +232,7 @@ function playerState(
 ): string | undefined {
   if (!input.paused) return episode;
   const paused = t("discord.player.paused");
+
   return episode ? `${episode} - ${paused}` : paused;
 }
 
@@ -206,40 +241,56 @@ function playerTimestamps(
   now: number
 ): { start: number; end: number } | null {
   if (input.paused || input.eofReached || !input.hasFile) return null;
+
   if (!Number.isFinite(input.duration) || input.duration <= 0) return null;
   const position = Math.min(Math.max(0, input.timePos), input.duration);
   const start = now - Math.round(position * 1000);
   const end = start + Math.round(input.duration * 1000);
+
   return end > start ? { start, end } : null;
 }
 
 function presenceButton(label: string, url: string): DiscordButton | null {
   const safe = safeUrl(url);
+
   if (!safe) return null;
+
   return { label: presenceText(label, MAX_BUTTON_LABEL_CHARS), url: safe };
 }
 
 function safeUrl(value: string): string | null {
   const trimmed = value.trim();
+
   if (!trimmed || trimmed.length > MAX_URL_CHARS) return null;
   const [parsed, error] = attemptSync(() => new URL(trimmed));
+
   if (error !== null) return null;
+
   if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+
   return parsed.toString();
 }
 
 function compactActivity(activity: DiscordActivity): DiscordActivity {
   const next: DiscordActivity = {};
+
   if (activity.details) next.details = activity.details;
+
   if (activity.state) next.state = activity.state;
+
   if (activity.startTimestamp !== undefined) next.startTimestamp = activity.startTimestamp;
+
   if (activity.endTimestamp !== undefined) next.endTimestamp = activity.endTimestamp;
+
   if (activity.activityType !== undefined) next.activityType = activity.activityType;
+
   if (activity.buttons && activity.buttons.length > 0) next.buttons = activity.buttons;
+
   return next;
 }
 
 function stripExtension(name: string): string {
   const dot = name.lastIndexOf(".");
+
   return dot > 0 ? name.slice(0, dot) : name;
 }

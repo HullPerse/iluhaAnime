@@ -18,6 +18,7 @@ export function isChangelogLocaleLoaded(): boolean {
 /** Loads the changelog strings once, only when the Changelog tab is opened. */
 export function loadChangelogLocale(): Promise<void> {
   if (changelogState === "ready") return Promise.resolve();
+
   if (changelogLoading !== null) return changelogLoading;
   changelogState = "loading";
   changelogLoading = (async (): Promise<void> => {
@@ -29,6 +30,7 @@ export function loadChangelogLocale(): Promise<void> {
     changelogLoading = null;
     throw error;
   });
+
   return changelogLoading;
 }
 
@@ -36,9 +38,11 @@ function repairLegacyCyrillic(value: string): string {
   if (!/[РС]/u.test(value)) return value;
   const legacyDecoder = new TextDecoder("windows-1251");
   const reverseCodePage = new Map<string, number>();
+
   for (let byte = 0; byte <= 0xff; byte++) {
     reverseCodePage.set(legacyDecoder.decode(new Uint8Array([byte])), byte);
   }
+
   const bytes = new Uint8Array(
     Array.from(
       value,
@@ -46,14 +50,18 @@ function repairLegacyCyrillic(value: string): string {
     )
   );
   const repaired = new TextDecoder("utf-8").decode(bytes);
+
   if (repaired.includes("\uFFFD")) return value;
+
   return repaired;
 }
 
 function resolvePluralKey(key: string, count: number): string {
   const category = RU_PLURAL.select(count);
+
   if (category === "other") return key;
   const suffixed = `${key}.${category}`;
+
   return suffixed in dictionary ? suffixed : key;
 }
 

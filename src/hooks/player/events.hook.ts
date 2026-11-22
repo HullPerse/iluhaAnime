@@ -31,6 +31,7 @@ function parseDroppedFrames(data: unknown): DroppedFramesData | undefined {
   const expectedFrames = toFiniteNumber(data.expectedFrames);
   const ratio = toFiniteNumber(data.ratio);
   const fps = toFiniteNumber(data.fps);
+
   if (
     drops === undefined ||
     expectedFrames === undefined ||
@@ -39,6 +40,7 @@ function parseDroppedFrames(data: unknown): DroppedFramesData | undefined {
   ) {
     return undefined;
   }
+
   return { drops, expectedFrames, ratio, fps };
 }
 
@@ -59,13 +61,17 @@ export function usePlayerEvents(handlers: PlayerEventHandlers): void {
       listen<unknown>(name, (event) => {
         if (disposed) return;
         const [value, failure] = attemptSync(() => assertSchema(event.payload, schema));
+
         if (failure) {
           reportBackgroundError(`player-events.${name}`, failure);
+
           return;
         }
+
         receive(value);
       }).catch((error: unknown) => {
         reportBackgroundError(`player-events.${name}`, error);
+
         return () => {};
       });
     const subscriptions: Promise<UnlistenFn>[] = [
@@ -81,31 +87,39 @@ export function usePlayerEvents(handlers: PlayerEventHandlers): void {
             handlersRef.current.onFileLoaded?.();
             break;
           }
+
           case "end-file": {
             handlersRef.current.onEndFile?.(payload.reason ?? "", payload.path);
             break;
           }
+
           case "idle": {
             handlersRef.current.onIdle?.();
             break;
           }
+
           case "playback-restart": {
             handlersRef.current.onPlaybackRestart?.();
             break;
           }
+
           case "shutdown": {
             handlersRef.current.onShutdown?.();
             break;
           }
+
           case "error": {
             handlersRef.current.onError?.();
             break;
           }
+
           case "dropped-frames": {
             const data = parseDroppedFrames(payload.data);
+
             if (data) handlersRef.current.onDroppedFrames?.(data);
             break;
           }
+
           default: {
             break;
           }
@@ -115,6 +129,7 @@ export function usePlayerEvents(handlers: PlayerEventHandlers): void {
 
     return () => {
       disposed = true;
+
       for (const subscription of subscriptions) {
         subscription
           .then((unlisten) => unlisten())

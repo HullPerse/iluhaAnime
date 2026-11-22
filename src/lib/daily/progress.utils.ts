@@ -1,5 +1,6 @@
 export function clipProgressPercent(received: number, total: number): number {
   if (!Number.isFinite(received) || !Number.isFinite(total) || total <= 0) return 0;
+
   return Math.min(100, Math.max(0, Math.round((received / total) * 100)));
 }
 

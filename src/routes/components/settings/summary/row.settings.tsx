@@ -27,6 +27,7 @@ export function SummaryRow({
 }) {
   const text = typeof value === "string" ? value : undefined;
   const actionText = actionTitle ?? actionLabel;
+
   return (
     <div className="flex items-start gap-1 px-1">
       <span className="windows95-text text-hint w-20 shrink-0 truncate text-xs" title={label}>

@@ -65,6 +65,7 @@ export default function StreamRoute() {
       ignore: (event) => ignoreTabCycle(event),
       onAction: (id) => {
         const next = stepTabId(STREAM_SORT_CYCLE, filters.sortBy, id === "sort-next" ? 1 : -1);
+
         if (next) setStreamSort(next, STREAM_SORT_DEFAULT_DIR[next]);
       },
     }
@@ -74,6 +75,7 @@ export default function StreamRoute() {
       .random(filters)
       .then((pick) => {
         if (pick?.slugUrl) streamStore.selectedSlug.set(pick.slugUrl);
+
         return null;
       })
       .catch((error: unknown) => reportBackgroundError("srcroutesstream.route", error));
@@ -83,6 +85,7 @@ export default function StreamRoute() {
 
   useEffect(() => {
     if (lastPage == null || lastPage < 1) return;
+
     if (page > lastPage) streamPage.set(lastPage);
   }, [lastPage, page]);
 

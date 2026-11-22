@@ -16,6 +16,7 @@ export function ValueAxisLabels({
       {entries.map((entry) => {
         const key = `${side}:${entry.position}:${entry.label}`;
         const common = { className: CHART_TICK_TEXT_CLASS, fontSize: CHART_TICK_FONT_SIZE };
+
         if (side === "left") {
           return (
             <text
@@ -30,6 +31,7 @@ export function ValueAxisLabels({
             </text>
           );
         }
+
         if (side === "right") {
           return (
             <text
@@ -44,6 +46,7 @@ export function ValueAxisLabels({
             </text>
           );
         }
+
         return (
           <text
             key={key}

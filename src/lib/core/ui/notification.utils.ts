@@ -23,8 +23,10 @@ export function showError(title: string, body: string): void {
 
 export function showErrorOnce(eventKey: string, title: string, body: string): void {
   const id = addNotification(title, "error", body, eventKey);
+
   if (id <= 0) return;
   const existing = notificationAtoms.items.get().find((item) => item.id === id);
+
   if (existing && (existing.title !== title || existing.message !== body)) {
     updateNotification(id, { title, message: body });
   }
@@ -40,8 +42,10 @@ export function showWarning(title: string, body?: string): void {
 
 export function copyNotification(item: NotificationItem): Promise<void> {
   const lines = [`[${item.type}] ${item.title}`];
+
   if (item.message) lines.push(item.message);
   lines.push(new Date(item.timestamp).toLocaleString());
+
   return writeText(lines.join("\n"));
 }
 
@@ -59,6 +63,7 @@ export function resolveNotificationText(payload: ShowNotificationPayload): {
   const body = payload.bodyKey
     ? translate(toLocaleKey(payload.bodyKey), payload.bodyVars)
     : (payload.body ?? "");
+
   return { body, title };
 }
 
@@ -67,16 +72,22 @@ export async function openNotificationTarget(
 ): Promise<NotificationTargetResult> {
   if (target.source === "folder") {
     const [, error] = await attempt(openPath(target.path));
+
     if (error === null) return "opened";
     reportBackgroundError("notification.open.folder", error);
+
     return "failed";
   }
+
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     showWarning(translate("network.offline.title"), translate("network.action.unavailable"));
+
     return "failed";
   }
+
   if (!settingsAtoms.anilistTabEnabled.get()) return "tab-disabled";
   openAnimeDeepLink(target);
+
   return "opened";
 }
 
@@ -88,6 +99,8 @@ export function getVisibleNotifications(
 ): NotificationItem[] {
   if (currentFilter === "downloads") return [];
   const visible = allItems.filter((item) => !item.popupOnly);
+
   if (currentFilter === "all") return visible;
+
   return visible.filter((i) => i.type === currentFilter);
 }

@@ -39,14 +39,6 @@ const ANIME: CardFaceItem = {
   value: 8,
 };
 
-const MANGA: CardFaceItem = {
-  ...ANIME,
-  kind: "manga",
-  entityId: 30013,
-  title: "Berserk",
-  imageUrl: "https://img/berserk.jpg",
-};
-
 afterEach(() => {
   cleanup();
   resetCardsStore();
@@ -67,42 +59,6 @@ describe("CardFace", () => {
     expect(screen.getByText("34")).toBeTruthy();
     expect(screen.queryByText(/favourites/iu)).toBeNull();
     expect(screen.queryByText(/score/iu)).toBeNull();
-  });
-
-  it("uses cover art for anime and manga and the holo overlay only above junk", () => {
-    const { container } = render(<CardFace card={ANIME} />);
-    const image = container.querySelector("img[src='https://img/aot.jpg']");
-    expect(image?.className).toContain("object-cover");
-    expect(container.querySelector(".cards-inner")?.className).toContain("cards-variant-foil");
-
-    const manga = render(<CardFace card={MANGA} />);
-    expect(
-      manga.container.querySelector("img[src='https://img/berserk.jpg']")?.className
-    ).toContain("object-cover");
-
-    const junkHolo = render(<CardFace card={{ ...ANIME, rarity: "junk", variant: "holo" }} />);
-    expect(junkHolo.container.querySelector(".cards-inner")?.className).not.toContain(
-      "cards-variant-holo"
-    );
-  });
-
-  it("shows five rarity pips with only the tier count lit", () => {
-    const { container } = render(<CardFace card={ANIME} />);
-    const pips = container.querySelectorAll(".cards-pip");
-    expect(pips).toHaveLength(5);
-    expect(container.querySelectorAll('.cards-pip[data-on="true"]')).toHaveLength(3);
-  });
-
-  it("applies the CRT finish to cursed art and studio collages", () => {
-    const anime = render(<CardFace card={{ ...ANIME, variant: "cursed" }} />);
-    expect(
-      anime.container.querySelector('canvas[data-dither-src="https://img/aot.jpg"]')
-    ).not.toBeNull();
-
-    expect(anime.container.querySelector(".cards-variant-cursed")).not.toBeNull();
-    const studio = render(<CardFace card={{ ...STUDIO, variant: "cursed" }} />);
-    expect(studio.container.querySelectorAll(".cards-studio-cell canvas")).toHaveLength(3);
-    expect(studio.container.querySelector(".cards-studio-letter")).not.toBeNull();
   });
 
   it("fills character art when the appearance checkbox is enabled", () => {

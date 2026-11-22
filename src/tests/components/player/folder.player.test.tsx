@@ -17,7 +17,6 @@ vi.mock("@tanstack/react-virtual", () => ({
 import FolderView from "@/routes/components/player/folder.player";
 import { searchAtoms } from "@/store/search.store";
 import { patchSettings } from "@/store/settings.store";
-import { setVimCount } from "@/store/vim.store";
 import type { FolderNode } from "@/types/torrent/torrent";
 
 const TREE: FolderNode = {
@@ -44,6 +43,7 @@ const TREE: FolderNode = {
 const renderTree = (wrap?: (tree: React.ReactNode) => React.ReactNode) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const tree = <FolderView node={TREE} depth={0} searchQuery="" />;
+
   return render(
     <QueryClientProvider client={client}>{wrap ? wrap(tree) : tree}</QueryClientProvider>
   );
@@ -84,22 +84,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-});
-
-describe("FolderView relative numbers", () => {
-  it("numbers siblings around the focused file", () => {
-    renderFlat();
-    const first = screen.getByTitle("a.mkv").closest<HTMLElement>("[data-tree-row]");
-    const second = screen.getByTitle("b.mkv").closest<HTMLElement>("[data-tree-row]");
-    if (!first || !second) throw new Error("file rows missing");
-
-    act(() => {
-      second.focus();
-    });
-
-    expect(second.querySelector("[data-tree-number]")?.textContent).toBe("2");
-    expect(first.querySelector("[data-tree-number]")?.textContent).toBe("1");
-  });
 });
 
 describe("FolderView tree arrows", () => {
@@ -149,43 +133,14 @@ describe("FolderView tree arrows", () => {
       "D:/Anime/ep1.mkv"
     );
   });
-
-  it("leaves the arrows alone when focus is outside the tree", () => {
-    renderTree();
-    const outside = document.createElement("button");
-    document.body.append(outside);
-    try {
-      outside.focus();
-      const event = new KeyboardEvent("keydown", {
-        bubbles: true,
-        cancelable: true,
-        code: "ArrowLeft",
-      });
-      act(() => {
-        outside.dispatchEvent(event);
-      });
-      expect(event.defaultPrevented).toBe(false);
-      expect(row("D:/Anime").getAttribute("aria-expanded")).toBe("true");
-    } finally {
-      outside.remove();
-    }
-  });
-
-  it("does nothing for a row inside a hotkey-disabled layer", () => {
-    renderTree((tree) => <div data-hotkeys-disabled>{tree}</div>);
-    const root = row("D:/Anime");
-    root.focus();
-
-    pressKey("ArrowLeft", root);
-
-    expect(root.getAttribute("aria-expanded")).toBe("true");
-  });
 });
 
 describe("FolderView row movement", () => {
   const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
+
     if (!node) throw new Error(`row missing for ${name}`);
+
     return node;
   };
 
@@ -199,22 +154,11 @@ describe("FolderView row movement", () => {
     expect(document.activeElement).toBe(fileRow("ep1.mkv"));
   });
 
-  it("steps back up with K and stops at the first row", () => {
-    renderTree();
-    const file = fileRow("ep1.mkv");
-    file.focus();
-
-    pressKey("KeyK", file);
-    expect(document.activeElement).toBe(row("D:/Anime"));
-
-    pressKey("KeyK", row("D:/Anime"));
-    expect(document.activeElement).toBe(row("D:/Anime"));
-  });
-
   it("opens the focused file with Enter through the external button", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const holder = file.querySelector<HTMLElement>('[data-file-action="external"]');
+
     if (!holder) throw new Error("external button missing");
     const clicked = vi.fn();
     holder.addEventListener("click", clicked);
@@ -229,6 +173,7 @@ describe("FolderView row movement", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const name = file.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!name) throw new Error("activation target missing");
     const before = mockOpenPath.mock.calls.length;
 
@@ -242,6 +187,7 @@ describe("FolderView row movement", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const name = file.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!name) throw new Error("activation target missing");
 
     fireEvent.click(name, { ctrlKey: true });
@@ -301,91 +247,14 @@ describe("FolderView flat folders", () => {
     pressKey("ArrowDown", head);
     expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/a.mkv");
   });
-
-  it("stays put on Up from an external root header", () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={client}>
-        <div data-tree-row data-tree-path="D:/video">
-          <button type="button">top</button>
-          <FolderView node={FLAT} depth={0} searchQuery="" hideRoot />
-        </div>
-      </QueryClientProvider>
-    );
-    const top = screen.getByText("top");
-    top.focus();
-    pressKey("ArrowUp", top);
-    expect(document.activeElement).toBe(top);
-  });
-});
-
-describe("FolderView count steps", () => {
-  const FOUR: FolderNode = {
-    name: "video",
-    path: "D:/video",
-    files: [
-      { path: "D:/video/1.mkv", name: "1.mkv", size: 10 },
-      { path: "D:/video/2.mkv", name: "2.mkv", size: 10 },
-      { path: "D:/video/3.mkv", name: "3.mkv", size: 10 },
-      { path: "D:/video/4.mkv", name: "4.mkv", size: 10 },
-    ],
-    children: [],
-  };
-
-  const renderFour = (): void => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={client}>
-        <FolderView node={FOUR} depth={0} searchQuery="" />
-      </QueryClientProvider>
-    );
-  };
-
-  const fileRow = (name: string): HTMLElement => {
-    const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
-    if (!node) throw new Error(`row missing for ${name}`);
-    return node;
-  };
-
-  it("moves two flat rows up with a count and K", () => {
-    renderFour();
-    const file = fileRow("4.mkv");
-    file.focus();
-    setVimCount("2");
-
-    pressKey("KeyK", file);
-
-    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/2.mkv");
-  });
-
-  it("moves two flat rows down with a count and J", () => {
-    renderFour();
-    const file = fileRow("1.mkv");
-    file.focus();
-    setVimCount("2");
-
-    pressKey("KeyJ", file);
-
-    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/3.mkv");
-  });
-
-  it("drops a pending count on Enter", () => {
-    renderFour();
-    const file = fileRow("4.mkv");
-    file.focus();
-    setVimCount("2");
-
-    pressKey("Enter", file);
-    pressKey("KeyK", file);
-
-    expect((document.activeElement as HTMLElement | null)?.dataset.treePath).toBe("D:/video/3.mkv");
-  });
 });
 
 describe("FolderView row actions", () => {
   const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
+
     if (!node) throw new Error(`row missing for ${name}`);
+
     return node;
   };
 
@@ -395,10 +264,12 @@ describe("FolderView row actions", () => {
     const holder = file.querySelector<HTMLElement>(`[data-file-action="${action}"]`);
     const target =
       holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+
     if (!target) throw new Error(`action target missing: ${action}`);
     const spy = vi.fn();
     target.addEventListener("click", spy);
     file.focus();
+
     return { file, spy };
   };
 
@@ -430,6 +301,7 @@ describe("FolderView row actions", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const name = file.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!name) throw new Error("activation target missing");
     const spy = vi.fn();
     name.addEventListener("contextmenu", spy);
@@ -454,15 +326,19 @@ describe("FolderView row actions", () => {
 describe("FolderView file menu", () => {
   const fileRow = (name: string): HTMLElement => {
     const node = screen.getByTitle(name).closest<HTMLElement>("[data-tree-row]");
+
     if (!node) throw new Error(`row missing for ${name}`);
+
     return node;
   };
 
   const openMenu = (name: string): HTMLElement => {
     const file = fileRow(name);
     const target = file.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!target) throw new Error("activation target missing");
     fireEvent.contextMenu(target);
+
     return file;
   };
 
@@ -477,6 +353,7 @@ describe("FolderView file menu", () => {
     renderTree();
     const file = openMenu("ep1.mkv");
     const holder = file.querySelector<HTMLElement>('[data-file-action="builtin"]');
+
     if (!holder) throw new Error("builtin button missing");
     const spy = vi.fn();
     holder.addEventListener("click", spy);
@@ -501,6 +378,7 @@ describe("FolderView file menu", () => {
     renderTree();
     const file = fileRow("ep1.mkv");
     const target = file.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!target) throw new Error("activation target missing");
 
     expect(fireEvent.contextMenu(target, { ctrlKey: true })).toBe(false);

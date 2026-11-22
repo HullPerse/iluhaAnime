@@ -77,6 +77,7 @@ function trackEntries(
 ): ContextMenuEntry[] {
   const list = selectableTracks(tracks, kind);
   const offId = kind === "sub" ? "sub-off" : "audio-off";
+
   if (list.length === 0) {
     return [
       {
@@ -88,6 +89,7 @@ function trackEntries(
       },
     ];
   }
+
   const noneSelected = !list.some((track) => track.selected);
   const entries: ContextMenuEntry[] = [
     {
@@ -99,6 +101,7 @@ function trackEntries(
     },
     { kind: "separator", id: `${offId}-sep` },
   ];
+
   for (const track of list) {
     entries.push({
       kind: "item",
@@ -109,6 +112,7 @@ function trackEntries(
       onSelect: () => select(track.id),
     });
   }
+
   return entries;
 }
 
@@ -127,8 +131,10 @@ function chapterEntries(
       },
     ];
   }
+
   return chapters.map((chapter, index) => {
     const title = chapter.title.trim();
+
     return {
       kind: "item" as const,
       id: `chapter-${index}`,
@@ -151,9 +157,11 @@ function streamVariantEntries(
 ): ContextMenuEntry[] {
   const id = `stream-${kind}`;
   const list = menu.variants.filter((variant) => isSubtitleVariant(variant) === (kind === "sub"));
+
   if (menu.variantsLoading) {
     return [disabledEntry(`${id}-loading`, "player.stream.menu.loading")];
   }
+
   if (menu.variantsFailed) {
     return [
       disabledEntry(`${id}-failed`, "player.stream.voice.failed"),
@@ -166,11 +174,14 @@ function streamVariantEntries(
       },
     ];
   }
+
   if (list.length === 0) return [disabledEntry(`${id}-empty`, "player.media.tracks.empty")];
   const active = variantOf(list, menu.session.variantId);
   const activeId = active === null ? "" : buildVariantId(active);
+
   return list.map((variant) => {
     const variantId = buildVariantId(variant);
+
     return {
       kind: "item" as const,
       id: `${id}:${variantId}`,
@@ -188,9 +199,11 @@ function streamQualityEntries(
   actions: ModernMenuActions
 ): ContextMenuEntry[] {
   const labels = menu.session.sources.map((source) => source.label);
+
   if (labels.length === 0) {
     return [disabledEntry("stream-quality-empty", "player.media.tracks.empty")];
   }
+
   return labels.map((label) => ({
     kind: "item" as const,
     id: `stream-quality:${label}`,
@@ -257,6 +270,7 @@ export function buildModernPlayerMenu(
           },
         ]
       : streamEntries(snapshot.stream, actions);
+
   return [
     {
       kind: "submenu",

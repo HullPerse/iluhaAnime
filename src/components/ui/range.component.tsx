@@ -57,8 +57,10 @@ function Slider({
   useEffect(() => {
     if (!wheel || !interactive) return;
     const el = ref.current;
+
     if (!el) return;
     el.addEventListener("wheel", adjustWheel, { passive: false });
+
     return () => el.removeEventListener("wheel", adjustWheel);
   }, [wheel, interactive, adjustWheel]);
 
@@ -68,6 +70,7 @@ function Slider({
     const onUp = () => setDragging(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -103,6 +106,7 @@ function Slider({
                 };
 
                 const keyAction = keyMap[e.key];
+
                 if (!keyAction) return;
 
                 e.preventDefault();
@@ -137,4 +141,5 @@ function Slider({
     </div>
   );
 }
+
 export default Slider;

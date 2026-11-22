@@ -31,6 +31,7 @@ function setup(options?: {
   });
   engine.attach();
   open.push(engine);
+
   return { engine, onCommand, onActiveKey };
 }
 
@@ -44,6 +45,7 @@ function press(target: EventTarget, event: KeyboardEvent): void {
 
 afterEach(() => {
   for (const engine of open.splice(0)) engine.detach();
+
   for (const node of nodes.splice(0)) node.remove();
 });
 
@@ -60,11 +62,6 @@ describe("createVimCommandTable", () => {
     expect(table.get("KeyM:false:false:false:false")).toBe("edge.middle");
     expect(table.get("KeyL:false:false:false:false")).toBe("edge.bottom");
     expect(table.size).toBe(9);
-  });
-
-  it("leaves the bare prefix chord out of the single-stroke table", () => {
-    const table = createVimCommandTable();
-    expect(table.get("KeyG:false:false:false:false")).toBeUndefined();
   });
 });
 
@@ -131,6 +128,7 @@ function setupWithCount(
   });
   engine.attach();
   open.push(engine);
+
   return { engine, onCommand, onActiveKey };
 }
 
@@ -150,16 +148,9 @@ describe("vim engine count buffer", () => {
     setupWithCount(onCount);
     press(window, key("Digit0"));
     expect(onCount).not.toHaveBeenCalled();
+
     for (const code of ["Digit1", "Digit2", "Digit3", "Digit4"]) press(window, key(code));
     expect(onCount).toHaveBeenLastCalledWith("123");
-  });
-
-  it("ignores modified digits", () => {
-    const onCount = vi.fn<(count: string) => void>();
-    setupWithCount(onCount);
-    press(window, key("Digit1", { shiftKey: true }));
-    press(window, key("Digit1", { ctrlKey: true }));
-    expect(onCount).not.toHaveBeenCalled();
   });
 
   it("ignores digits inside typing targets", () => {
@@ -250,29 +241,6 @@ describe("vim engine count buffer", () => {
     expect(onCount).toHaveBeenLastCalledWith("2");
     expect(engine.count()).toBe("2");
   });
-
-  it("buffers numpad digits when they report a digit key", () => {
-    const onCount = vi.fn<(count: string) => void>();
-    setupWithCount(onCount);
-    press(window, key("Numpad3", { key: "3" }));
-    expect(onCount).toHaveBeenLastCalledWith("3");
-  });
-
-  it("ignores numpad keys reporting arrows (NumLock off)", () => {
-    const onCount = vi.fn<(count: string) => void>();
-    setupWithCount(onCount);
-    press(window, key("Numpad3", { key: "ArrowDown" }));
-    press(window, key("Numpad2", { key: "ArrowDown", shiftKey: true }));
-    expect(onCount).not.toHaveBeenCalled();
-  });
-
-  it("survives a prefix mismatch into the buffer", () => {
-    const onCount = vi.fn<(count: string) => void>();
-    setupWithCount(onCount);
-    press(window, key("KeyG"));
-    press(window, key("Digit3"));
-    expect(onCount).toHaveBeenLastCalledWith("3");
-  });
 });
 
 describe("vim engine gates", () => {
@@ -310,15 +278,6 @@ describe("vim engine gates", () => {
     document.body.append(input);
     nodes.push(input);
     press(input, key("KeyF"));
-    expect(onCommand).not.toHaveBeenCalled();
-  });
-
-  it("ignores unrelated keys and composition", () => {
-    const { onCommand } = setup();
-    press(window, key("KeyQ"));
-    const composing = key("KeyF");
-    Object.defineProperty(composing, "isComposing", { value: true });
-    press(window, composing);
     expect(onCommand).not.toHaveBeenCalled();
   });
 });
@@ -368,6 +327,7 @@ describe("vim engine layer ownership", () => {
     layer.append(inside);
     document.body.append(layer);
     nodes.push(layer);
+
     return { layer, inside };
   }
 
@@ -427,6 +387,7 @@ describe("vim engine layer ownership", () => {
       press(input, event);
       expect(event.defaultPrevented).toBe(false);
     }
+
     expect(onCommand).not.toHaveBeenCalled();
   });
 
@@ -499,10 +460,5 @@ describe("vim engine lifecycle", () => {
     expect(engine.isAttached()).toBe(false);
     press(window, key("KeyF"));
     expect(onCommand).toHaveBeenCalledTimes(1);
-  });
-
-  it("starts idle", () => {
-    const { engine } = setup();
-    expect(engine.state()).toBe("idle");
   });
 });

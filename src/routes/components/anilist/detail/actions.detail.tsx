@@ -9,6 +9,7 @@ export function DetailHeaderActions({
   onTrailer?: (id: string) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-row gap-2">
       {trailerId !== null && (

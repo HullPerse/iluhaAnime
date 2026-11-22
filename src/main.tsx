@@ -31,6 +31,7 @@ const escalate = (value: unknown): boolean => {
       themeName: readThemeName(),
     }),
   });
+
   return true;
 };
 
@@ -40,7 +41,9 @@ if (typeof window !== "undefined") {
   window.addEventListener("error", (event) => {
     event.preventDefault();
     const reason = event.error ?? event.message;
+
     if (isResizeObserverLoopError(reason)) return;
+
     if (escalate(reason)) return;
     console.error("Uncaught error:", event.error);
     addNotification(appError(), "error", event.error?.message || String(event));
@@ -48,6 +51,7 @@ if (typeof window !== "undefined") {
 
   window.addEventListener("unhandledrejection", (event) => {
     event.preventDefault();
+
     if (escalate(event.reason)) return;
     console.error("Unhandled rejection:", event.reason);
     addNotification(appError(), "error", event.reason?.message || String(event.reason));
@@ -58,6 +62,10 @@ markStartup("module_start");
 
 const queryClient = new QueryClient(QUERY_CONFIG);
 
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  window.__iluhaQueryClient = queryClient;
+}
+
 const showStartupFallback = (message: string): void => {
   const safe = message.replaceAll("<", "&lt;");
   document.body.innerHTML = `<div style="background:#0000aa;color:#fff;font-family:monospace;padding:48px"><p>Startup error</p><p>${safe}</p><button onclick="location.reload()">Reload</button></div>`;
@@ -66,6 +74,7 @@ const showStartupFallback = (message: string): void => {
 const [, mountError] = await attempt(
   (async () => {
     const rootElement = document.querySelector("#root");
+
     if (!rootElement) throw new Error("Root element not found");
 
     const { createRoot } = await import("react-dom/client");
@@ -89,6 +98,7 @@ if (mountError !== null) {
     ...toFatalInfo(mountError, { scope: "startup", route: "/", themeName: readThemeName() }),
   };
   const [, reportError] = attemptSync(() => reportFatal(info));
+
   if (reportError !== null) console.error("Startup fatal report failed:", reportError);
   showStartupFallback(info.message);
 }

@@ -287,8 +287,16 @@ impl MangaLibDomain {
     }
 }
 
+pub(super) const MANGALIB_COVER_HOSTS: [&str; 3] = [
+    "cover.lib.social",
+    "cover.cdnrulib.link",
+    "cover.imglib.info",
+];
+
 pub(super) fn allowed_lib_cover(value: &str) -> Option<String> {
-    allowed_cover(value, "cover.lib.social").or_else(|| allowed_cover(value, "cover.cdnrulib.link"))
+    MANGALIB_COVER_HOSTS
+        .iter()
+        .find_map(|host| allowed_cover(value, host))
 }
 
 fn lib_api_request(
@@ -1296,6 +1304,11 @@ mod tests {
         assert!(allowed_lib_cover("https://cover.lib.social/cover.jpg").is_some());
         assert!(allowed_lib_cover("https://cover.cdnrulib.link/cover.jpg").is_some());
         assert!(allowed_lib_cover("https://cover.cdnrulib.link.invalid/cover.jpg").is_none());
+        assert!(allowed_lib_cover("https://cover.imglib.info/cover.jpg").is_some());
+        assert!(allowed_lib_cover("https://cover.imglib.info.invalid/cover.jpg").is_none());
+        assert!(allowed_lib_cover("https://cover.imglib.info:444/cover.jpg").is_none());
+        assert!(allowed_lib_cover("https://name@cover.imglib.info/cover.jpg").is_none());
+        assert!(allowed_lib_cover("http://cover.imglib.info/cover.jpg").is_none());
     }
 
     #[test]

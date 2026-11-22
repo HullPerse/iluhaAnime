@@ -27,6 +27,7 @@ const STATUS_RANK = new Map<string, number>(
 function byStatusRank(left: StatsStatusRow, right: StatsStatusRow): number {
   const leftRank = STATUS_RANK.get(left.status) ?? STATUS_RANK.size;
   const rightRank = STATUS_RANK.get(right.status) ?? STATUS_RANK.size;
+
   return leftRank === rightRank ? right.count - left.count : leftRank - rightRank;
 }
 
@@ -46,6 +47,7 @@ const SCORE_WIDTH_SMALL = 1;
 
 function scoreWidth(format: AnilistScoreFormat): number {
   if (format === "POINT_10_DECIMAL") return 0.5;
+
   return scoreFormatMax(format) > SCORE_LARGE_MAX ? SCORE_WIDTH_LARGE : SCORE_WIDTH_SMALL;
 }
 
@@ -63,11 +65,13 @@ function buildScoreBlock(
     to: (index + 1) * width,
     count: 0,
   }));
+
   for (const entry of statistics.scores) {
     if (entry.score <= 0) continue;
     const index = clamp(Math.ceil(entry.score / width) - 1, 0, count - 1);
     buckets[index].count += entry.count;
   }
+
   return {
     buckets,
     mean: statistics.mean_score,
@@ -83,11 +87,14 @@ function completionFromStatistics(statistics: AniListStatistics): {
 } {
   let completed = 0;
   let started = 0;
+
   for (const row of statistics.statuses) {
     if (row.status === "PLANNING") continue;
     started += row.count;
+
     if (row.status === "COMPLETED") completed += row.count;
   }
+
   return {
     rate: started > 0 ? completed / started : null,
     completed,
@@ -118,6 +125,7 @@ export function buildStatsOverview({
   ) {
     return cachedOverview.result;
   }
+
   const completion = completionFromStatistics(statistics);
   const model = {
     isEmpty: statistics.count === 0,
@@ -166,6 +174,7 @@ export function buildStatsOverview({
     completion: buildGenreCompletion(lists),
   };
   cachedOverview = { statistics, lists, scoreFormat, result: model };
+
   return model;
 }
 
@@ -178,17 +187,22 @@ function buildGenreCompletion(lists: AniListCollection[]): StatsGenreCompletion[
   if (cachedGenreCompletion?.lists === lists) {
     return cachedGenreCompletion.result;
   }
+
   const entries = collectAllEntries(lists);
   const counts = new Map<string, { started: number; completed: number }>();
+
   for (const entry of entries) {
     if (!STARTED.has(entry.list_status)) continue;
+
     for (const genre of entry.media.genres) {
       const row = counts.get(genre) ?? { started: 0, completed: 0 };
       row.started += 1;
+
       if (entry.list_status === "COMPLETED") row.completed += 1;
       counts.set(genre, row);
     }
   }
+
   const result = [...counts.entries()]
     .filter(([, row]) => row.started >= STATS_MIN_GENRE_SAMPLE)
     .map(([genre, row]) => ({
@@ -200,6 +214,7 @@ function buildGenreCompletion(lists: AniListCollection[]): StatsGenreCompletion[
     .sort((left, right) => right.started - left.started || right.rate - left.rate)
     .slice(0, STATS_COMPLETION_GENRE_LIMIT);
   cachedGenreCompletion = { lists, result };
+
   return result;
 }
 
@@ -216,12 +231,15 @@ export function buildMediaRows(
   if (cachedMediaRows?.mediaIds === mediaIds && cachedMediaRows?.lists === lists) {
     return cachedMediaRows.result;
   }
+
   const byId = new Map(collectAllEntries(lists).map((entry) => [entry.media.id, entry]));
   const seen = new Set<number>();
   const rows: StatsMediaRow[] = [];
+
   for (const id of mediaIds) {
     if (seen.has(id)) continue;
     const entry = byId.get(id);
+
     if (!entry) continue;
     seen.add(id);
     rows.push({
@@ -234,6 +252,8 @@ export function buildMediaRows(
       status: entry.list_status,
     });
   }
+
   cachedMediaRows = { mediaIds, lists, result: rows };
+
   return rows;
 }

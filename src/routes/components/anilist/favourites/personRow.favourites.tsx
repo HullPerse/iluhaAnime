@@ -10,6 +10,7 @@ export function FavouritePersonRow({
   onSelect: (person: FavouritePerson) => void;
 }) {
   const activate = () => onSelect(person);
+
   return (
     <div
       className="windows95-active-border bg-primary hover:bg-surface flex flex-row items-center gap-2 p-1 hover:cursor-pointer"

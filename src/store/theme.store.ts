@@ -31,15 +31,19 @@ const DEFAULT_THEME_DATA: ThemeData = {
 function readThemePatches(value: unknown): Record<string, ThemePatch> {
   if (!isRecord(value)) return {};
   const patches: Record<string, ThemePatch> = {};
+
   for (const [name, patch] of Object.entries(value)) {
     const parsed = parseThemePatch(patch);
+
     if (parsed) patches[name] = parsed;
   }
+
   return patches;
 }
 
 function migrateThemeData(data: Record<string, unknown>, version: number): Record<string, unknown> {
   if (version >= THEME_SCHEMA_VERSION) return data;
+
   return { ...data, themePatches: {} };
 }
 
@@ -47,12 +51,16 @@ function readLegacyTheme(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("themeState"));
+
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
+
   return { data: state, schemaVersion: THEME_SCHEMA_VERSION };
 }
 
@@ -115,6 +123,7 @@ export function createThemeSignalStore(options: SignalStoreOptions = {}): ThemeS
       delete patches[name];
       atoms.themePatches.set(patches);
       atoms.customThemes.set(atoms.customThemes.get().filter((t) => t.name !== name));
+
       if (atoms.currentTheme.get() === name) {
         applyCurrent("win95");
         atoms.currentTheme.set("win95");
@@ -126,18 +135,21 @@ export function createThemeSignalStore(options: SignalStoreOptions = {}): ThemeS
     },
     setThemePatch: (name, patch) => {
       atoms.themePatches.set({ ...atoms.themePatches.get(), [name]: patch });
+
       if (atoms.currentTheme.get() === name) applyCurrent(name);
     },
     clearThemePatch: (name) => {
       const patches = { ...atoms.themePatches.get() };
       delete patches[name];
       atoms.themePatches.set(patches);
+
       if (atoms.currentTheme.get() === name) applyCurrent(name);
     },
   };
 
   if (adopted()) handle.setTheme(data.currentTheme);
   finishAdopt(() => ({ ...mirror }), { remove: "themeState" });
+
   if (!adopted()) {
     applyCurrent(data.currentTheme);
   }

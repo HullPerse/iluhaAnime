@@ -169,12 +169,53 @@ const selectedJsPlugins = {
 export default defineConfig({
   extends: [core, react, tanstack, selectedJsPlugins, tanstackJsPlugins, landmines],
   ignorePatterns: [...(core.ignorePatterns ?? []), "src-tauri/**", "md/**"],
-  jsPlugins: [...(selectedJsPlugins.jsPlugins ?? []), ...(landmines.jsPlugins ?? [])],
+  jsPlugins: [
+    ...(selectedJsPlugins.jsPlugins ?? []),
+    ...(landmines.jsPlugins ?? []),
+    "@stylistic/eslint-plugin",
+  ],
   options: {
     typeAware: true,
     typeCheck: true,
   },
   rules: {
+    "@stylistic/padding-line-between-statements": [
+      "error",
+      {
+        blankLine: "always",
+        prev: "*",
+        next: ["function", "class", "interface", "type", "enum"],
+      },
+      {
+        blankLine: "always",
+        prev: ["function", "class", "interface", "type", "enum"],
+        next: "*",
+      },
+      {
+        blankLine: "always",
+        prev: "*",
+        next: ["if", "for", "while", "do", "switch", "try", "with"],
+      },
+      {
+        blankLine: "always",
+        prev: "*",
+        next: "return",
+      },
+      {
+        blankLine: "always",
+        prev: "block-like",
+        next: "*",
+      },
+    ],
+    "@stylistic/lines-between-class-members": ["error", "always"],
+    "@stylistic/no-multiple-empty-lines": [
+      "error",
+      {
+        max: 1,
+        maxEOF: 0,
+        maxBOF: 0,
+      },
+    ],
     "landmines-testing/no-fixed-sleep": "error",
     "landmines-testing/no-flake-masking": ["error", { allow: { "vite.config.ts": 1 } }],
     "landmines-testing/no-test-doubles": "off",
@@ -264,6 +305,26 @@ export default defineConfig({
       files: ["scripts/**", "benches/**"],
       rules: {
         "max-depth": "off",
+      },
+    },
+    {
+      files: [
+        "src/routes/components/collection/lab*.tsx",
+        "src/routes/cardsLab.route.tsx",
+        "src/config/cards/labFixtures.config.ts",
+      ],
+      rules: {
+        "no-restricted-imports": [
+          "error",
+          {
+            patterns: [
+              {
+                group: ["@/api/cards.api", "@/api/cards.api/*", "@/hooks/cards", "@/hooks/cards/*"],
+                message: "The cards lab must stay independent from the cards API.",
+              },
+            ],
+          },
+        ],
       },
     },
     {

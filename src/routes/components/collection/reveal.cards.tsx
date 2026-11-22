@@ -23,7 +23,7 @@ export default function Reveal({
 }) {
   const { t } = useI18n();
 
-  const [hoverReady, setHoverReady] = useState(false);
+  const [hoverReady, setHoverReady] = useState<boolean>(false);
 
   const title = card.title.trim() === "" ? t("collection.detail.unknown.title") : card.title;
   const sourceTitle = card.collectionTitle?.trim() ?? "";

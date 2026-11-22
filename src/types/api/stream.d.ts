@@ -11,3 +11,8 @@ export interface AnimeLibAccount {
   authorized: boolean;
   login: string | null;
 }
+
+export interface StreamSourcesInput {
+  episodeId: string;
+  variantId: string;
+}

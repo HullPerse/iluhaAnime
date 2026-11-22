@@ -10,6 +10,7 @@ const BACKOFF_EXPONENT_CAP = 4;
 
 function isHidden(pauseOnHidden: boolean | undefined): boolean {
   if (pauseOnHidden === false) return false;
+
   return typeof document !== "undefined" && document.hidden;
 }
 
@@ -41,22 +42,28 @@ export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
     const sweep = () => {
       const { collectKeys, fetch, onSettle, onStart, shouldFetch, pauseOnHidden } =
         optionsRef.current;
+
       if (isHidden(pauseOnHidden)) return;
       const now = Date.now();
+
       for (const key of collectKeys()) {
         if (inFlightRef.current.has(key)) continue;
+
         if ((retryAtRef.current.get(key) ?? 0) > now) continue;
+
         if (!shouldFetch(key)) continue;
 
         inFlightRef.current.add(key);
         onStart?.(key);
         (async () => {
           const [ok, error] = await attempt((async () => fetch(key))());
+
           if (error || !ok) scheduleBackoff(key);
           else {
             attemptsRef.current.delete(key);
             retryAtRef.current.delete(key);
           }
+
           inFlightRef.current.delete(key);
           onSettle?.(key);
         })();
@@ -68,7 +75,9 @@ export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
     const onVisible = () => {
       if (!document.hidden) sweep();
     };
+
     document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       cancel();
       document.removeEventListener("visibilitychange", onVisible);

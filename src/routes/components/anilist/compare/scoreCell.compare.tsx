@@ -23,6 +23,7 @@ export function ScoreCell({
 }) {
   const { t } = useI18n();
   const rawScore = formatScore(raw, format);
+
   return (
     <div
       className="flex min-w-0 flex-col items-end gap-0.5"

@@ -20,6 +20,7 @@ vi.mock("@/hooks/stream/catalog.hook", () => ({
   useStreamHistoryRecent: () => ({
     data: history.rows,
     isPending: false,
+    isSuccess: true,
     refetch: history.refetch,
   }),
 }));
@@ -42,6 +43,7 @@ const renderHistory = (open = true) => {
   const onOpen = vi.fn();
   const onClose = vi.fn();
   const result = render(<StreamHistoryModal open={open} onOpen={onOpen} onClose={onClose} />);
+
   return { ...result, onOpen, onClose };
 };
 

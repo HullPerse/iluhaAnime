@@ -39,18 +39,22 @@ const LISTS: AniListCollection[] = [
 group("anilist group @anilist @quick", () => {
   bench("collectAllEntries dedupe 3000 entries x200", () => {
     let sum = 0;
+
     for (let index = 0; index < 200; index++) {
       sum += collectAllEntries(LISTS).length;
     }
+
     return sum;
   });
 
   bench("groupEntriesByList 3000 entries x200", () => {
     let sum = 0;
+
     for (let index = 0; index < 200; index++) {
       const groups = groupEntriesByListCached(collectAllEntries(LISTS), LISTS);
       sum += groups.reduce((acc, g) => acc + g.entries.length, 0);
     }
+
     return sum;
   });
 });

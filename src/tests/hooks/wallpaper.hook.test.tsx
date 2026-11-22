@@ -14,6 +14,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const renderWallpaper = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return renderHook(() => useWallpaperImage(), {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

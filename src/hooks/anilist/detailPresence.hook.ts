@@ -10,6 +10,7 @@ export function useDetailPresence(
   useEffect(() => {
     if (!title) return;
     setPresenceDetail({ id, title });
+
     return () => setPresenceDetail(null);
   }, [id, title]);
 }

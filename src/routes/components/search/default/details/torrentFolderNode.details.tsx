@@ -17,6 +17,7 @@ export function TorrentFolderNode({
 }) {
   const [open, setOpen] = useState<boolean>(true);
   const total = useMemo(() => countFiles(node), [node]);
+
   return (
     <div className="min-w-0">
       <button

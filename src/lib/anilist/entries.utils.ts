@@ -25,15 +25,20 @@ export function filterEntries(
 ) {
   return entries.filter((e) => {
     if (global) return true;
+
     if (!matchesText(e, searchTerms)) return false;
+
     if (filters && !matchesLocalFilters(e, filters)) return false;
+
     if (mediaFilter && !matchesMediaFilter(e, mediaFilter)) return false;
+
     return true;
   });
 }
 
 function matchesMediaFilter(entry: AniListEntry, filter: LocalMediaFilter): boolean {
   if (filter.kind === "tag") return entry.media.tags.includes(filter.value);
+
   return entry.media.studios.some(
     (studio) =>
       (filter.id != null && studio.id === filter.id) ||
@@ -44,6 +49,7 @@ function matchesMediaFilter(entry: AniListEntry, filter: LocalMediaFilter): bool
 function matchesText(entry: AniListEntry, searchTerms: string): boolean {
   if (!searchTerms.trim()) return true;
   const query = searchTerms.toLowerCase();
+
   return (
     entry.media.title.toLowerCase().includes(query) ||
     entry.media.titles.some((t) => t.toLowerCase().includes(query))
@@ -58,33 +64,48 @@ function entryYear(entry: AniListEntry): number | null {
   if (entry.media.season_year != null && Number.isFinite(entry.media.season_year)) {
     return entry.media.season_year;
   }
+
   const start = entry.media.start_date;
+
   if (!start) return null;
   const year = Number.parseInt(start.slice(0, 4), 10);
+
   return Number.isNaN(year) ? null : year;
 }
 
 function inRange(value: number | null, range: [number, number]): boolean {
   if (!rangeActive(range)) return true;
+
   if (value == null || !Number.isFinite(value)) return false;
+
   return value >= range[0] && value <= range[1];
 }
 
 function matchesLocalFilters(entry: AniListEntry, filters: AniListFilters): boolean {
   const media = entry.media;
+
   if (filters.genres.length > 0 && !filters.genres.every((g) => media.genres.includes(g))) {
     return false;
   }
+
   if (filters.tags.length > 0 && !filters.tags.every((t) => media.tags.includes(t))) {
     return false;
   }
+
   if (filters.format && media.format !== filters.format) return false;
+
   if (filters.status && media.status !== filters.status) return false;
+
   if (filters.season && media.season !== filters.season) return false;
+
   if (filters.seasonYear != null && media.season_year !== filters.seasonYear) return false;
+
   if (!inRange(entryYear(entry), filters.year)) return false;
+
   if (!inRange(media.episodes, filters.episodes)) return false;
+
   if (!inRange(media.score, filters.score)) return false;
+
   return true;
 }
 
@@ -117,12 +138,17 @@ export function sortEntries(
     const b = get(y);
     const aMissing = a === null || a === undefined;
     const bMissing = b === null || b === undefined;
+
     if (aMissing && bMissing) return 0;
+
     if (aMissing) return 1;
+
     if (bMissing) return -1;
     const compared = typeof a === "string" ? a.localeCompare(b as string) : a - (b as number);
+
     return direction === "desc" ? -compared : compared;
   });
+
   return copy;
 }
 
@@ -157,6 +183,7 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
 
 export function buildEntryLookup(lists: AniListCollection[]): EntryLookup {
   const map: EntryLookup = new Map();
+
   for (const list of lists) {
     for (const e of list.entries) {
       map.set(e.media.id, {
@@ -175,6 +202,7 @@ export function buildEntryLookup(lists: AniListCollection[]): EntryLookup {
       });
     }
   }
+
   return map;
 }
 
@@ -185,22 +213,28 @@ function toMs(stamp: number | null): number | null {
 export function fuzzyDateToTime(value: string | null): number | null {
   if (!value) return null;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+
   if (!match) return null;
+
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getTime();
 }
 
 export function isValidFuzzyDateInput(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+
   if (!match) return false;
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
+
   if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1) return false;
+
   return day <= new Date(year, month, 0).getDate();
 }
 
 export function entryListTime(entry: EntryListInfo | undefined): number | null {
   if (!entry) return null;
+
   if (entry.list_status === "COMPLETED")
     return (
       fuzzyDateToTime(entry.completed_at) ??
@@ -208,8 +242,10 @@ export function entryListTime(entry: EntryListInfo | undefined): number | null {
       toMs(entry.created_at) ??
       toMs(entry.updated_at)
     );
+
   if (entry.list_status === "CURRENT")
     return fuzzyDateToTime(entry.started_at) ?? toMs(entry.created_at) ?? toMs(entry.updated_at);
+
   return toMs(entry.created_at) ?? toMs(entry.updated_at);
 }
 
@@ -220,6 +256,7 @@ export function entryListDate(
 ): string | null {
   if (!entry) return fallback;
   const time = entryListTime(entry);
+
   return time == null ? fallback : new Date(time).toLocaleDateString(locale);
 }
 
@@ -285,8 +322,10 @@ export function sortAniMediaList(
 ): AniMedia[] {
   if (key === "relevance") return results;
   const compare = MEDIA_COMPARATORS[key];
+
   return [...results].sort((a, b) => {
     const cmp = compare ? compare(a, b) : 0;
+
     return dir === "asc" ? cmp : -cmp;
   });
 }

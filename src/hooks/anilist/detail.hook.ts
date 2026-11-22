@@ -28,7 +28,9 @@ export function useAnilistDetail(lists: AniListCollection[]) {
   );
   const handleAnimeBack = useMemo(() => {
     if (historyBack) return historyBack;
+
     if (!detailFromFilters) return undefined;
+
     return () => setSelectedAnime(null);
   }, [historyBack, detailFromFilters]);
   const handleRelated = useCallback(
@@ -48,6 +50,7 @@ export function useAnilistDetail(lists: AniListCollection[]) {
     showDetail({ animeId: target.id, listEntry: entryLookup.get(target.id) }, false);
     consumeDeepLink();
   }, [target, entryLookup, showDetail]);
+
   return {
     detailFromFilters,
     entryLookup,

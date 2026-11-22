@@ -28,6 +28,7 @@ async function showMainWindow(): Promise<void> {
     () => window.unminimize(),
     () => window.setFocus(),
   ]);
+
   if (error) reportBackgroundError("tray.show", error);
 }
 
@@ -52,16 +53,19 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
     const quitApp = async () => {
       allowQuitRef.current = true;
       const [, error] = await attempt(getCurrentWindow().close());
+
       if (error) {
         allowQuitRef.current = false;
         reportBackgroundError("tray.quit", error);
       }
     };
+
     (async () => {
       const [menu, menuError] = await attempt(
         Menu.new({
           items: entries.map((entry) => {
             if (entry.kind === "separator") return { item: "Separator" as const };
+
             if (entry.kind === "quit")
               return {
                 id: entry.id,
@@ -70,6 +74,7 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
                   quitApp();
                 },
               };
+
             return {
               id: entry.id,
               text: entry.text,
@@ -81,18 +86,27 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
           }),
         })
       );
+
       if (menuError || !menu || disposed) {
         if (menuError) reportBackgroundError("tray.menu", menuError);
+
         return;
       }
+
       const [existing] = await attempt(TrayIcon.getById(TRAY_ICON_ID));
+
       if (disposed) return;
+
       if (existing) {
         const [, setMenuError] = await attempt(existing.setMenu(menu));
+
         if (setMenuError) reportBackgroundError("tray.menu", setMenuError);
+
         return;
       }
+
       const [icon] = await attempt(defaultWindowIcon());
+
       if (disposed) return;
       const [, createError] = await attempt(
         TrayIcon.new({
@@ -103,13 +117,16 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
           showMenuOnLeftClick: false,
           action: (event) => {
             if (event.type !== "Click" && event.type !== "DoubleClick") return;
+
             if (event.button !== "Left") return;
             showMainWindow();
           },
         })
       );
+
       if (createError) reportBackgroundError("tray.create", createError);
     })();
+
     return () => {
       disposed = true;
     };
@@ -120,8 +137,10 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
     let unlisten: (() => void) | undefined;
     const hideWindow = async () => {
       const [, error] = await attempt(getCurrentWindow().hide());
+
       if (error) reportBackgroundError("tray.hide", error);
     };
+
     const [listening, syncError] = attemptSync(() =>
       getCurrentWindow().onCloseRequested((event) => {
         if (!shouldHideOnClose(minimizeToTrayRef.current, allowQuitRef.current)) return;
@@ -129,17 +148,22 @@ export function useTray(tabs: readonly TrayTab[], onSelectTab: (tab: TabId) => v
         hideWindow();
       })
     );
+
     if (syncError) {
       reportBackgroundError("tray.close-requested", syncError);
+
       return undefined;
     }
+
     listening
       .then((cleanup) => {
         if (disposed) cleanup();
         else unlisten = cleanup;
+
         return null;
       })
       .catch((error) => reportBackgroundError("tray.close-requested", error));
+
     return () => {
       disposed = true;
       unlisten?.();

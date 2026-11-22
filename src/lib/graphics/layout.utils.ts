@@ -34,6 +34,7 @@ const EN_TO_RU: Record<string, string> = {
 };
 
 const RU_TO_EN = new Map<string, string>();
+
 for (const [en, ru] of Object.entries(EN_TO_RU)) {
   RU_TO_EN.set(ru, en);
   RU_TO_EN.set(ru.toUpperCase(), en.toUpperCase());
@@ -48,10 +49,12 @@ export function looksCyrillic(value: string): boolean {
 
 function flipChar(char: string, toEnglish: boolean): string {
   if (toEnglish) return RU_TO_EN.get(char) ?? char;
+
   return EN_TO_RU[char] ?? EN_TO_RU[char.toLowerCase()]?.toUpperCase() ?? char;
 }
 
 export function flipLayout(value: string): string {
   const toEnglish = looksCyrillic(value);
+
   return [...value].map((char) => flipChar(char, toEnglish)).join("");
 }

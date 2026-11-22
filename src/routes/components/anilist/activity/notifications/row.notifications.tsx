@@ -24,6 +24,7 @@ export function NotificationRow({
   const titleClass = clickable
     ? "truncate font-bold underline decoration-dotted hover:cursor-pointer"
     : "truncate";
+
   return (
     <button
       type="button"

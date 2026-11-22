@@ -8,16 +8,20 @@ export function useBarsAutoHide(enabled: boolean, setBarsVisible: (value: boolea
   useEffect(() => {
     if (!enabled) {
       setBarsVisible(true);
+
       return;
     }
+
     const hide = new Debouncer<[]>(() => setBarsVisible(false), { wait: AUTO_HIDE_DELAY });
     hide.maybeExecute();
     const wake = () => {
       setBarsVisible(true);
       hide.maybeExecute();
     };
+
     window.addEventListener("mousemove", wake);
     window.addEventListener("mousedown", wake);
+
     return () => {
       hide.cancel();
       window.removeEventListener("mousemove", wake);
@@ -32,11 +36,13 @@ export function useDropAlert() {
 
   const showDropAlert = useCallback((data: DroppedFramesData) => {
     setDropAlert(data);
+
     if (dropHideRef.current === null) {
       dropHideRef.current = new Debouncer(() => setDropAlert(null), {
         wait: DROP_TOAST_TIMEOUT,
       });
     }
+
     dropHideRef.current.maybeExecute();
   }, []);
 

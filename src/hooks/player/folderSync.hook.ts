@@ -26,6 +26,7 @@ export function usePlayerFolderSync(options: PlayerFolderSyncOptions): void {
 
   useEffect(() => {
     folderScanDisposedRef.current = false;
+
     return () => {
       folderScanDisposedRef.current = true;
     };
@@ -35,24 +36,31 @@ export function usePlayerFolderSync(options: PlayerFolderSyncOptions): void {
     (payload) => {
       if (payload.changes.some((change) => isExtraFile(change.path)))
         queryClient.invalidateQueries({ queryKey: queryKeys.extraFilesScope() });
+
       if (!touchesExtensions(payload.changes, videoExtensions)) return;
       const libraryRoots = new Set(savedFolderPaths.map(normalizePath));
       const byRoot = new Map<string, FolderChange[]>();
+
       for (const change of payload.changes) {
         if (!libraryRoots.has(normalizePath(change.root))) continue;
         const bucket = byRoot.get(change.root);
+
         if (bucket) bucket.push(change);
         else byRoot.set(change.root, [change]);
       }
+
       if (byRoot.size === 0) return;
       const applyFullScan = (path: string, entries: VideoFileEntry[]) => {
         setFolderTrees((prev) => {
           const next = prev.filter((tree) => tree.path !== path);
+
           if (entries.length) next.push(buildTree(entries, path));
           setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+
           return next;
         });
       };
+
       const rescanPath = async (path: string) => {
         const [entries, scanError] = await attempt(
           folderScanBus().fullScan({
@@ -61,25 +69,33 @@ export function usePlayerFolderSync(options: PlayerFolderSyncOptions): void {
             threads: scanThreads,
           })
         );
+
         if (scanError || folderScanDisposedRef.current) {
           if (scanError) {
             reportBackgroundError("folders.rescan", scanError);
+
             if (settingsAtoms.notifyScanErrors.get())
               showErrorOnce("folders-scan", t("notification.scan.failed"), scanError.message);
           }
+
           return;
         }
+
         applyFullScan(path, entries ?? []);
       };
+
       const patchRoot = async (root: string, changes: FolderChange[]) => {
         const key = normalizePath(root);
         const upserts = changes.filter((change) => change.kind !== "removed").map((c) => c.path);
         const removals = changes.filter((change) => change.kind === "removed").map((c) => c.path);
         const target = folderTrees.find((tree) => normalizePath(tree.path) === key);
+
         if (!target) {
           await rescanPath(root);
+
           return;
         }
+
         const [outcome, patchError] = await attempt(
           folderScanBus().patchScan({
             root,
@@ -89,51 +105,73 @@ export function usePlayerFolderSync(options: PlayerFolderSyncOptions): void {
             threads: scanThreads,
           })
         );
+
         if (folderScanDisposedRef.current) return;
+
         if (patchError || !outcome) {
           if (patchError) {
             reportBackgroundError("folders.patch", patchError);
+
             if (settingsAtoms.notifyScanErrors.get())
               showErrorOnce("folders-scan", t("notification.scan.failed"), patchError.message);
           }
+
           await rescanPath(root);
+
           return;
         }
+
         if (outcome.kind === "full") {
           applyFullScan(root, outcome.entries);
+
           return;
         }
+
         let patched: FolderNode = target;
+
         for (const path of outcome.removed) {
           const next = removeTreeFile(patched, path);
+
           if (!next) {
             await rescanPath(root);
+
             return;
           }
+
           patched = next;
         }
+
         for (const entry of outcome.fresh) {
           const next = patchTreeFile(patched, entry);
+
           if (!next) {
             await rescanPath(root);
+
             return;
           }
+
           patched = next;
         }
+
         if (patched.files.length === 0 && patched.children.length === 0) {
           setFolderTrees((prev) => {
             const next = prev.filter((tree) => normalizePath(tree.path) !== key);
             setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+
             return next;
           });
+
           return;
         }
+
         setFolderTrees((prev) => {
           const next = prev.map((tree) => (normalizePath(tree.path) === key ? patched : tree));
           setCachedFolderTrees(next.map((tree) => ({ path: tree.path, tree })));
+
           return next;
         });
       };
+
       (async () => {
         await Promise.all(
           [...byRoot.entries()].map(([root, changes]) =>

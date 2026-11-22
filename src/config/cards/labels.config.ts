@@ -92,7 +92,10 @@ export const animeSourceLabelKeys: Record<string, TranslationKey> = {
 
 export function packLabelKey(packKind: string): TranslationKey {
   if (packKind === "default") return "collection.packs.default";
+
   if (packKind === "choice") return "collection.packs.choice";
+
   if (packKind in cardKindLabelKeys) return cardKindLabelKeys[packKind as CardKind];
+
   return "collection.packs.other";
 }

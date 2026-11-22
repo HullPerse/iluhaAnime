@@ -44,11 +44,13 @@ function FranchiseList({
 
   const firstMatchId = useMemo(() => {
     if (!searchMatchIds) return null;
+
     for (const section of sections) {
       for (const node of section.items) {
         if (searchMatchIds.has(node.id)) return node.id;
       }
     }
+
     return null;
   }, [sections, searchMatchIds]);
   const firstMatchRef = useRef<HTMLButtonElement | null>(null);

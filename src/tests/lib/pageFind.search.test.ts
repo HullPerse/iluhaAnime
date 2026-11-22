@@ -15,13 +15,16 @@ const nodes: HTMLElement[] = [];
 
 function container(...texts: string[]): HTMLElement {
   const root = document.createElement("div");
+
   for (const text of texts) {
     const span = document.createElement("span");
     span.textContent = text;
     root.append(span);
   }
+
   document.body.append(root);
   nodes.push(root);
+
   return root;
 }
 
@@ -166,12 +169,15 @@ describe("page find highlights", () => {
     const set = vi.fn();
     const remove = vi.fn();
     (globalThis as { CSS?: unknown }).CSS = { highlights: { set, delete: remove } };
+
     class FakeHighlight {
       ranges: Range[];
+
       constructor(...ranges: Range[]) {
         this.ranges = ranges;
       }
     }
+
     (globalThis as { Highlight?: unknown }).Highlight = FakeHighlight;
     const root = container("alpha", "alpha beta");
     const { matches } = searchPageFind("alpha", { root });
@@ -189,6 +195,7 @@ describe("page find highlights", () => {
     const { matches } = searchPageFind("alpha", { root });
     const parent = matches[0]?.node.parentElement;
     const scroll = vi.fn();
+
     if (parent) parent.scrollIntoView = scroll;
     scrollMatchIntoView(matches[0]);
     expect(scroll).toHaveBeenCalledWith({ block: "center" });

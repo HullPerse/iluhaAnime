@@ -117,13 +117,16 @@ function Controls({
         setSpeedOpen(false);
       }
     };
+
     document.addEventListener("mousedown", onDown);
+
     return () => document.removeEventListener("mousedown", onDown);
   }, [speedOpen]);
 
   useEffect(() => {
     if (!boundary) return;
     const task = scheduleTask("timeout", BOUNDARY_TIMEOUT, () => setBoundary(null));
+
     return () => task.cancel();
   }, [boundary]);
 
@@ -138,8 +141,10 @@ function Controls({
         else showBoundaryMsg(t("player.media.boundary.first"));
       } else if (hasNext) onFileNext();
       else showBoundaryMsg(t("player.media.boundary.last"));
+
       return;
     }
+
     const jump = resolveMediaJump({
       chapters,
       timePos: playbackAtoms.timePos.get(),
@@ -147,6 +152,7 @@ function Controls({
       hasNext,
       direction,
     });
+
     if (jump.kind === "seek") onSeekTo(jump.time);
     else if (jump.kind === "file") {
       if (direction < 0) onFilePrev();

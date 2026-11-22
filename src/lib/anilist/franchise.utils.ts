@@ -8,8 +8,10 @@ import type { FranchiseNext, FranchiseSection, FranchiseSummary } from "@/types/
 function byYearAndTitle(a: FranchiseNode, b: FranchiseNode): number {
   const yearA = a.year ?? Number.MAX_SAFE_INTEGER;
   const yearB = b.year ?? Number.MAX_SAFE_INTEGER;
+
   if (yearA !== yearB) return yearA - yearB;
   const byTitle = a.title.localeCompare(b.title);
+
   return byTitle === 0 ? a.id - b.id : byTitle;
 }
 
@@ -24,19 +26,24 @@ function buildMainlineGraph(
   const byId = new Map(mainline.map((node) => [node.id, node]));
   const next = new Map<number, Set<number>>();
   const indegree = new Map<number, number>();
+
   for (const id of byId.keys()) {
     next.set(id, new Set());
     indegree.set(id, 0);
   }
+
   for (const edge of edges) {
     if (edge.relation_type !== "SEQUEL" && edge.relation_type !== "PREQUEL") continue;
+
     if (!byId.has(edge.source) || !byId.has(edge.target) || edge.source === edge.target) continue;
     const from = edge.relation_type === "PREQUEL" ? edge.target : edge.source;
     const to = edge.relation_type === "PREQUEL" ? edge.source : edge.target;
+
     if (next.get(from)?.has(to)) continue;
     next.get(from)?.add(to);
     indegree.set(to, (indegree.get(to) ?? 0) + 1);
   }
+
   return { byId, indegree, next };
 }
 
@@ -49,21 +56,27 @@ function drainMainline(
     .filter((node) => (indegree.get(node.id) ?? 0) === 0)
     .sort(byYearAndTitle);
   const ordered: FranchiseNode[] = [];
+
   while (ready.length > 0) {
     const node = ready.shift();
+
     if (!node) break;
     ordered.push(node);
+
     for (const targetId of next.get(node.id) ?? []) {
       const left = (indegree.get(targetId) ?? 0) - 1;
       indegree.set(targetId, left);
+
       if (left !== 0) continue;
       const target = byId.get(targetId);
+
       if (target) {
         ready.push(target);
         ready.sort(byYearAndTitle);
       }
     }
   }
+
   return ordered;
 }
 
@@ -73,14 +86,17 @@ export function orderMainline(
   mainlineIds: Set<number>
 ): FranchiseNode[] {
   const mainline = nodes.filter((node) => mainlineIds.has(node.id));
+
   if (mainline.length <= 1) return mainline.sort(byYearAndTitle);
 
   const { byId, next, indegree } = buildMainlineGraph(mainline, edges);
   const ordered = drainMainline(byId, next, indegree);
+
   if (ordered.length === mainline.length) return ordered;
 
   const placed = new Set(ordered.map((node) => node.id));
   ordered.push(...mainline.filter((node) => !placed.has(node.id)).sort(byYearAndTitle));
+
   return ordered;
 }
 
@@ -92,21 +108,26 @@ export function buildFranchiseSections(
 ): FranchiseSection[] {
   const mainline = orderMainline(nodes, edges, mainlineIds);
   const sections: FranchiseSection[] = [];
+
   if (mainline.length > 0) sections.push({ key: "mainline", items: mainline });
 
   const buckets = new Map<RelationFilter, FranchiseNode[]>();
+
   for (const node of nodes) {
     if (mainlineIds.has(node.id)) continue;
     const group = relationGroup(relationMap.get(node.id) ?? "UNKNOWN");
     const bucket = buckets.get(group);
+
     if (bucket) bucket.push(node);
     else buckets.set(group, [node]);
   }
 
   for (const group of RELATION_FILTERS) {
     const items = sortFranchiseNodes(buckets.get(group) ?? []);
+
     if (items.length > 0) sections.push({ key: group, items });
   }
+
   return sections;
 }
 
@@ -116,23 +137,31 @@ export function countFranchiseGroups(
   rootId: number
 ): Record<RelationFilter, number> {
   const counts = {} as Record<RelationFilter, number>;
+
   for (const group of RELATION_FILTERS) counts[group] = 0;
+
   for (const node of nodes) {
     if (node.id === rootId) continue;
     counts[relationGroup(relationMap.get(node.id) ?? "UNKNOWN")] += 1;
   }
+
   return counts;
 }
 
 export function availableEpisodes(node: FranchiseNode, nowSeconds: number): number {
   const planned = node.episodes != null && node.episodes > 0 ? node.episodes : null;
+
   if (node.status === "NOT_YET_RELEASED") return 0;
+
   if (node.status === "RELEASING") {
     const next = node.next_airing_episode;
+
     if (!next) return planned ?? 0;
     const aired = Math.max(0, nowSeconds >= next.airing_at ? next.episode : next.episode - 1);
+
     return planned == null ? aired : Math.min(planned, aired);
   }
+
   return planned ?? 0;
 }
 
@@ -142,18 +171,24 @@ export function pickNextToWatch(
   nowSeconds: number
 ): FranchiseNext | null {
   if (!entryLookup) return null;
+
   for (const node of mainline) {
     if (node.status === "NOT_YET_RELEASED") continue;
     const aired = availableEpisodes(node, nowSeconds);
+
     if (node.status === "RELEASING" && aired === 0) continue;
     const entry = entryLookup.get(node.id);
+
     if (!entry) return { episode: null, id: node.id };
     const done = entry.progress;
     const finished =
       entry.list_status === "COMPLETED" || (aired > 0 && done != null && done >= aired);
+
     if (finished) continue;
+
     return { episode: done == null ? null : done + 1, id: node.id };
   }
+
   return null;
 }
 
@@ -164,19 +199,25 @@ export function franchiseSummary(
 ): FranchiseSummary {
   let episodes = 0;
   let watched = 0;
+
   for (const node of nodes) {
     const aired = availableEpisodes(node, nowSeconds);
     episodes += aired;
+
     if (aired === 0) continue;
     const entry = entryLookup?.get(node.id);
+
     if (!entry) continue;
+
     if (entry.progress != null) {
       watched += Math.min(entry.progress, aired);
     } else if (entry.list_status === "COMPLETED") {
       watched += aired;
     }
   }
+
   const percent = episodes > 0 ? Math.min(100, Math.round((watched / episodes) * 100)) : null;
+
   return {
     episodes,
     percent,

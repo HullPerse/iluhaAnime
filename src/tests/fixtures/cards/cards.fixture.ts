@@ -117,6 +117,7 @@ export function makePack(overrides: Partial<CardPackRow> = {}): CardPackRow {
 
 export function makeOpenedCards(count = 7): OpenedCard[] {
   const kinds = ["character", "anime", "staff", "studio"] as const;
+
   return Array.from({ length: count }, (_, index) => ({
     kind: kinds[index % kinds.length] ?? "character",
     entityId: 100 + index,

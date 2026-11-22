@@ -63,13 +63,19 @@ beforeEach(() => {
     if (command === "get_running_torrent_files") {
       return [torrentFile("ep01.mkv", true), torrentFile("ep02.mkv", pollState.ep2done)];
     }
+
     if (command === "player_playlist_entries") return liveState.entries;
+
     if (command === "player_get_property" && args?.name === "path") return "C:/T/ep01.mkv";
+
     if (command === "player_get_property") return 0;
+
     if (command === "player_insert_files") {
       insertCalls.push((args as { items: unknown }).items);
+
       return undefined;
     }
+
     return null;
   });
 });
@@ -90,6 +96,7 @@ const renderSync = (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     ),
   });
+
   return { queryClient };
 };
 
@@ -156,6 +163,7 @@ describe("useLivePlaylistSync folder watch", () => {
     mockListen.mockImplementation(
       (_event: string, callback: (event: { payload: unknown }) => void) => {
         handler = callback;
+
         return Promise.resolve(() => undefined);
       }
     );
@@ -163,15 +171,21 @@ describe("useLivePlaylistSync folder watch", () => {
       if (command === "refresh_file_index") {
         return [folderEntry("C:/F/ep01.mkv"), folderEntry("C:/F/ep02.mkv")];
       }
+
       if (command === "player_playlist_entries") {
         return [{ index: 0, filename: "C:/F/ep01.mkv", title: "" }];
       }
+
       if (command === "player_get_property" && args?.name === "path") return "C:/F/ep01.mkv";
+
       if (command === "player_get_property") return 0;
+
       if (command === "player_insert_files") {
         insertCalls.push((args as { items: unknown }).items);
+
         return undefined;
       }
+
       return null;
     });
 
@@ -200,6 +214,7 @@ describe("useLivePlaylistSync folder modifications", () => {
     mockListen.mockImplementation(
       (_event: string, callback: (event: { payload: unknown }) => void) => {
         handler = callback;
+
         return Promise.resolve(() => undefined);
       }
     );
@@ -207,14 +222,20 @@ describe("useLivePlaylistSync folder modifications", () => {
       if (command === "refresh_file_index") {
         return [folderEntry("C:/F/ep01.mkv"), folderEntry("C:/F/ep02.mkv")];
       }
+
       if (command === "player_playlist_entries") {
         return [{ index: 0, filename: "C:/F/ep01.mkv", title: "" }];
       }
+
       if (command === "player_get_property" && args?.name === "path") return "C:/F/ep01.mkv";
+
       if (command === "player_get_property") return 0;
+
       if (command === "player_insert_files") return undefined;
+
       return null;
     });
+
     return () => handler;
   };
 
@@ -268,6 +289,7 @@ describe("useLivePlaylistSync folder modifications", () => {
     const base = mockInvoke.getMockImplementation();
     mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
       if (command === "refresh_file_index") scans.push(args);
+
       return base?.(command, args);
     });
 
@@ -296,9 +318,11 @@ describe("useLivePlaylistSync torrent watcher events", () => {
     mockListen.mockImplementation(
       (_event: string, callback: (event: { payload: unknown }) => void) => {
         handler = callback;
+
         return Promise.resolve(() => undefined);
       }
     );
+
     return () => handler;
   };
 
@@ -414,9 +438,13 @@ describe("useLivePlaylistSync removals", () => {
           { ...torrentFile("ep02.mkv", true), exists: seen.ep2Exists },
         ];
       }
+
       if (command === "player_playlist_entries") return entries.map((entry) => ({ ...entry }));
+
       if (command === "player_get_property" && args?.name === "path") return "C:/T/ep01.mkv";
+
       if (command === "player_get_property") return 0;
+
       if (command === "player_command" && args?.name === "playlist-remove") {
         const index = (args.args as number[])[0] ?? -1;
         removeCalls.push(index);
@@ -424,8 +452,10 @@ describe("useLivePlaylistSync removals", () => {
         entries.forEach((entry, i) => {
           entry.index = i;
         });
+
         return undefined;
       }
+
       return null;
     });
 

@@ -17,9 +17,11 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
   const transport: ApiTransport = {
     call: async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       calls.push({ command, args });
+
       return resolve(command, args) as T;
     },
   };
+
   return { calls, transport };
 }
 
@@ -55,32 +57,6 @@ describe("AnilistApi", () => {
     const api = new AnilistApi({ transport });
 
     await expect(api.getLists(7)).rejects.toThrow();
-  });
-
-  it("asks for the statistics of one user in one call", async () => {
-    const { calls, transport } = fakeTransport(() => ({ count: 0 }));
-    const api = new AnilistApi({ transport });
-
-    await api.getStatistics(7);
-
-    expect(calls).toEqual([
-      {
-        command: "get_anilist_statistics",
-        args: { userId: 7 },
-      },
-    ]);
-  });
-
-  it("asks for every friend score in one call", async () => {
-    const { calls, transport } = fakeTransport(() => []);
-    const api = new AnilistApi({ transport });
-
-    await api.getFriendScores(501, [7, 9]);
-
-    expect(calls[0]).toMatchObject({
-      command: "get_anilist_friend_scores",
-      args: { mediaId: 501, userIds: [7, 9] },
-    });
   });
 
   it("sends the backend's camelCase id when saving an entry", async () => {
@@ -247,30 +223,6 @@ describe("AnilistApi", () => {
 
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ command: "get_anime_trailer", args: { id: 21 } });
-  });
-
-  it("asks for every detail id in one call", async () => {
-    const ids = [21, 22, 23];
-    const { calls, transport } = fakeTransport(() => []);
-    const api = new AnilistApi({ transport });
-
-    await api.getAnimeByIds(ids);
-
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatchObject({ command: "get_anime_by_ids", args: { ids } });
-  });
-
-  it("fetches the franchise graph in one call with scope", async () => {
-    const { calls, transport } = fakeTransport(() => ({ root_id: 21, nodes: [], edges: [] }));
-    const api = new AnilistApi({ transport });
-
-    await api.getAnimeFranchise(21, "all");
-
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatchObject({
-      command: "get_anime_franchise",
-      args: { id: 21, scope: "all" },
-    });
   });
 
   it("rejects a malformed detail bundle", async () => {

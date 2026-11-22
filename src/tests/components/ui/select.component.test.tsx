@@ -14,6 +14,7 @@ const openSearchable = (onChange: (value: string) => void = () => undefined) => 
   patchSettings({ language: "ru" });
   render(<Select<"a" | "b" | "c"> value="a" onChange={onChange} options={OPTIONS} searchable />);
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+
   return onChange;
 };
 

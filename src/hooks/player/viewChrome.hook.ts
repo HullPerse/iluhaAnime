@@ -48,11 +48,14 @@ export function usePlayerViewChrome({ autoHide, menuOpen, closeOverlay }: Player
     if (fullscreen) {
       const restore = autoHideBeforeFullscreen.current;
       autoHideBeforeFullscreen.current = null;
+
       if (restore !== null) setAutoHide(restore);
     } else {
       autoHideBeforeFullscreen.current = playerAtoms.autoHide.get();
+
       if (!playerAtoms.autoHide.get()) setAutoHide(true);
     }
+
     ignore(toggleFullscreen());
   }, [fullscreen, toggleFullscreen]);
 

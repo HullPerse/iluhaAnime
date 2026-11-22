@@ -59,6 +59,7 @@ function createFetchQueue(concurrency: number): FetchQueue {
   const pump = (): void => {
     while (active < concurrency) {
       const entry = queue.shift();
+
       if (!entry) return;
       active += 1;
       entry.start();
@@ -74,6 +75,7 @@ function createFetchQueue(concurrency: number): FetchQueue {
           settled = true;
           resolve(value);
         };
+
         queue.push({
           key,
           cancel: () => settle(null),
@@ -83,11 +85,13 @@ function createFetchQueue(concurrency: number): FetchQueue {
                 active -= 1;
                 pump();
                 settle(value);
+
                 return null;
               })
               .catch((error: unknown) => {
                 active -= 1;
                 pump();
+
                 if (settled) return;
                 settled = true;
                 reject(error instanceof Error ? error : new Error("Remote fetch failed"));
@@ -99,6 +103,7 @@ function createFetchQueue(concurrency: number): FetchQueue {
     cancelQueued: (keep) => {
       for (let index = queue.length - 1; index >= 0; index -= 1) {
         const entry = queue[index] as FetchQueueEntry;
+
         if (keep !== null && keep.has(entry.key)) continue;
         queue.splice(index, 1);
         entry.cancel();
@@ -116,6 +121,7 @@ const streamCoverQueue = createFetchQueue(STREAM_COVER_CONCURRENCY);
 
 function activeProxy(): string | null {
   const proxy = settingsAtoms.anilistProxyUrl.get();
+
   return proxy !== null && proxy.trim() !== "" ? proxy : null;
 }
 
@@ -130,9 +136,12 @@ function pumpRemoteQueue(): void {
       runSingleRemoteTask(highPriority.shift() as RemoteTask);
       continue;
     }
+
     const first = lowPriority[0];
+
     if (first === undefined) return;
     const batch: RemoteTask[] = [];
+
     while (
       batch.length < PREFETCH_BATCH_SIZE &&
       lowPriority.length > 0 &&
@@ -140,6 +149,7 @@ function pumpRemoteQueue(): void {
     ) {
       batch.push(lowPriority.shift() as RemoteTask);
     }
+
     activeRemoteFetches += 1;
     runRemoteBatch(batch);
   }
@@ -153,6 +163,7 @@ function runSingleRemoteTask(task: RemoteTask): void {
   })
     .then((image) => {
       task.settle(image ? assetUrl(image.path) : null);
+
       return null;
     })
     .catch(() => task.settle(null))
@@ -176,6 +187,7 @@ function runRemoteBatch(tasks: RemoteTask[]): void {
         const image = list[index] ?? null;
         task.settle(image ? assetUrl(image.path) : null);
       });
+
       return null;
     })
     .catch(() => {
@@ -191,6 +203,7 @@ function runRemoteBatch(tasks: RemoteTask[]): void {
 
 function promoteRemoteTask(task: RemoteTask): void {
   const index = lowPriority.indexOf(task);
+
   if (index === -1) return;
   lowPriority.splice(index, 1);
   task.priority = "high";
@@ -205,13 +218,17 @@ function fetchCachedImage(
   deferPump = false
 ): Promise<string | null> {
   const cached = resolvedUrls.get(remoteUrl);
+
   if (cached) return Promise.resolve(cached);
   const proxy = proxyUrl === undefined ? activeProxy() : proxyUrl;
   const key = remoteKey(remoteUrl, proxy);
   const existing = inflight.get(key);
+
   if (existing) {
     const task = remoteTasks.get(key);
+
     if (priority === "high" && task?.priority === "low") promoteRemoteTask(task);
+
     return existing;
   }
 
@@ -223,11 +240,14 @@ function fetchCachedImage(
   const settle = (path: string | null): void => {
     if (settled) return;
     settled = true;
+
     if (inflight.get(key) === promise) inflight.delete(key);
     remoteTasks.delete(key);
+
     if (path !== null) resolvedUrls.set(remoteUrl, path);
     resolveTask(path);
   };
+
   const task: RemoteTask = {
     url: remoteUrl,
     proxy,
@@ -238,15 +258,19 @@ function fetchCachedImage(
   };
   remoteTasks.set(key, task);
   inflight.set(key, promise);
+
   if (priority === "high") {
     highPriority.push(task);
+
     while (highPriority.length > HIGH_PRIORITY_LIMIT) {
       (highPriority.shift() as RemoteTask).cancel();
     }
   } else {
     lowPriority.push(task);
   }
+
   if (!deferPump) pumpRemoteQueue();
+
   return promise;
 }
 
@@ -269,10 +293,13 @@ export function resetRemoteImageCache(): void {
  */
 export function setRemoteImageScope(urls: Iterable<string> | null): void {
   remoteScope = urls === null ? null : new Set(urls);
+
   if (remoteScope === null) return;
+
   for (const queue of [highPriority, lowPriority]) {
     for (let index = queue.length - 1; index >= 0; index -= 1) {
       const task = queue[index] as RemoteTask;
+
       if (remoteScope.has(task.url)) continue;
       queue.splice(index, 1);
       task.cancel();
@@ -285,6 +312,7 @@ function cancelRemoteImage(remoteUrl: string): void {
     if (task.url !== remoteUrl || activeTasks.has(task)) continue;
     const queue = task.priority === "high" ? highPriority : lowPriority;
     const index = queue.indexOf(task);
+
     if (index === -1) continue;
     queue.splice(index, 1);
     task.cancel();
@@ -309,6 +337,7 @@ export function fetchRemoteImageSource(
   proxyUrl?: string | null
 ): Promise<string | null> {
   const proxy = proxyUrl === undefined ? activeProxy() : proxyUrl;
+
   return invokeTyped<UserImageFile>("fetch_remote_image", {
     url: remoteUrl,
     full: true,
@@ -320,11 +349,13 @@ export function fetchRemoteImageSource(
 
 function fetchStreamCover(remoteUrl: string): Promise<string | null> {
   const cached = streamCovers.get(remoteUrl);
+
   if (cached) return Promise.resolve(cached);
   const fromSource = isSourceImage(remoteUrl);
   const request = fromSource
     ? { url: remoteUrl, referer: STREAM_COVER_REFERER }
     : { url: remoteUrl, proxyUrl: settingsAtoms.anilistProxyUrl.get() ?? undefined };
+
   return streamInFlight(remoteUrl, () =>
     streamCoverQueue.run(
       () =>
@@ -333,6 +364,7 @@ function fetchStreamCover(remoteUrl: string): Promise<string | null> {
             if (!image) return null;
             const url = assetUrl(image.path);
             streamCovers.set(remoteUrl, url);
+
             return url;
           })
           .catch(() => null),
@@ -356,11 +388,13 @@ function streamInFlight(
   task: () => Promise<string | null>
 ): Promise<string | null> {
   const existing = streamInflight.get(remoteUrl);
+
   if (existing) return existing;
   const promise = task().finally(() => {
     streamInflight.delete(remoteUrl);
   });
   streamInflight.set(remoteUrl, promise);
+
   return promise;
 }
 
@@ -371,20 +405,25 @@ export function useStreamCover(remoteUrl: string | null | undefined): string | n
   useEffect(() => {
     if (!remoteUrl) {
       setSrc(null);
+
       return;
     }
+
     let cancelled = false;
     setSrc(streamCovers.get(remoteUrl) ?? null);
     fetchStreamCover(remoteUrl)
       .then((url) => {
         if (!cancelled) setSrc(url);
+
         return null;
       })
       .catch((error: unknown) => reportBackgroundError("srchooksremoteImage", error));
+
     return () => {
       cancelled = true;
     };
   }, [remoteUrl]);
+
   return src;
 }
 
@@ -394,18 +433,24 @@ export function prefetchRemoteImages(
 ): Promise<void> {
   const proxy = proxyUrl === undefined ? activeProxy() : proxyUrl;
   const pending: Array<Promise<string | null>> = [];
+
   for (const raw of urls) {
     if (!raw) continue;
+
     if (resolvedUrls.has(raw)) continue;
     const key = remoteKey(raw, proxy);
     const existing = inflight.get(key);
+
     if (existing) {
       pending.push(existing);
       continue;
     }
+
     pending.push(fetchCachedImage(raw, proxy, "low", true));
   }
+
   pumpRemoteQueue();
+
   return Promise.all(pending).then(() => undefined);
 }
 
@@ -418,26 +463,32 @@ export function useRemoteImageStatus(
 } {
   const [state, setState] = useState<{ src: string | null; failed: boolean }>(() => {
     if (!remoteUrl) return { src: null, failed: false };
+
     return { src: resolvedUrls.get(remoteUrl) ?? null, failed: false };
   });
   useEffect(() => {
     if (!remoteUrl) {
       setState({ src: null, failed: false });
+
       return;
     }
+
     let cancelled = false;
     setState({ src: resolvedUrls.get(remoteUrl) ?? null, failed: false });
     fetchCachedImage(remoteUrl, proxyUrl, "high")
       .then((url) => {
         if (!cancelled) setState({ src: url, failed: url === null });
+
         return null;
       })
       .catch((error: unknown) => reportBackgroundError("srchooksremoteImage", error));
+
     return () => {
       cancelled = true;
       cancelRemoteImage(remoteUrl);
     };
   }, [remoteUrl, proxyUrl]);
+
   return state;
 }
 

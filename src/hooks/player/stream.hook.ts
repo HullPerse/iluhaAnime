@@ -28,7 +28,9 @@ import type { PlayerStream, PlayerStreamNext } from "@/types/player/playerStream
 
 function currentPosition(): number {
   const current = streamSession.get();
+
   if (current && playbackAtoms.path.get() !== current.mediaUrl) return current.resume ?? 0;
+
   return playbackAtoms.timePos.get();
 }
 
@@ -59,39 +61,50 @@ export function usePlayerStream(): PlayerStream {
   const episodeId = session?.episodeId;
   const seeded = session?.variants;
   const stallKey = `${episodeId ?? ""}:${session?.variantId ?? ""}`;
-  const lastStallKeyRef = useRef(stallKey);
+  const lastStallKeyRef = useRef<string>(stallKey);
 
   useEffect(() => {
     if (!episodeId) {
       setVariants([]);
       setVariantsFailed(false);
+
       return;
     }
+
     const initialVariants = variantAttempt === 0 ? seeded : undefined;
+
     if (initialVariants && initialVariants.length > 0) {
       const preferred = preferNativeVariants(initialVariants);
       setVariants(preferred);
       setVariantsLoading(false);
       setVariantsFailed(false);
       ignore(prefetchNativeSources(episodeId, preferred));
+
       return;
     }
+
     let cancelled = false;
     setVariantsLoading(true);
     setVariantsFailed(false);
     const load = async () => {
       const [result, failure] = await attempt(loadPlayers(episodeId));
+
       if (cancelled) return;
       setVariantsLoading(false);
+
       if (failure || !result) {
         setVariantsFailed(true);
+
         return;
       }
+
       const preferred = preferNativeVariants(result);
       setVariants(preferred);
       ignore(prefetchNativeSources(episodeId, preferred, () => cancelled));
     };
+
     load();
+
     return () => {
       cancelled = true;
     };
@@ -115,6 +128,7 @@ export function usePlayerStream(): PlayerStream {
       const opened = await runOperation(build);
       switchingRef.current = false;
       setSwitching(false);
+
       return opened;
     },
     [runOperation]
@@ -123,8 +137,10 @@ export function usePlayerStream(): PlayerStream {
   const applyQuality = useCallback(
     async (label: string, automatic: boolean) => {
       const current = streamSession.get();
+
       if (!current || label === current.quality) return false;
       const url = variantSourceUrl(current.sources, label);
+
       if (!url) return false;
       const opened = await runSwitch(async () => ({
         ...current,
@@ -133,10 +149,12 @@ export function usePlayerStream(): PlayerStream {
         resume: currentPosition(),
         paused: playbackAtoms.paused.get(),
       }));
+
       if (opened) {
         if (!automatic) manualQualityRef.current.add(logicalStreamKey(current));
         ignore(rememberPrefs(current, { quality: label }));
       }
+
       return opened;
     },
     [runSwitch]
@@ -147,14 +165,18 @@ export function usePlayerStream(): PlayerStream {
   const switchVariant = useCallback(
     async (variant: StreamVariant) => {
       const current = streamSession.get();
+
       if (!current) return false;
       const variantId = buildVariantId(variant);
+
       if (variantId === current.variantId) return false;
       const opened = await runSwitch(async () => {
         const sources = await loadSources(current.episodeId, variantId);
         const source = pickSource(sources, current.quality || fallbackQuality());
+
         if (!source) throw new Error("this voice-over has no playable sources");
         const nextVariantId = source.variantId || variantId;
+
         return {
           ...current,
           variantId: nextVariantId,
@@ -167,10 +189,13 @@ export function usePlayerStream(): PlayerStream {
           paused: playbackAtoms.paused.get(),
         };
       });
+
       if (!opened) return false;
       const after = streamSession.get();
+
       if (after?.variantId !== variantId) return false;
       ignore(rememberPrefs(current, { variantId, quality: after.quality }));
+
       return true;
     },
     [runSwitch]
@@ -185,26 +210,37 @@ export function usePlayerStream(): PlayerStream {
   useEffect(() => {
     const { cancel } = createInterval(() => {
       const current = streamSession.get();
+
       if (!current) {
         stalledSinceRef.current = null;
+
         return;
       }
+
       const stalled =
         playbackAtoms.pausedForCache.get() === true && playbackAtoms.paused.get() !== true;
+
       if (!stalled || switchingRef.current) {
         stalledSinceRef.current = null;
+
         return;
       }
+
       const key = logicalStreamKey(current);
+
       if (manualQualityRef.current.has(key) || autoQualityRef.current.has(key)) {
         stalledSinceRef.current = null;
+
         return;
       }
+
       stalledSinceRef.current ??= Date.now();
+
       if (Date.now() - stalledSinceRef.current < AUTO_QUALITY_STALL_MS) return;
       const lower = lowerQualityLabel(current.sources, current.quality);
       stalledSinceRef.current = null;
       autoQualityRef.current.add(key);
+
       if (!lower) return;
       ignore(
         applyQuality(lower, true).then((opened) => {
@@ -215,10 +251,12 @@ export function usePlayerStream(): PlayerStream {
               tr("player.stream.quality.auto.body", { quality: lower })
             );
           }
+
           return undefined;
         })
       );
     }, AUTO_QUALITY_CHECK_MS);
+
     return cancel;
   }, [applyQuality]);
 
@@ -244,19 +282,25 @@ export function useStreamNext(): PlayerStreamNext {
 
   useEffect(() => {
     setEpisodes([]);
+
     if (!mediaId) {
       setEpisodesLoading(false);
+
       return;
     }
+
     let cancelled = false;
     setEpisodesLoading(true);
     const load = async () => {
       const [loaded] = await attempt(loadEpisodes(mediaId));
+
       if (cancelled) return;
       setEpisodesLoading(false);
       setEpisodes(loaded ?? []);
     };
+
     ignore(load());
+
     return () => {
       cancelled = true;
     };
@@ -269,6 +313,7 @@ export function useStreamNext(): PlayerStreamNext {
     async (resolve: (current: StreamOpen) => Promise<StreamOpen | null>) => {
       const opened = await runOperation(resolve);
       const next = streamSession.get();
+
       if (opened && next)
         await rememberPrefs(next, { variantId: next.variantId, quality: next.quality });
     },

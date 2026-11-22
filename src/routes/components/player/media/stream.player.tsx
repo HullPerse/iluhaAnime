@@ -32,6 +32,7 @@ export default function StreamControl({ hidden, stream }: StreamControlProps) {
   const subtitles = stream.variants.filter(isSubtitleVariant);
   const busy = stream.switching || stream.variantsLoading || stream.variantsFailed;
   let status = "";
+
   if (stream.switching) status = t("player.stream.switching");
   else if (pausedForCache === true) {
     const speed = cacheSpeed ?? 0;

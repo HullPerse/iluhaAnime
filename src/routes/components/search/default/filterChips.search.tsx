@@ -71,9 +71,12 @@ export function SearchFilterChips({
     },
   ];
   const q = query.trim().toLowerCase();
+
   if (!q) return null;
   const hits = chips.filter((chip) => `${chip.label} ${chip.keywords}`.toLowerCase().includes(q));
+
   if (hits.length === 0) return null;
+
   return (
     <section aria-label={t("search.chips.title")} className="ui-panel flex flex-col gap-1 p-1">
       <span className="windows95-text text-hint px-1 text-xs">{t("search.chips.title")}</span>

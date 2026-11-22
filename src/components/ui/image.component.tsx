@@ -26,6 +26,7 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
     setFinalSrc(src);
     setIsLoaded(loadedSources.has(src));
     attemptRef.current = 0;
+
     return () => {
       timerRef.current?.cancel();
       timerRef.current = null;
@@ -34,6 +35,7 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
 
   useLayoutEffect(() => {
     const image = imgRef.current;
+
     if (finalSrc !== "" && image?.complete && image.naturalWidth > 0) {
       loadedSources.set(finalSrc, true);
       setIsLoaded(true);
@@ -49,6 +51,7 @@ const Image = ({ src, alt, className, width, height, type = "cover", ...props }:
     if (e.currentTarget.getAttribute("src") !== srcRef.current) return;
     const attempt = attemptRef.current + 1;
     attemptRef.current = attempt;
+
     if (attempt <= RETRY_DELAYS.length) {
       const delay = RETRY_DELAYS[attempt - 1] ?? 1000;
       timerRef.current?.cancel();

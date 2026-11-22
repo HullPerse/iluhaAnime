@@ -112,9 +112,11 @@ function fakeTransport(responses: Record<string, unknown>) {
   const transport: ApiTransport = {
     call: async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       calls.push({ command, args });
+
       return responses[command] as T;
     },
   };
+
   return { calls, transport };
 }
 

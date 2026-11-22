@@ -28,6 +28,7 @@ const addInfo = (title = "Hello", message = "World"): number => {
   act(() => {
     id = addNotification(title, "info", message);
   });
+
   return id;
 };
 

@@ -18,20 +18,26 @@ export const scoreErrorKey = (error: TranslationKey | null): TranslationKey => {
 const parseRepeatInput = (value: string): number | null => {
   if (value.trim() === "") return null;
   const parsed = Number.parseInt(value, 10);
+
   if (Number.isNaN(parsed)) return null;
+
   return Math.min(999, Math.max(0, parsed));
 };
 
 const dateArg = (input: string, previous: string | null | undefined): string | undefined => {
   if (input.trim() !== "") return input.trim();
+
   if (previous) return "";
+
   return undefined;
 };
 
 const parseProgressInput = (value: string, max: number): number | null => {
   if (value.trim() === "") return null;
   const parsed = Number.parseInt(value, 10);
+
   if (Number.isNaN(parsed)) return null;
+
   return Math.min(max, Math.max(0, parsed));
 };
 
@@ -45,6 +51,7 @@ export const patchListEntry = (
   );
   queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) => {
     if (!old) return old;
+
     return {
       ...old,
       lists: old.lists.map((list) => ({
@@ -59,11 +66,15 @@ export const patchListEntry = (
 
 export const readListStatus = (queryClient: QueryClient, mediaId: number): string | null => {
   const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
+
   if (!data) return null;
+
   for (const list of data.lists) {
     const found = list.entries.find((entry) => entry.media.id === mediaId);
+
     if (found) return found.list_status;
   }
+
   return null;
 };
 
@@ -100,16 +111,21 @@ export const insertListEntry = (
   };
   queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) => {
     if (!old) return old;
+
     if (old.lists.some((list) => list.entries.some((item) => item.media.id === media.id))) {
       return old;
     }
+
     const target =
       old.lists.find((list) => list.name === LIST_NAME_BY_STATUS[draft.list_status]) ??
       old.lists.find((list) => list.entries.some((item) => item.list_status === draft.list_status));
+
     if (!target) {
       const name = LIST_NAME_BY_STATUS[draft.list_status] ?? draft.list_status;
+
       return { ...old, lists: [...old.lists, { name, entries: [entry] }] };
     }
+
     return {
       ...old,
       lists: old.lists.map((list) =>
@@ -135,19 +151,26 @@ export const reconcileSavedEntry = (
     notes: draft.notes,
     custom_lists: customLists.length > 0 ? customLists : draft.custom_lists,
   };
+
   if (draft.repeat !== undefined) patch.repeat = saved?.repeat ?? draft.repeat;
+
   if (draft.private !== undefined) patch.private = draft.private;
+
   if (draft.hidden_from_status_lists !== undefined)
     patch.hidden_from_status_lists = draft.hidden_from_status_lists;
+
   if (draft.started_at !== undefined) patch.started_at = draft.started_at;
+
   if (draft.completed_at !== undefined) patch.completed_at = draft.completed_at;
   patchListEntry(queryClient, mediaId, patch);
+
   return { status, bucketChanged: previousStatus === null || previousStatus !== status };
 };
 
 export const removeListEntry = (queryClient: QueryClient, mediaId: number): void => {
   queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) => {
     if (!old) return old;
+
     return {
       ...old,
       lists: old.lists.map((list) => ({
@@ -173,6 +196,7 @@ export const flagOrFalse = (value: boolean | null | undefined): boolean => {
 export const datesInvalid = (started: string, completed: string): boolean => {
   const badStarted = started.trim() !== "" && !isValidFuzzyDateInput(started);
   const badCompleted = completed.trim() !== "" && !isValidFuzzyDateInput(completed);
+
   return badStarted || badCompleted;
 };
 
@@ -195,6 +219,7 @@ export const buildSaveValues = (params: {
     params.listEntry?.private !== undefined ||
     params.listEntry?.hidden_from_status_lists !== undefined;
   const trimmed = params.notesInput.trim();
+
   return {
     list_status: params.status,
     progress: parseProgressInput(params.progressInput, params.maxEpisodes),

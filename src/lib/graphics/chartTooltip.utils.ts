@@ -2,6 +2,7 @@ import type { ChartTooltipData } from "@/types/core/tooltip.chart";
 
 export const tooltipAnnouncement = (data: ChartTooltipData): string => {
   const values = data.rows.map((row) => `${row.label} ${row.value}`).join(", ");
+
   return values ? `${data.title}: ${values}` : data.title;
 };
 

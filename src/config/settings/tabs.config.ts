@@ -29,6 +29,7 @@ const TAB_FLAGS: Partial<Record<TabId, keyof TabSettings>> = {
 
 function isEnabled(id: TabId, s: TabSettings): boolean {
   const flag = TAB_FLAGS[id];
+
   return flag ? s[flag] : true;
 }
 
@@ -36,6 +37,7 @@ const GAME_TAB_KEY: { id: TabId; key: TranslationKey } = { id: "game", key: "app
 
 export function visibleTabs(settings: TabSettings) {
   const tabs = TAB_KEYS.filter((tab) => isEnabled(tab.id, settings));
+
   return settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs;
 }
 

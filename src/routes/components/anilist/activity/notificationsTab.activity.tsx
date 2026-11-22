@@ -25,6 +25,7 @@ export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) 
   useEffect(() => {
     if (itemIds.length > 0) markSiteNotificationsRead(itemIds);
   }, [itemIds]);
+
   if (isLoading && items.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
@@ -32,6 +33,7 @@ export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) 
       </div>
     );
   }
+
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 p-6">
@@ -44,6 +46,7 @@ export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) 
       </div>
     );
   }
+
   if (items.length === 0) {
     return (
       <span className="windows95-text text-hint block p-3 text-center text-xs">
@@ -51,7 +54,9 @@ export function NotificationsTab({ onAnimeClick }: { onAnimeClick: (id: number) 
       </span>
     );
   }
+
   const read = new Set(readIds);
+
   return (
     <div className="flex flex-col gap-1 p-1">
       {items.map((item) => (

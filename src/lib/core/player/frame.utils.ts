@@ -19,13 +19,16 @@ export const HIGH_XO_FRAME_BYTES = (128 * 64) / 4;
 
 export function parseHexColor(hex: string): Rgba {
   const match = /^#?([\da-f]{6})$/iu.exec(hex.trim());
+
   if (!match) throw new Error(`unsupported color: ${hex}`);
   const value = Number.parseInt(match[1], 16);
+
   return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff, 0xff];
 }
 
 function decodeAudioBlock(bytes: Uint8Array): GameAudioBlock {
   const pitch = new DataView(bytes.buffer, bytes.byteOffset + FRAME_HEADER_BYTES, 2);
+
   return {
     pitchHz: pitch.getUint16(0, true),
     pattern: bytes.subarray(FRAME_HEADER_BYTES + 2, FRAME_HEADER_BYTES + XO_AUDIO_BYTES),
@@ -40,10 +43,13 @@ export function decodeGameFrame(buffer: ArrayBuffer | Uint8Array): GameFrame {
   const payload = bytes.length - headerBytes;
   const lowBytes = xo ? LOW_XO_FRAME_BYTES : LOW_FRAME_BYTES;
   const highBytes = xo ? HIGH_XO_FRAME_BYTES : HIGH_FRAME_BYTES;
+
   if (payload !== lowBytes && payload !== highBytes) {
     throw new Error(`unexpected game frame: ${bytes.length} bytes`);
   }
+
   const hires = payload === highBytes;
+
   return {
     cols: hires ? 128 : 64,
     rows: hires ? 64 : 32,
@@ -65,10 +71,13 @@ export function expandFrame(
 ): void {
   const bits = frame.xo ? 2 : 1;
   const paletteSize = 1 << bits;
+
   if (colors.length < paletteSize) {
     throw new Error(`frame needs ${paletteSize} colors`);
   }
+
   let offset = 0;
+
   for (const byte of frame.pixels) {
     for (let shift = 8 - bits; shift >= 0; shift -= bits) {
       const [red, green, blue, alpha] = colors[(byte >> shift) & (paletteSize - 1)];
@@ -85,15 +94,18 @@ export function countLitPixels(frame: GameFrame): number {
   const bits = frame.xo ? 2 : 1;
   const mask = (1 << bits) - 1;
   let count = 0;
+
   for (const byte of frame.pixels) {
     for (let shift = 8 - bits; shift >= 0; shift -= bits) {
       if (((byte >> shift) & mask) !== 0) count += 1;
     }
   }
+
   return count;
 }
 
 export function tryParseHexColor(hex: string, fallback: Rgba): Rgba {
   const [value, error] = attemptSync(() => parseHexColor(hex));
+
   return error === null ? value : fallback;
 }

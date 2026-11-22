@@ -71,6 +71,7 @@ describe("ModernControls", () => {
     render(<ModernControls {...owned} />);
     const transport = screen.getAllByRole("button", { name: "Воспроизведение / пауза" });
     const play = transport.find((button) => !(button as HTMLButtonElement).disabled);
+
     if (!play) throw new Error("enabled play button not found");
     fireEvent.click(play);
     expect(owned.onPlay).toHaveBeenCalledTimes(1);
@@ -97,6 +98,7 @@ describe("ModernControls", () => {
     const frameBack = buttons.find((button) =>
       button.getAttribute("aria-label")?.includes("Предыдущий кадр")
     );
+
     if (!frameBack) throw new Error("frame back button not found");
     fireEvent.click(frameBack);
     expect(owned.onFrameStep).toHaveBeenCalledWith(false);

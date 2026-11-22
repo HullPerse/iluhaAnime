@@ -39,6 +39,7 @@ export const SuggestionMenu = memo(
     placement: "below" | "above";
   }) => {
     const { t } = useI18n();
+
     return (
       <div
         id={listboxId}
@@ -76,13 +77,6 @@ export const SuggestionMenu = memo(
               ))}
             </div>
           ))}
-        </div>
-        <div
-          role="presentation"
-          data-footer
-          className="windows95-text text-hint bg-primary flex shrink-0 items-center gap-1 px-1 py-0.5 text-xs select-none"
-        >
-          {t("settings.search.autocomplete.footer.hint")}
         </div>
       </div>
     );

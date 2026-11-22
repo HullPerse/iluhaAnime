@@ -6,6 +6,7 @@ export type CardsSort = "recent" | "value" | "rarity" | "variant" | "title" | "k
 export type CardsSortDir = "asc" | "desc";
 export type CardsCollectionSort = CollectionShelfSort;
 export type CardsAlbumMode = "all" | "collections";
+export type CardsAlbumLayout = "grid" | "gridInfinite" | "binder";
 
 export interface CardsUiState {
   tab: CardsTab;

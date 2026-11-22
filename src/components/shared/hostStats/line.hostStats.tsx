@@ -13,7 +13,9 @@ export function HostStatsLine({
   className?: string;
 }) {
   const { t } = useI18n();
+
   if (!stats) return null;
+
   return (
     <span className={className}>
       {t("torrent.host.stats", {

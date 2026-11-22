@@ -7,6 +7,7 @@ import { settingsAtoms } from "@/store/settings.store";
 
 const endsWithAny = (path: string, list: readonly string[]): boolean => {
   const lower = path.toLowerCase();
+
   return list.some((extension) => lower.endsWith(`.${extension.toLowerCase()}`));
 };
 
@@ -16,7 +17,9 @@ export function usePlayerFileDrop(): void {
     (event) => {
       const extensions = settingsAtoms.videoExtensions.get();
       const files = event.payload.paths.filter((path) => endsWithAny(path, extensions));
+
       if (files.length > 0) ignore(appendFiles(files));
+
       for (const subtitle of event.payload.paths.filter((path) =>
         endsWithAny(path, SUBTITLE_FILTERS)
       )) {
@@ -26,6 +29,7 @@ export function usePlayerFileDrop(): void {
           )
         );
       }
+
       for (const audio of event.payload.paths.filter((path) => endsWithAny(path, AUDIO_FILTERS))) {
         ignore(
           addExternalAudio(audio).catch((error: unknown) =>

@@ -37,11 +37,13 @@ export function StreamQualitySelect({
     if (label === session.quality) return;
     setPending(label);
     const opened = await switchQuality(label);
+
     if (!opened) setPending(null);
   };
 
   const warm = (label: string) => {
     const source = session.sources.find((entry) => entry.label === label);
+
     if (!source) return;
     ignore(
       warmStreamUrl(

@@ -44,6 +44,7 @@ const renderLibrary = (overrides: Partial<GameLibraryProps> = {}): GameLibraryPr
     ...overrides,
   };
   render(<GameLibrary {...props} />);
+
   return props;
 };
 

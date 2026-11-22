@@ -15,11 +15,14 @@ export function CopyLinkButton({ animeId }: { animeId: number }) {
   const copyLink = () => {
     writeText(buildAnimeLink(animeId as AniListId));
     setLinkCopied(true);
+
     if (copyHideRef.current === null) {
       copyHideRef.current = new Debouncer(() => setLinkCopied(false), { wait: 1500 });
     }
+
     copyHideRef.current.maybeExecute();
   };
+
   return (
     <button
       type="button"

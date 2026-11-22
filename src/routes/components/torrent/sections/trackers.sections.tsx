@@ -22,9 +22,11 @@ export function TorrentTrackersBlock({
   const busy = addTracker.isPending || removeTracker.isPending;
   const submit = () => {
     const tracker = draft.trim();
+
     if (tracker === "" || busy) return;
     addTracker.mutate({ id, tracker, infoHash }, { onSuccess: (ok) => ok && setDraft("") });
   };
+
   return (
     <div className="windows95-text flex min-w-0 flex-col gap-0.5 text-xs">
       <span className="font-bold">{t("torrent.diagnostics.trackers")}</span>

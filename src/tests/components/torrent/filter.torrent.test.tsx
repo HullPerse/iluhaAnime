@@ -20,6 +20,7 @@ const renderFilter = (query: string) => {
     <TorrentNameFilter names={NAMES} query={query} onQueryChange={onQueryChange} />
   );
   const input = screen.getByPlaceholderText("Фильтр...") as HTMLInputElement;
+
   return { container, onQueryChange, input };
 };
 

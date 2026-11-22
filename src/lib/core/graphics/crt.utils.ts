@@ -7,9 +7,12 @@ export function playerModeParams(
   curvature: CrtCurvature
 ): Record<string, number> {
   const def = PLAYER_MODES[mode];
+
   if (def.shader === null) return {};
   const params = { ...def.params };
+
   if (def.curvatureEditable) params.curvature = curvature;
+
   return params;
 }
 
@@ -43,5 +46,6 @@ export function buildModeCommands(
   }
 
   commands.push({ name: "change-list", args: ["glsl-shaders", "append", target.path] });
+
   return commands;
 }

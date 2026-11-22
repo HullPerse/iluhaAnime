@@ -27,8 +27,10 @@ export const zoomCameraAt = (
   maxScale: number
 ): FranchiseCamera => {
   const scale = clampScale(camera.scale * factor, minScale, maxScale);
+
   if (scale === camera.scale) return camera;
   const world = screenToWorld(pointer, cameraTransform(camera));
+
   return {
     scale,
     x: pointer.x - world.x * scale,

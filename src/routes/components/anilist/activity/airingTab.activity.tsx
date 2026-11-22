@@ -44,6 +44,7 @@ export function AiringTab({
 
   useEffect(() => {
     const { cancel } = createInterval(() => setNowMs(Date.now()), AIRING_TICK_MS);
+
     return cancel;
   }, []);
 
@@ -64,11 +65,13 @@ export function AiringTab({
 
   const statuses = useMemo(() => {
     const seen = new Set<string>();
+
     for (const list of lists) {
       for (const entry of list.entries) {
         if (entry.media.next_airing_at != null) seen.add(entry.list_status);
       }
     }
+
     return [...seen].sort();
   }, [lists]);
 
@@ -178,6 +181,7 @@ export function AiringTab({
               {day.rows.map((row) => {
                 const secs = airingCountdownSecs(row.airingAt, nowMs);
                 const countdown = formatAiringCountdown(secs, t);
+
                 return (
                   <div
                     key={row.id}

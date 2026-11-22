@@ -64,6 +64,7 @@ function CategoryView({
   const orderIndex = useMemo(() => {
     const map = new Map<string, number>();
     (entries ?? []).forEach((entry, index) => map.set(entry.id, index));
+
     return map;
   }, [entries]);
 
@@ -84,6 +85,7 @@ function CategoryView({
     )
     .sort((a, b) => {
       if (a.type !== b.type) return a.type.localeCompare(b.type);
+
       return (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0);
     });
   const count = visibleEntries.length;
@@ -93,7 +95,9 @@ function CategoryView({
       (candidate) =>
         normalizePlayerPath(candidate.path) === normalizePlayerPath(entry.folderPath ?? "")
     );
+
     if (!tree) return null;
+
     return (
       <FolderView
         node={tree}
@@ -108,15 +112,19 @@ function CategoryView({
 
   const renderTorrentEntry = (entry: (typeof entries)[0]) => {
     const tor = torrents.find((t) => t.info_hash === entry.infoHash);
+
     if (!tor) return null;
+
     return <TorrentCategoryEntry tor={tor} torrentFilesMap={torrentFilesMap} />;
   };
 
   const toggleEntry = (entryId: string) => {
     setExpandedEntries((prev) => {
       const next = new Set(prev);
+
       if (next.has(entryId)) next.delete(entryId);
       else next.add(entryId);
+
       return next;
     });
   };
@@ -128,9 +136,11 @@ function CategoryView({
 
   const handleFinishEdit = () => {
     const trimmed = editName.trim();
+
     if (trimmed && trimmed !== category.name) {
       renameCategory(category.id, trimmed);
     }
+
     setEditing(false);
   };
 
@@ -179,7 +189,9 @@ function CategoryView({
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return;
+
               if (e.key === "Enter") handleFinishEdit();
+
               if (e.key === "Escape") setEditing(false);
             }}
             onBlur={handleFinishEdit}
@@ -215,10 +227,12 @@ function CategoryView({
           {[...visibleEntries]
             .sort((a, b) => {
               if (a.type !== b.type) return a.type.localeCompare(b.type);
+
               return (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0);
             })
             .map((entry) => {
               const entryExpanded = expandedEntries.has(entry.id);
+
               return (
                 <div key={entry.id} className="flex flex-col">
                   <div className="windows95-text flex items-center gap-1 px-1 py-0.5 select-none">
@@ -259,6 +273,7 @@ function CategoryView({
                         title={t("player.visibility.hide")}
                         onClick={(e) => {
                           e.stopPropagation();
+
                           if (entry.infoHash) onHideTorrent(entry.infoHash);
                         }}
                       >
@@ -271,6 +286,7 @@ function CategoryView({
                         className="size-4"
                         onClick={(e) => {
                           e.stopPropagation();
+
                           if (entry.torrentId != null) {
                             queryClient.invalidateQueries({
                               queryKey: torrentFilesKey(entry.torrentId),

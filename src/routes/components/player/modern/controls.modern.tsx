@@ -116,9 +116,12 @@ function ModernControls({
         else showBoundaryMsg(t("player.media.boundary.first"));
       } else if (hasNext) onFileNext();
       else showBoundaryMsg(t("player.media.boundary.last"));
+
       return;
     }
+
     const jump = resolveMediaJump({ chapters, timePos, hasPrev, hasNext, direction });
+
     if (jump.kind === "seek") onSeekTo(jump.time);
     else if (jump.kind === "file") {
       if (direction < 0) onFilePrev();

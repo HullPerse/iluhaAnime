@@ -10,6 +10,7 @@ export const boot: Scenario = {
     await step("app renders tab strip", async () => {
       await waitForReady(page);
       const labels = await tabLabels(page);
+
       if (labels.length < 4) throw new Error(`expected at least 4 tabs, got ${labels.length}`);
     });
 
@@ -20,6 +21,7 @@ export const boot: Scenario = {
         .waitFor({ timeout: 15_000 })
         .then(() => true)
         .catch(() => false);
+
       if (!found) throw new Error("expected a login prompt on the AniList tab");
     });
 
@@ -30,6 +32,7 @@ export const boot: Scenario = {
         .waitFor({ timeout: 15_000 })
         .then(() => true)
         .catch(() => false);
+
       if (!found) throw new Error("settings general section did not render");
     });
   },

@@ -10,6 +10,7 @@ vi.mock("@/hooks/daily/day.hook", () => ({
 
 vi.mock("@/hooks/daily/queries.hook", () => {
   const mutation = () => ({ mutate: vi.fn(), isPending: false, error: null });
+
   return {
     useDailyGame: () => ({
       data: {
@@ -59,6 +60,7 @@ describe("daily clip progress", () => {
     let handler: ((event: { payload: unknown }) => void) | undefined;
     mockListen.mockImplementation((_event, callback) => {
       handler = callback;
+
       return Promise.resolve(() => undefined);
     });
 

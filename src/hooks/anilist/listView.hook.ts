@@ -42,10 +42,12 @@ export function useAnilistListView({
     if (!groupByStatus || !user || global) return null;
     const flat = lists.flatMap((list) => list.entries);
     const filtered = filterEntries(flat, searchTerms, false, filters, mediaFilter);
+
     return groupEntriesByList(sortEntries(filtered, sort.dir, sort.key), lists);
   }, [groupByStatus, user, global, lists, searchTerms, sort, filters, mediaFilter]);
   const collapsedLists = useMemo(() => new Set(collapsedNames), [collapsedNames]);
   const useScrollView = grouped !== null || (displayMode === "scroll" && !!user && !global);
   const effectiveDisplayMode = grouped !== null ? "scroll" : displayMode;
+
   return { grouped, collapsedLists, useScrollView, effectiveDisplayMode };
 }

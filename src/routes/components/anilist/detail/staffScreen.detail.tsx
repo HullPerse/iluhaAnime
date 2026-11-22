@@ -33,6 +33,7 @@ export function StaffScreen({
   if (characters.isLoading && media.isLoading) {
     return <DetailLoading />;
   }
+
   if (characters.isError && media.isError) {
     return (
       <DetailError

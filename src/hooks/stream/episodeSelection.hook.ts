@@ -14,7 +14,9 @@ export function useStreamEpisodeSelection(
         ? undefined
         : episodes?.find((candidate) => candidate.id === preferredId);
     const first = preferred ?? episodes?.[0];
+
     if (first) setEpisode(first);
   }, [episode, episodes, preferredId]);
+
   return [episode, setEpisode] as const;
 }

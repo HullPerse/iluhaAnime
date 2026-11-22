@@ -8,6 +8,7 @@ const ROOT = "C:/Anime/Show";
 
 function entry(path: string, size: number): VideoFileEntry {
   const name = path.replaceAll("\\", "/").split("/").pop() as string;
+
   return { path, name, size };
 }
 

@@ -38,26 +38,32 @@ async function settle(
   what: string
 ): Promise<string> {
   let last = "";
+
   for (let attempt = 0; attempt < 24; attempt += 1) {
     last = await probe();
+
     if (done(last)) return last;
     await new Promise((resolve) => {
       setTimeout(resolve, 250);
     });
   }
+
   throw new Error(`${what} did not settle; last value: ${last}`);
 }
 
 function ensureVideo(): string | null {
   const fromEnv = process.env.E2E_PLAYER_FILE;
+
   if (fromEnv) return fromEnv;
   mkdirSync(MEDIA_DIR, { recursive: true });
   let exists = true;
+
   try {
     statSync(FIXTURE_VIDEO);
   } catch {
     exists = false;
   }
+
   if (!exists) {
     const result = spawnSync(
       "ffmpeg",
@@ -80,10 +86,13 @@ function ensureVideo(): string | null {
       ],
       { stdio: "ignore" }
     );
+
     if (result.status !== 0) return null;
   }
+
   try {
     statSync(FIXTURE_VIDEO);
+
     return FIXTURE_VIDEO;
   } catch {
     return null;
@@ -94,11 +103,13 @@ export const player: Scenario = {
   name: "player",
   async run({ browser, page, step, skip }) {
     const video = ensureVideo();
+
     if (!video) {
       await skip(
         "player opens a file",
         "no playable fixture and ffmpeg unavailable; set E2E_PLAYER_FILE to a real video"
       );
+
       return;
     }
 
@@ -115,8 +126,10 @@ export const player: Scenario = {
         .waitFor({ timeout: 30_000 })
         .then(() => true)
         .catch(() => false);
+
       if (!found) {
         const text = await visibleText(playerPage);
+
         if (/0:00\s*\/\s*0:01/.test(text)) return;
         throw new Error(`no playback state visible; window shows: ${text}`);
       }
@@ -128,6 +141,7 @@ export const player: Scenario = {
         .locator("text=/could not|failed to load|не удалось|ошибка/i")
         .first()
         .count();
+
       if (failed > 0) {
         throw new Error(
           `player shows a load error; window shows: ${await visibleText(playerPage)}`
@@ -138,6 +152,7 @@ export const player: Scenario = {
     await step("screen mode applies the CRT shader and cabinet", async () => {
       const playerPage = await findPlayerPage(browser, 10_000);
       const shaderPath = await invoke<string>(playerPage, "player_shader_path", { id: "crt-tv" });
+
       if (!shaderPath.endsWith("crt-tv.glsl")) {
         throw new Error(`player_shader_path returned ${shaderPath}`);
       }
@@ -191,6 +206,7 @@ export const player: Scenario = {
         .first()
         .evaluate((element) => (element as HTMLElement).dataset.variant ?? "")
         .catch(() => "");
+
       if (keptVariant !== "wood") {
         throw new Error(`cabinet should survive a mode change, got ${keptVariant}`);
       }
@@ -244,10 +260,13 @@ export const player: Scenario = {
           .first()
           .evaluate((element) => (element as HTMLElement).dataset.variant ?? "")
           .catch(() => "");
+
         if (variant !== "wood") {
           throw new Error(`${label} preset dropped the cabinet, got ${variant}`);
         }
+
         const shaders = await playerProperty(playerPage, "glsl-shaders");
+
         if (!shaders.includes("crt-tv.glsl")) {
           throw new Error(`${label} preset dropped the shader: ${shaders}`);
         }
@@ -267,14 +286,17 @@ export const player: Scenario = {
       await settle(windowSize, (value) => value !== before, "fullscreen window size");
 
       const shaders = await playerProperty(playerPage, "glsl-shaders");
+
       if (!shaders.includes("crt-tv.glsl")) {
         throw new Error(`fullscreen dropped the shader: ${shaders}`);
       }
+
       const variant = await playerPage
         .locator(".player-bezel")
         .first()
         .evaluate((element) => (element as HTMLElement).dataset.variant ?? "")
         .catch(() => "");
+
       if (variant !== "wood") {
         throw new Error(`fullscreen dropped the cabinet, got ${variant}`);
       }

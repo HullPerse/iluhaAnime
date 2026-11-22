@@ -45,7 +45,9 @@ export function PlayerPanel({
   onProfile: (next: PlayerProfileId) => void;
 }) {
   const { t } = useI18n();
+
   if (panel === null) return null;
+
   return (
     <PlayerModal
       header={t(

@@ -46,8 +46,10 @@ export default function SettingsNotifications() {
     queryKey: queryKeys.anilistListNames(),
     queryFn: async () => {
       const user = await anilistApi.checkAuth();
+
       if (!user) throw new Error("not authenticated");
       const lists = await anilistApi.getLists(user.id, true);
+
       return lists.map((list) => list.name);
     },
     enabled: knownListNames.length === 0,

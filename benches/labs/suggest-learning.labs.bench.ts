@@ -57,14 +57,18 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
   let seed = 7;
   const random = () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+
     return seed / 0x7fffffff;
   };
+
   for (let index = 0; index < count; index++) {
     const wordCount = 1 + Math.floor(random() * 3);
     const parts: string[] = [];
+
     for (let word = 0; word < wordCount; word++) {
       parts.push(WORDS[Math.floor(random() * WORDS.length)]);
     }
+
     out.push({
       aliases: [parts.toReversed().join(" ")],
       favourite: index % 50 === 0,
@@ -76,6 +80,7 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
       title: `${parts.join(" ")} ${index}`,
     });
   }
+
   return out;
 }
 
@@ -84,6 +89,7 @@ function makeLearningRows(index: SearchAnimeSuggestion[], density: number): Lear
   const step = Math.max(1, Math.round(1 / density));
   const nowSeconds = Math.floor(Date.now() / 1000);
   const rows: LearningStatRow[] = [];
+
   for (let position = 0; position < index.length; position += step) {
     const anime = index[position];
     rows.push({
@@ -97,6 +103,7 @@ function makeLearningRows(index: SearchAnimeSuggestion[], density: number): Lear
       value: normalizeSearchText(anime.title),
     });
   }
+
   for (const entry of HISTORY) {
     rows.push({
       id: `history:torrent:${normalizeSearchText(entry)}`,
@@ -109,6 +116,7 @@ function makeLearningRows(index: SearchAnimeSuggestion[], density: number): Lear
       value: normalizeSearchText(entry),
     });
   }
+
   return rows;
 }
 
@@ -130,6 +138,7 @@ interface Arm {
 
 function runQueries(arm: Arm): number {
   let checksum = 0;
+
   for (const query of QUERIES) {
     const suggestions = getSearchSuggestions(query, {
       animeIndex: arm.index,
@@ -140,8 +149,10 @@ function runQueries(arm: Arm): number {
       suggestionStats: arm.maps.suggestionStats,
     });
     checksum += suggestions.length;
+
     for (const suggestion of suggestions) checksum += suggestion.score;
   }
+
   return checksum;
 }
 

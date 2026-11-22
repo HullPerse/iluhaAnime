@@ -34,6 +34,7 @@ function Tabs<T extends string>({
     setActiveIndex: () => {},
     onFocus: (index, event) => {
       const target = resolveEnabledIndex(tabs, index);
+
       if (tabs[target]?.disabled) return;
       onChange(tabs[target].id);
       const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=tab]");
@@ -52,6 +53,7 @@ function Tabs<T extends string>({
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         const tabDisabled = tab.disabled ?? false;
+
         return (
           <Button
             key={tab.id}

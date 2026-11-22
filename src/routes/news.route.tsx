@@ -43,13 +43,16 @@ export default function NewsRoute() {
 
   useEffect(() => {
     if (pending === null || feed.data === null) return;
+
     if (feed.data.page !== pending.page) return;
     const found = feed.data.items.find((entry) => entry.id === pending.id);
     setPending(null);
+
     if (found !== undefined) setReader(found);
   }, [pending, feed.data]);
 
   let body: ReactNode;
+
   if (feed.isPending) {
     body = <TabLoader className="min-h-48 flex-1" />;
   } else if (errorText !== null && items.length === 0) {

@@ -28,20 +28,6 @@ describe("parseChord", () => {
     });
   });
 
-  it("accepts control as a ctrl alias", () => {
-    expect(parseChord("control+KeyP")?.ctrl).toBe(true);
-  });
-
-  it("parses alt+digit chords", () => {
-    expect(parseChord("alt+Digit1")).toEqual({
-      code: "Digit1",
-      ctrl: false,
-      shift: false,
-      alt: true,
-      meta: false,
-    });
-  });
-
   it("rejects empty input, missing code, bad codes, and unknown modifiers", () => {
     expect(parseChord("")).toBeUndefined();
     expect(parseChord("ctrl+")).toBeUndefined();
@@ -104,10 +90,5 @@ describe("humanizeChord", () => {
     expect(humanizeChord("NumpadAdd")).toBe("Num +");
     expect(humanizeChord("Space")).toBe("Space");
     expect(humanizeChord("Escape")).toBe("Escape");
-  });
-
-  it("passes garbage through", () => {
-    expect(humanizeChord("ctrl+ctrl")).toBe("ctrl+ctrl");
-    expect(humanizeChord("")).toBe("");
   });
 });

@@ -7,6 +7,7 @@ export function QueueItemDepth({ item }: { item: UpscaleQueueItem }) {
   const { t } = useI18n();
   const steps = queueDepthSteps(item, t);
   const failed = item.status === "error";
+
   return (
     <div className="border-muted/30 flex flex-col gap-0.5 border-t px-1 py-1">
       {steps.map((step) => (

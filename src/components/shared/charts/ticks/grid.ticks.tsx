@@ -13,6 +13,7 @@ export function ChartGrid({
     <>
       {positions.map((position) => {
         const key = `${orientation}:${position}`;
+
         if (orientation === "horizontal") {
           return (
             <line
@@ -29,6 +30,7 @@ export function ChartGrid({
             />
           );
         }
+
         return (
           <line
             key={key}

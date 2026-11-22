@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 const POOL_PATH = join("src-tauri", "data", "daily-pool-v1.json");
 const DEFAULT_REPORT = join("src-tauri", "data", "daily-pool-quality.json");
+
 type CheckMode = "frames" | "op" | "audio";
 
 interface PoolEntry {
@@ -32,6 +33,7 @@ const byMedia = new Map<number, CheckMode[]>();
 
 for (const path of reportPaths) {
   const report = JSON.parse(await readFile(path, "utf-8")) as QualityReport;
+
   for (const result of report.results) {
     byMedia.set(result.mediaId, result.ok ? result.modes : []);
   }
@@ -39,11 +41,14 @@ for (const path of reportPaths) {
 
 const pool = JSON.parse(await readFile(POOL_PATH, "utf-8")) as PoolFile;
 let changed = 0;
+
 for (const entry of pool.entries) {
   const modes = byMedia.get(entry.mediaId);
+
   if (modes === undefined) {
     throw new Error(`quality report has no result for ${entry.mediaId} (${entry.title})`);
   }
+
   if (JSON.stringify(entry.modes ?? null) !== JSON.stringify(modes)) {
     entry.modes = modes;
     changed += 1;

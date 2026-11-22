@@ -15,13 +15,17 @@ export const moveRingFocus = (
   if (path === nodePath && !treeRows.some((row) => row.path === path)) {
     if (direction > 0) {
       const first = treeRows[0];
+
       if (first) findRow(treeRef.current, first.path)?.focus();
     }
+
     return;
   }
+
   const count = vimAtoms.count.get();
   setVimCount("");
   const step = count === "" ? 1 : Math.max(Number.parseInt(count, 10) || 1, 1);
   const next = resolveTreeMove(treeRows, path, direction * step);
+
   if (next) findRow(treeRef.current, next)?.focus();
 };

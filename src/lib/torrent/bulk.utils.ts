@@ -9,12 +9,14 @@ export function splitRecheckOutcome<T>(
   let failed = 0;
   targets.forEach((target, index) => {
     const result = results[index];
+
     if (result === undefined || result === null) {
       failed += 1;
     } else if (result.missing.length > 0) {
       lost.push(target);
     }
   });
+
   return { lost, failed };
 }
 
@@ -26,10 +28,12 @@ export function pruneSelection<T extends { id: number }>(
   const allowedIds = new Set(allowed.map((row) => row.id));
   const keep = new Set<number>();
   let dropped = false;
+
   for (const id of selected) {
     if (allowedIds.has(id)) keep.add(id);
     else dropped = true;
   }
+
   return dropped ? keep : selected;
 }
 
@@ -42,5 +46,6 @@ export async function applyBulkAction<T>(
 ): Promise<{ done: number; failed: number }> {
   const results = await attemptAllLimit(targets, limit, act);
   const failed = results.filter((result) => !result.ok || result.value === false).length;
+
   return { done: results.length - failed, failed };
 }

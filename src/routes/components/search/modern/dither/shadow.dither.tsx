@@ -18,6 +18,7 @@ export function ShadowControls({
   showLength?: boolean;
 }) {
   const { t } = useI18n();
+
   return (
     <>
       <h3 className="windows95-text text-xs font-bold">{heading}</h3>

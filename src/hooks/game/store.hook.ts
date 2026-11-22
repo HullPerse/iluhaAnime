@@ -15,6 +15,7 @@ export function useGameStore() {
 
 export function useGameStoreInstall() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (key: string) => gameApi.installStoreRom(key),
     onSuccess: () => {

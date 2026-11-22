@@ -14,11 +14,14 @@ export function subscribeKeypad(target: Window, options: KeypadOptions): () => v
 
   const handleDown = (event: KeyboardEvent): void => {
     if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+
     if (isTextEntryTarget(event.target)) return;
     const key = keys.get(event.code);
+
     if (key === undefined) return;
     event.preventDefault();
     event.stopPropagation();
+
     if (held.has(key)) return;
     held.add(key);
     onKey(key, true);
@@ -26,6 +29,7 @@ export function subscribeKeypad(target: Window, options: KeypadOptions): () => v
 
   const handleUp = (event: KeyboardEvent): void => {
     const key = keys.get(event.code);
+
     if (key === undefined || !held.has(key)) return;
     held.delete(key);
     event.preventDefault();
@@ -43,6 +47,7 @@ export function subscribeKeypad(target: Window, options: KeypadOptions): () => v
   target.addEventListener("keyup", handleUp, true);
   target.addEventListener("blur", handleBlur);
   document.addEventListener("visibilitychange", handleVisibility);
+
   return () => {
     target.removeEventListener("keydown", handleDown, true);
     target.removeEventListener("keyup", handleUp, true);

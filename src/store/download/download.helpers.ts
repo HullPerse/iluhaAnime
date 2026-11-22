@@ -11,6 +11,7 @@ export function hasConflictingSelection(
 ): boolean {
   return selectedIndices.some((index) => {
     const file = pending.files.find((entry) => entry.index === index);
+
     return Boolean(file && pending.conflictingFiles.includes(file.name));
   });
 }
@@ -24,8 +25,10 @@ export function requiredBytesForSelection(
 ): number {
   return selectedIndices.reduce((sum, index) => {
     const file = pending.files.find((entry) => entry.index === index);
+
     if (!file) return sum;
     const existing = pending.conflictingFiles.includes(file.name) ? file.size : 0;
+
     return sum + file.size + existing;
   }, 0);
 }
@@ -42,6 +45,7 @@ export async function pickSaveDir(): Promise<string | null> {
     directory: true,
     title: tr("download.select.folder"),
   });
+
   return dir || null;
 }
 
@@ -65,15 +69,19 @@ export async function startDownloadForPending(
       requiredBytes,
     })
   );
+
   if (error) {
     showError(tr("download.error.start"), error.message);
+
     return undefined;
   }
+
   return id;
 }
 
 export async function clearPreviousTorrentIfNeeded(id: number | undefined): Promise<void> {
   if (!id) return;
   const [, error] = await attempt(torrentApi.removeTorrent(id, false));
+
   if (error) showError(tr("download.error.clear"), error.message);
 }

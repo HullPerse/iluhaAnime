@@ -11,14 +11,13 @@ export function initialPreparationState(): PreparationState {
 
 export function preparationPending(state: PreparationState): PickerTorrent | null {
   const phase = state.phase;
+
   return phase.phase === "pending" || phase.phase === "confirming" ? phase.pending : null;
 }
 
-export function enqueuePreparation(
-  state: PreparationState,
-  filePaths: string[]
-): PreparationState {
+export function enqueuePreparation(state: PreparationState, filePaths: string[]): PreparationState {
   if (filePaths.length === 0) return state;
+
   return {
     ...state,
     queue: [...state.queue, ...filePaths.map((value) => ({ kind: "file" as const, value }))],
@@ -27,6 +26,7 @@ export function enqueuePreparation(
 
 function issued(state: PreparationState): { state: PreparationState; token: number } {
   const token = state.nextToken;
+
   return {
     state: { ...state, phase: { phase: "preparing", token }, nextToken: token + 1 },
     token,
@@ -40,6 +40,7 @@ export function beginNextPreparation(
   if (state.phase.phase !== "idle" || state.queue.length === 0) return null;
   const [source, ...queue] = state.queue;
   const next = issued({ ...state, queue });
+
   return { ...next, source };
 }
 
@@ -47,6 +48,7 @@ export function beginDirectPreparation(
   state: PreparationState
 ): { state: PreparationState; token: number } | null {
   if (state.phase.phase !== "idle") return null;
+
   return issued(state);
 }
 
@@ -64,14 +66,13 @@ export function preparationSucceeded(
   pending: PickerTorrent
 ): PreparationState {
   if (!isPreparing(state, token)) return state;
+
   return { ...state, phase: { phase: "pending", token, pending } };
 }
 
-export function preparationFailed(
-  state: PreparationState,
-  token: number
-): PreparationState {
+export function preparationFailed(state: PreparationState, token: number): PreparationState {
   if (!isPreparing(state, token)) return state;
+
   return { ...state, phase: { phase: "idle" } };
 }
 
@@ -81,7 +82,9 @@ export function cancelPreparation(state: PreparationState): {
   pending: PickerTorrent | null;
 } {
   const phase: PreparationPhase = state.phase;
+
   if (phase.phase === "idle") return { state, pending: null };
+
   return {
     state: { ...state, phase: { phase: "idle" }, nextToken: state.nextToken + 1 },
     pending: preparationPending(state),
@@ -92,7 +95,9 @@ export function beginConfirmation(
   state: PreparationState
 ): { state: PreparationState; token: number; pending: PickerTorrent } | null {
   const phase = state.phase;
+
   if (phase.phase !== "pending") return null;
+
   return {
     state: { ...state, phase: { phase: "confirming", token: phase.token, pending: phase.pending } },
     token: phase.token,
@@ -110,9 +115,12 @@ export function confirmationSettled(
   succeeded: boolean
 ): PreparationState {
   const phase = state.phase;
+
   if (phase.phase !== "confirming" || phase.token !== token) return state;
+
   if (!succeeded) {
     return { ...state, phase: { phase: "pending", token, pending: phase.pending } };
   }
+
   return { ...state, phase: { phase: "idle" } };
 }

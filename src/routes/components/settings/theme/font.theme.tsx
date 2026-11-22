@@ -18,6 +18,7 @@ export function FontSelector() {
     queryFn: async () => {
       const list = await systemApi.listSystemFonts();
       writeCachedFonts(list);
+
       return list;
     },
     enabled: initialFonts.length === 0,
@@ -26,11 +27,13 @@ export function FontSelector() {
   const fonts = fontsQuery.data ?? initialFonts;
   const loading = fonts.length === 0 && (fontsQuery.isLoading || fontsQuery.isFetching);
   const error = fontsQuery.error == null ? null : t("settings.font.load.error");
+
   type FontOption = {
     value: string;
     label: string;
     style?: React.CSSProperties;
   };
+
   const options = useMemo(() => {
     const base: FontOption[] = [];
     const seen = new Set<string>();
@@ -39,14 +42,18 @@ export function FontSelector() {
       seen.add(value.toLowerCase());
       base.push({ value, label, style });
     };
+
     push("iluhaAnime", "iluhaAnime", { fontFamily: '"iluhaAnime"' });
     push("", t("settings.font.default"));
+
     for (const f of fonts) {
       const escaped = f.replace(/"/g, '\\"');
       push(f, f, { fontFamily: `"${escaped}"` });
     }
+
     return base;
   }, [fonts, t]);
+
   if (loading && fonts.length === 0) {
     return (
       <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
@@ -60,6 +67,7 @@ export function FontSelector() {
       </div>
     );
   }
+
   return (
     <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
       <span className="windows95-text text-text flex items-center text-xs font-bold">

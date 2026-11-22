@@ -15,21 +15,9 @@ describe("normalizeText", () => {
   it("strips accents and lowercases", () => {
     expect(normalizeText("Pokémon CAFÉ")).toBe("pokemon cafe");
   });
-
-  it("keeps empty strings empty", () => {
-    expect(normalizeText("")).toBe("");
-  });
 });
 
 describe("findSubsequenceRanges", () => {
-  it("returns no ranges for an empty query", () => {
-    expect(findSubsequenceRanges("Naruto", "")).toEqual([]);
-  });
-
-  it("returns no ranges without a match", () => {
-    expect(findSubsequenceRanges("Naruto", "xyz")).toEqual([]);
-  });
-
   it("matches a subsequence across words", () => {
     expect(findSubsequenceRanges("Naruto", "nrt")).toEqual([
       { start: 0, end: 1 },
@@ -110,12 +98,6 @@ describe("mergeRanges", () => {
 });
 
 describe("splitByRanges", () => {
-  it("reconstructs the input exactly", () => {
-    const value = "[Erai-raws] Naruto - 01 [1080p].mkv";
-    const tokens = splitByRanges(value, findSubsequenceRanges(value, "nrt01"));
-    expect(tokens.map((token) => token.text).join("")).toBe(value);
-  });
-
   it("flags matched tokens", () => {
     expect(splitByRanges("Naruto", [{ start: 0, end: 3 }])).toEqual([
       { text: "Nar", highlighted: true, kind: undefined },

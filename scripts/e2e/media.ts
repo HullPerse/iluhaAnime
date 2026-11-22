@@ -88,11 +88,14 @@ function run(command: string, args: string[]): Promise<string> {
     let size = 0;
     child.stdout.on("data", (chunk: Buffer) => {
       size += chunk.length;
+
       if (size > 8 * 1024 * 1024) {
         child.kill();
         reject(new Error(`${command} output exceeded 8 MB`));
+
         return;
       }
+
       chunks.push(chunk);
     });
     child.stderr.on("data", () => undefined);
@@ -107,9 +110,12 @@ function run(command: string, args: string[]): Promise<string> {
 function bitDepth(pixFmt: string | undefined, profile: string | undefined): number | null {
   if (pixFmt) {
     const match = /p(\d{1,2})(?:le|be)?$/i.exec(pixFmt);
+
     if (match) return Number(match[1]);
   }
+
   if (profile?.includes("10")) return 10;
+
   return null;
 }
 
@@ -147,9 +153,11 @@ async function probe(path: string, size: number): Promise<MediaFile> {
   const audio = streams.filter((stream) => stream.codec_type === "audio").map(streamOf);
   const subtitle = streams.filter((stream) => stream.codec_type === "subtitle").map(streamOf);
   const duration = Number(parsed.format?.duration ?? 0);
+
   if (video.length === 0 || !Number.isFinite(duration) || duration <= 0) {
     throw new Error("no playable video stream or duration");
   }
+
   return {
     path,
     size,
@@ -168,21 +176,27 @@ async function walk(
   errors: string[]
 ): Promise<void> {
   let entries;
+
   try {
     entries = await readdir(directory, { withFileTypes: true });
   } catch (error) {
     errors.push(`${directory}: ${error instanceof Error ? error.message : String(error)}`);
+
     return;
   }
+
   for (const entry of entries) {
     const path = join(directory, entry.name);
+
     if (entry.isDirectory()) {
       await walk(path, files, errors);
       continue;
     }
+
     if (!entry.isFile() || !VIDEO_EXTENSIONS.has(entry.name.slice(entry.name.lastIndexOf(".")).toLowerCase())) {
       continue;
     }
+
     try {
       const details = await stat(path);
       files.push({ path, size: details.size });
@@ -203,11 +217,13 @@ async function mapLimit<T, R>(
     for (;;) {
       const index = next;
       next += 1;
+
       if (index >= items.length) return;
       results[index] = await worker(items[index] as T);
     }
   });
   await Promise.all(lanes);
+
   return results;
 }
 
@@ -217,9 +233,11 @@ function selectMedia(files: MediaFile[]): SelectedMedia[] {
   const add = (file: MediaFile | undefined, reason: string): void => {
     if (!file) return;
     const current = selected.get(file.path);
+
     if (current) current.reasons.push(reason);
     else selected.set(file.path, { file, reasons: [reason] });
   };
+
   add(bySize[0], "largest valid video");
   add(
     bySize.find((file) =>
@@ -235,6 +253,7 @@ function selectMedia(files: MediaFile[]): SelectedMedia[] {
     bySize.find((file) => file.audio.length > 1 || file.subtitle.length > 1),
     "largest multi-track video"
   );
+
   return [...selected.values()];
 }
 
@@ -248,11 +267,14 @@ export async function buildMediaInventory(root = mediaRoot()): Promise<MediaInve
       return await probe(file.path, file.size);
     } catch (error) {
       errors.push(`${file.path}: ${error instanceof Error ? error.message : String(error)}`);
+
       return null;
     }
   });
   const valid = probed.filter((file): file is MediaFile => file !== null);
+
   if (valid.length === 0) throw new Error(`no valid video files under ${root}`);
+
   return {
     root,
     generatedAt: new Date().toISOString(),
@@ -268,8 +290,10 @@ export async function buildMediaInventory(root = mediaRoot()): Promise<MediaInve
 function markdown(inventory: MediaInventory): string {
   const rows = inventory.selected.map(({ file, reasons }) => {
     const video = file.video[0];
+
     return `| ${file.path} | ${file.size} | ${file.duration.toFixed(0)} s | ${video?.codec ?? "?"} | ${video?.pixFmt ?? "?"} | ${file.audio.length} | ${file.subtitle.length} | ${reasons.join(", ")} |`;
   });
+
   return [
     "# Local E2E media inventory",
     "",
@@ -291,14 +315,18 @@ export async function ensureMediaInventory(outDir: string): Promise<MediaInvento
   const cachePath = join(cacheDir, "media-inventory.json");
   const root = mediaRoot();
   let inventory: MediaInventory | null = null;
+
   if (!process.env.ILUHA_E2E_REFRESH_MEDIA && existsSync(cachePath)) {
     const cached = JSON.parse(readFileSync(cachePath, "utf-8")) as MediaInventory;
+
     if (cached.root === root) inventory = cached;
   }
+
   inventory ??= await buildMediaInventory(root);
   writeFileSync(cachePath, JSON.stringify(inventory, null, 2));
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, "media-inventory.json"), JSON.stringify(inventory, null, 2));
   writeFileSync(join(outDir, "media-inventory.md"), markdown(inventory));
+
   return inventory;
 }

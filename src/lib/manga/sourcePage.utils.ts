@@ -24,5 +24,6 @@ export function mangaTitleUrl(
   domain: MangaLibDomain
 ): string | null {
   if (!/^[a-z0-9_-]{1,160}$/i.test(id)) return null;
+
   return `${mangaSourceOrigin(source, domain)}${TITLE_PATHS[source]}${id}`;
 }

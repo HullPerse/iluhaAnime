@@ -57,6 +57,7 @@ export default function AniListResultsPagination({
     { when: hasUser, text: `${listLabel}: ${activeCount}` },
   ];
   const statusText = statusRows.find((row) => row.when)?.text;
+
   return (
     <Pagination
       total={total}

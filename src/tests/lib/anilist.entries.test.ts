@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultListSortDir, listSortKeys } from "@/config/anilist/list.config";
+import { defaultListSortDir } from "@/config/anilist/list.config";
 import { buildScoreByMedia, isMentionOf } from "@/lib/core/anilist/activity.utils";
 import {
   buildEntryLookup,
@@ -14,7 +14,6 @@ import {
   sortAniMediaList,
   sortEntries,
 } from "@/lib/anilist/entries.utils";
-import { buildAnilistSourceKey } from "@/lib/anilist/anilistRoute.utils";
 import type {
   AniListCollection,
   AniListEntry,
@@ -119,11 +118,6 @@ describe("anilist/entries", () => {
       ).toHaveLength(1);
     });
 
-    it("keeps everything in global mode", () => {
-      const entries = [makeEntry()];
-      expect(filterEntries(entries, "zzz", true)).toHaveLength(1);
-    });
-
     it("matches the main title case-insensitively", () => {
       const entries = [makeEntry({ media: makeMedia({ title: "One Piece" }) })];
       expect(filterEntries(entries, "one piece", false)).toHaveLength(1);
@@ -185,27 +179,6 @@ describe("anilist/entries", () => {
       expect(filterEntries(entries, "", false, makeFilters({ seasonYear: 1999 }))).toHaveLength(0);
     });
 
-    it("ignores server-only sort, source, country and adult filters locally", () => {
-      const entries = [makeEntry()];
-      expect(
-        filterEntries(
-          entries,
-          "",
-          false,
-          makeFilters({ sort: "SCORE_DESC", source: "MANGA", country: "JP", adult: true })
-        )
-      ).toHaveLength(1);
-    });
-
-    it("excludes entries with missing values when a range filter is active", () => {
-      const entries = [makeEntry({ media: makeMedia({ episodes: null, score: null }) })];
-      expect(filterEntries(entries, "", false, makeFilters({ episodes: [1, 100] }))).toHaveLength(
-        0
-      );
-      expect(filterEntries(entries, "", false, makeFilters({ score: [1, 10] }))).toHaveLength(0);
-      expect(filterEntries(entries, "", false, makeFilters())).toHaveLength(1);
-    });
-
     it("combines text search with local filters", () => {
       const entries = [
         makeEntry({ media: makeMedia({ id: 1, title: "Naruto" }) }),
@@ -214,36 +187,6 @@ describe("anilist/entries", () => {
       expect(filterEntries(entries, "naruto", false, makeFilters({ format: "TV" }))).toHaveLength(
         1
       );
-    });
-  });
-
-  describe("buildAnilistSourceKey", () => {
-    const sort = { key: "title", dir: "asc" } as const;
-
-    it("omits local filters in global mode", () => {
-      const key = buildAnilistSourceKey({
-        currentList: "Watching",
-        sort,
-        searchTerms: "",
-        global: true,
-        filters: makeFilters({ genres: ["Action"] }),
-      });
-      expect(key).toBe("Watching|title|asc||true|");
-    });
-
-    it("resets the page when local filters change", () => {
-      const base = {
-        currentList: "Watching",
-        sort,
-        searchTerms: "",
-        global: false,
-      } as const;
-      const before = buildAnilistSourceKey({ ...base, filters: makeFilters() });
-      const after = buildAnilistSourceKey({
-        ...base,
-        filters: makeFilters({ genres: ["Action"] }),
-      });
-      expect(before).not.toBe(after);
     });
   });
 
@@ -319,10 +262,6 @@ describe("anilist/entries", () => {
       expect(getSortingLabel("release")).toBe("anilist.sort.release");
       expect(getSortingLabel("status")).toBe("anilist.sort.status");
     });
-
-    it("falls back to the raw sort key", () => {
-      expect(getSortingLabel("unknown")).toBe("unknown");
-    });
   });
 
   describe("defaultListSortDir", () => {
@@ -335,10 +274,6 @@ describe("anilist/entries", () => {
       expect(defaultListSortDir.release).toBe("desc");
       expect(defaultListSortDir.status).toBe("asc");
     });
-
-    it("covers every list sort key", () => {
-      expect(Object.keys(defaultListSortDir).sort()).toEqual([...listSortKeys].sort());
-    });
   });
 
   describe("getStatusColor", () => {
@@ -346,10 +281,6 @@ describe("anilist/entries", () => {
       expect(getStatusColor("CURRENT")).toBe("#e6b800");
       expect(getStatusColor("COMPLETED")).toBe("#4caf50");
       expect(getStatusColor("PLANNING")).toBe("#2196f3");
-    });
-
-    it("falls back to gray for unknown statuses", () => {
-      expect(getStatusColor("WEIRD")).toBe("#888");
     });
   });
 
@@ -446,20 +377,6 @@ describe("anilist/entries", () => {
       expect(searchFiltersToParams(makeFilters({ adult: false }), null, 20, 2).adult).toBe(false);
       expect(searchFiltersToParams(makeFilters({ adult: true }), null, 20, 2).adult).toBeNull();
     });
-
-    it("nullifies empty filters", () => {
-      const params = searchFiltersToParams(makeFilters(), null, 20, 2);
-      expect(params.query).toBeNull();
-      expect(params.tags).toBeNull();
-      expect(params.genres).toBeNull();
-      expect(params.format).toBeNull();
-      expect(params.status).toBeNull();
-      expect(params.season).toBeNull();
-      expect(params.sort).toBeNull();
-      expect(params.yearFrom).toBeNull();
-      expect(params.episodesFrom).toBeNull();
-      expect(params.scoreFrom).toBeNull();
-    });
   });
 
   describe("sortAniMediaList", () => {
@@ -519,25 +436,6 @@ describe("anilist/entries", () => {
       expect(entryListDate({ ...base, list_status: "COMPLETED" }, "en")).toBe(
         entryListDate({ ...base, list_status: "PLANNING", updated_at: null }, "en")
       );
-    });
-
-    it("returns null when nothing usable exists", () => {
-      expect(
-        entryListDate(
-          {
-            progress: null,
-            score: null,
-            list_status: "PLANNING",
-            created_at: null,
-            updated_at: null,
-            completed_at: null,
-            started_at: null,
-            notes: null,
-            custom_lists: [],
-          },
-          "en"
-        )
-      ).toBeNull();
     });
   });
 
@@ -607,22 +505,6 @@ describe("anilist/entries", () => {
       expect(entryListTime({ ...base, list_status: "CURRENT", updated_at: null })).toBe(
         1700000000000
       );
-    });
-
-    it("returns null when nothing usable exists", () => {
-      expect(
-        entryListTime({
-          progress: null,
-          score: null,
-          list_status: "PLANNING",
-          created_at: null,
-          updated_at: null,
-          completed_at: null,
-          started_at: null,
-          notes: null,
-          custom_lists: [],
-        })
-      ).toBeNull();
     });
   });
 

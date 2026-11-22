@@ -15,6 +15,7 @@ describe("useProxyTest", () => {
   it("keeps a slow check running and flags it red after the threshold", async () => {
     const { result } = renderHook(() => useProxyTest());
     let resolveTest: (value: string) => void = () => {};
+
     const check = new Promise<string>((resolve) => {
       resolveTest = resolve;
     });

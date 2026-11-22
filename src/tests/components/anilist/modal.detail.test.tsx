@@ -83,6 +83,7 @@ const renderModal = (onRelated = vi.fn()) => {
     />,
     { wrapper }
   );
+
   return onRelated;
 };
 
@@ -108,16 +109,25 @@ beforeEach(() => {
         recommendations: [],
       });
     }
+
     if (command === "get_anime_by_id") return Promise.resolve(OTHER_ANIME);
+
     if (command === "get_anime_franchise") {
       return Promise.resolve({ root_id: 21, nodes: [], edges: [] });
     }
+
     if (command === "get_anime_recommendations") return Promise.resolve([]);
+
     if (command === "get_anilist_friend_scores") return Promise.resolve([]);
+
     if (command === "get_anilist_custom_lists") return Promise.resolve([]);
+
     if (command === "list_collection_items") return Promise.resolve([]);
+
     if (command === "list_custom_field_defs") return Promise.resolve([]);
+
     if (command === "list_collection_statuses") return Promise.resolve([]);
+
     if (command === "get_character_detail") {
       return Promise.resolve({
         id: 11,
@@ -129,6 +139,7 @@ beforeEach(() => {
         media: [{ id: 31, title: "Anime X", cover_url: null }],
       });
     }
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 });

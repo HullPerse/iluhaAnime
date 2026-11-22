@@ -44,6 +44,7 @@ export function useDailyGuessSuggestions(
         { query: debounced, perPage: 12, maxPages: 1 },
         proxy
       );
+
       return rankSuggestions(media, debounced)
         .filter((item) => titleMatchRank(item, debounced) > 0)
         .map((item) => suggestionFromMedia(item, debounced));

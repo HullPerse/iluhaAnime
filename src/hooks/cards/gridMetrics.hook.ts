@@ -11,16 +11,18 @@ import {
 } from "@/config/cards/grid.config";
 
 export function useGridMetrics(scrollRef: RefObject<HTMLDivElement | null>) {
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState<{ columns: number; rowHeight: number }>({
     columns: CARD_GRID_FALLBACK_COLUMNS,
     rowHeight: CARD_GRID_FALLBACK_ROW_HEIGHT,
   });
 
   useEffect(() => {
     const element = scrollRef.current;
+
     if (element === null) return;
     const update = () => {
       const width = element.clientWidth - CARD_GRID_HORIZONTAL_PADDING;
+
       if (width <= 0) return;
       const minCardWidth = width >= 640 ? CARD_GRID_LARGE_WIDTH : CARD_GRID_SMALL_WIDTH;
       const columns = Math.max(
@@ -35,10 +37,13 @@ export function useGridMetrics(scrollRef: RefObject<HTMLDivElement | null>) {
           : { columns, rowHeight }
       );
     };
+
     update();
+
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(update);
     observer.observe(element);
+
     return () => observer.disconnect();
   }, [scrollRef]);
 

@@ -22,8 +22,11 @@ function videoRectFor(element: HTMLElement | null): ScreenshotVideoRect | undefi
   const rect = element.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
+
   if (viewportWidth <= 0 || viewportHeight <= 0) return undefined;
+
   if (rect.width <= 0 || rect.height <= 0) return undefined;
+
   return {
     x: Math.max(0, rect.left / viewportWidth),
     y: Math.max(0, rect.top / viewportHeight),
@@ -53,10 +56,13 @@ export function useScreenshot(options?: ScreenshotCaptureOptions): ScreenshotSes
     const videoRect = videoRectFor(optionsRef.current?.videoElement?.() ?? null);
     const [data, error] = await attempt(systemApi.captureScreenshot(videoRect));
     inFlightRef.current = false;
+
     if (error) {
       showError(t("common.error"), t("screenshot.capture.error"));
+
       return;
     }
+
     setCapture(data);
   }, [setCapture, t]);
 
@@ -67,10 +73,12 @@ export function useScreenshot(options?: ScreenshotCaptureOptions): ScreenshotSes
   const close = useCallback(() => {
     const pending = captureRef.current;
     setCapture(null);
+
     if (!pending) return;
     attempt(systemApi.discardScreenshot(pending.path))
       .then(([, error]) => {
         if (error) reportBackgroundError("screenshot.discard", error);
+
         return null;
       })
       .catch((error: unknown) => reportBackgroundError("srchooksscreenshot", error));

@@ -16,6 +16,7 @@ export function CalendarHeader({
   onNext: () => void;
 }) {
   const { t, locale } = useI18n();
+
   return (
     <div className="windows95-border bg-primary mb-1 flex h-7 items-center justify-between gap-1 p-0.5">
       <Button onClick={onPrev} size="icon" className="size-5" aria-label={t("common.previous")}>

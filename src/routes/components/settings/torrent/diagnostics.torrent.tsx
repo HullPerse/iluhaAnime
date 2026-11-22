@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { ReactNode } from "react";
 
 import { systemApi } from "@/api/system.api";
 import { Button } from "@/components/ui/button.component";
@@ -7,6 +6,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { useCell } from "@hullperse/hp_utils/react";
+import { StageRow } from "@/routes/components/settings/torrent/stageRow.torrent";
 import { settingsAtoms } from "@/store/settings.store";
 import type { NetworkDiagnosis, NetworkVerdict } from "@/types/api/network";
 import type { TFunc } from "@/types/core/i18n";
@@ -18,21 +18,27 @@ function verdictLabel(verdict: NetworkVerdict, t: TFunc): string {
     case "ok": {
       return t("settings.torrent.diagnostics.verdict.ok");
     }
+
     case "dns_failed": {
       return t("settings.torrent.diagnostics.verdict.dns");
     }
+
     case "tcp_failed": {
       return t("settings.torrent.diagnostics.verdict.tcp");
     }
+
     case "tls_failed": {
       return t("settings.torrent.diagnostics.verdict.tls");
     }
+
     case "http_status": {
       return t("settings.torrent.diagnostics.verdict.http");
     }
+
     case "anti_bot": {
       return t("settings.torrent.diagnostics.verdict.antibot");
     }
+
     case "request_failed": {
       return t("settings.torrent.diagnostics.verdict.request");
     }
@@ -41,24 +47,30 @@ function verdictLabel(verdict: NetworkVerdict, t: TFunc): string {
 
 function verdictDetail(report: NetworkDiagnosis, t: TFunc): string {
   const { https } = report;
+
   switch (report.verdict) {
     case "ok": {
       return t("settings.torrent.diagnostics.verdict.ok.detail");
     }
+
     case "http_status": {
       return t("settings.torrent.diagnostics.verdict.http.detail", {
         status: https.status ?? "-",
       });
     }
+
     case "anti_bot": {
       return t("settings.torrent.diagnostics.verdict.antibot.detail");
     }
+
     case "dns_failed": {
       return report.dnsError ?? t("settings.torrent.diagnostics.none");
     }
+
     case "tcp_failed": {
       return report.tcp.find((probe) => !probe.ok)?.error ?? t("settings.torrent.diagnostics.none");
     }
+
     case "tls_failed":
     case "request_failed": {
       return https.error ?? t("settings.torrent.diagnostics.none");
@@ -71,28 +83,23 @@ function stageLabel(stage: string | null, t: TFunc): string {
     case "dns": {
       return t("settings.torrent.diagnostics.stage.dns");
     }
+
     case "tcp": {
       return t("settings.torrent.diagnostics.stage.tcp");
     }
+
     case "tls": {
       return t("settings.torrent.diagnostics.stage.tls");
     }
+
     case "client": {
       return t("settings.torrent.diagnostics.stage.client");
     }
+
     default: {
       return t("settings.torrent.diagnostics.stage.request");
     }
   }
-}
-
-function StageRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[72px_1fr] gap-x-2 gap-y-0.5 text-xs">
-      <span className="windows95-text text-hint">{label}</span>
-      <div className="windows95-text min-w-0 wrap-break-word">{children}</div>
-    </div>
-  );
 }
 
 export function TorrentDiagnosticsSettings() {
@@ -107,19 +114,22 @@ export function TorrentDiagnosticsSettings() {
     if (loading) return;
     setLoading(true);
     setError(null);
-    try {
+    await (async () => {
       const [result, failure] = await attempt(
         systemApi.diagnoseNetwork(RUTRACKER_DIAGNOSTICS_URL, proxyUrl || null)
       );
+
       if (failure) {
         setReport(null);
         setError(failure.message);
+
         return;
       }
+
       setReport(result);
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   const actionLabel =

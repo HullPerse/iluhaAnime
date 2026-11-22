@@ -14,10 +14,14 @@ export default function RunsNews({
     <>
       {runs.map((run, index) => {
         let content: ReactNode = run.text;
+
         if (run.italic) content = <em>{content}</em>;
+
         if (run.bold) content = <strong>{content}</strong>;
         const href = run.href;
+
         if (href === undefined) return <span key={index}>{content}</span>;
+
         return (
           <a
             key={index}

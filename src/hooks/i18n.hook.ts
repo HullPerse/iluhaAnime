@@ -6,25 +6,29 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { TranslationKey, TranslationVariables } from "@/types/core/i18n";
 
 export function useChangelogLocale(): boolean {
-  const [ready, setReady] = useState(isChangelogLocaleLoaded);
+  const [ready, setReady] = useState<boolean>(isChangelogLocaleLoaded);
   useEffect(() => {
     if (ready) return;
     let active = true;
     loadChangelogLocale()
       .then(() => {
         if (active) setReady(true);
+
         return null;
       })
       .catch(() => undefined);
+
     return () => {
       active = false;
     };
   }, [ready]);
+
   return ready;
 }
 
 export function useI18n() {
   const locale = useCell(settingsAtoms.language);
+
   return useMemo(
     () => ({
       locale,

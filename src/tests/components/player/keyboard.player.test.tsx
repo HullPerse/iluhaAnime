@@ -21,6 +21,7 @@ const pressKey = (
     shiftKey: options.shiftKey ?? false,
   });
   window.dispatchEvent(event);
+
   return event;
 };
 
@@ -47,6 +48,7 @@ describe("Keyboard shortcuts", () => {
       ["KeyK", "playlistUp", false],
       ["Enter", "playlistActivate", false],
     ];
+
     for (const [code, action, shiftKey] of cases) {
       onAction.mockClear();
       pressKey(code, { shiftKey });
@@ -63,6 +65,7 @@ describe("Keyboard shortcuts", () => {
       ["Digit2", "viewCompact"],
       ["Digit3", "viewNormal"],
     ];
+
     for (const [code, action] of cases) {
       onAction.mockClear();
       pressKey(code);
@@ -120,6 +123,7 @@ describe("Keyboard shortcuts", () => {
       </>
     );
     const field = document.querySelector("input");
+
     if (!field) throw new Error("input missing");
 
     field.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, code: "Digit5" }));
@@ -137,6 +141,7 @@ describe("Keyboard shortcuts", () => {
     );
     const timeline = document.querySelector('input[type="range"]');
     const button = document.querySelector("button");
+
     if (!timeline || !button) throw new Error("controls missing");
 
     timeline.dispatchEvent(
@@ -168,6 +173,7 @@ describe("Keyboard wheel", () => {
     inner.textContent = "row";
     scroller.append(inner);
     document.body.append(scroller);
+
     try {
       fireWheel(inner, 100);
       expect(onWheel).not.toHaveBeenCalled();
@@ -184,6 +190,7 @@ describe("Keyboard wheel", () => {
     const inner = document.createElement("span");
     panel.append(inner);
     document.body.append(panel);
+
     try {
       fireWheel(inner, 100);
       expect(onWheel).not.toHaveBeenCalled();
@@ -201,6 +208,7 @@ describe("Keyboard wheel", () => {
     const inner = document.createElement("span");
     scroller.append(inner);
     document.body.append(scroller);
+
     try {
       fireWheel(inner, 100);
       expect(onWheel).not.toHaveBeenCalled();
@@ -214,6 +222,7 @@ describe("Keyboard wheel", () => {
     render(<Keyboard onAction={() => undefined} onWheel={onWheel} />);
     const plain = document.createElement("div");
     document.body.append(plain);
+
     try {
       fireWheel(plain, 100);
       expect(onWheel).toHaveBeenCalledWith(-1);

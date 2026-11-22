@@ -27,12 +27,14 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
 
   const grouped = useMemo(() => {
     const map = new Map<string, ShaderInfo[]>();
+
     for (const cat of CATEGORY_ORDER) {
       map.set(
         cat,
         shaders.filter((s) => s.category === cat)
       );
     }
+
     return map;
   }, [shaders]);
 
@@ -41,7 +43,9 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
   const isDisabled = useCallback(
     (shader: ShaderInfo) => {
       if (!shader.available) return true;
+
       if (!shader.exclusive_group) return false;
+
       return shaders.some(
         (s) =>
           s.id !== shader.id &&
@@ -63,12 +67,14 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
   const handleToggle = useCallback(
     (shader: ShaderInfo) => {
       const next = new Set(selectedSet);
+
       if (shader.exclusive_group) {
         for (const s of shaders) {
           if (s.id !== shader.id && s.exclusive_group === shader.exclusive_group) {
             next.delete(s.id);
           }
         }
+
         if (next.has(shader.id)) {
           next.delete(shader.id);
         } else {
@@ -81,6 +87,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
           next.add(shader.id);
         }
       }
+
       onChange([...next]);
     },
     [shaders, selectedSet, onChange]
@@ -91,17 +98,21 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
     const baseSpeed = { nvenc: 5.0, amf: 1.8, qsv: 1.5, cpu: 2.0 }[gpuBackend] || 2.0;
     const penalty = value.reduce((acc, id) => {
       const sf = shaders.find((s) => s.id === id)?.speed_factor ?? 1;
+
       return acc * sf;
     }, 1);
     const totalSpeed = baseSpeed * Math.max(penalty, 0.05);
+
     return formatETA(durationSecs / totalSpeed, t, "minute");
   }, [value, shaders, gpuBackend, durationSecs, t]);
 
   const toggleCategory = useCallback((cat: string) => {
     setOpenCategories((prev) => {
       const next = new Set(prev);
+
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
+
       return next;
     });
   }, []);
@@ -124,6 +135,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
 
       {CATEGORY_ORDER.map((cat) => {
         const items = grouped.get(cat) || [];
+
         if (items.length === 0) return null;
         const isOpen = openCategories.has(cat);
         const hasExclusive = items.some((s) => s.exclusive_group !== null);
@@ -146,6 +158,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
                     {items.map((shader) => {
                       const checked = selectedSet.has(shader.id);
                       const disabled = isDisabled(shader);
+
                       return (
                         <label
                           key={shader.id}
@@ -174,6 +187,7 @@ export default function ShaderPicker({ value, onChange, gpuBackend, durationSecs
                   items.map((shader) => {
                     const checked = selectedSet.has(shader.id);
                     const disabled = !shader.available;
+
                     return (
                       <label
                         key={shader.id}

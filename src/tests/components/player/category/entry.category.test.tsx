@@ -53,6 +53,7 @@ const file = (index: number, name: string, completed = true): TorrentFileInfo =>
 
 const renderEntry = (torrentFilesMap: Record<number, TorrentFileInfo[] | undefined>) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <TorrentCategoryEntry tor={torrent()} torrentFilesMap={torrentFilesMap} />

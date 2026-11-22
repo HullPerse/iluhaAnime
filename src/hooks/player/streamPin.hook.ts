@@ -22,8 +22,10 @@ export function useStreamPin(stream: StreamOpen | null, loadingFile: boolean): v
   useEffect(() => {
     if (streamResume === null) {
       pinnedStreamUrlRef.current = null;
+
       return;
     }
+
     pinnedStreamUrlRef.current = streamUrlRef.current;
   }, [streamResume]);
 
@@ -46,6 +48,7 @@ export function useStreamPin(stream: StreamOpen | null, loadingFile: boolean): v
     const task = scheduleTask("timeout", STREAM_HOLD_TIMEOUT, () =>
       playbackAtoms.streamResume.set(null)
     );
+
     return () => task.cancel();
   }, [streamResume]);
 }

@@ -43,17 +43,23 @@ export default function AniListScrollView({
   const rows = useMemo<AniListScrollRow[] | null>(() => {
     if (!groups?.length) return null;
     const out: AniListScrollRow[] = [];
+
     for (const group of groups) {
       out.push({ kind: "header", name: group.name });
+
       if (collapsedLists?.has(group.name)) continue;
+
       for (const entry of group.entries) out.push({ kind: "item", media: entry.media });
     }
+
     return out;
   }, [groups, collapsedLists]);
   const grouped = rows !== null;
   const groupCounts = useMemo(() => {
     const map = new Map<string, number>();
+
     for (const group of groups ?? []) map.set(group.name, group.entries.length);
+
     return map;
   }, [groups]);
 
@@ -63,11 +69,14 @@ export default function AniListScrollView({
     getItemKey: (index) => {
       if (!grouped) return items[index]?.id ?? index;
       const row = rows?.[index];
+
       if (!row) return index;
+
       return row.kind === "header" ? `header-${row.name}` : row.media.id;
     },
     estimateSize: (index) => {
       if (!grouped) return ANILIST_SCROLL_ROW_ESTIMATE;
+
       return rows?.[index]?.kind === "header"
         ? ANILIST_SCROLL_HEADER_ESTIMATE
         : ANILIST_SCROLL_ROW_ESTIMATE;
@@ -85,9 +94,12 @@ export default function AniListScrollView({
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const row = grouped ? (rows?.[virtualRow.index] ?? null) : null;
+
           if (grouped && !row) return null;
           let media: AniMedia | null = items[virtualRow.index] ?? null;
+
           if (grouped) media = row?.kind === "item" ? row.media : null;
+
           return (
             <div
               key={virtualRow.key}

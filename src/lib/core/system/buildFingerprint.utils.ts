@@ -28,9 +28,11 @@ function mixByte(hash: number, byte: number): number {
 
 function mixNumber(hash: number, value: number): number {
   let next = hash;
+
   for (let shift = 0; shift < 32; shift += 8) {
     next = mixByte(next, value >>> shift);
   }
+
   return next;
 }
 
@@ -46,16 +48,19 @@ export function fingerprintEntries(entries: readonly FingerprintEntry[]): string
   const sorted = [...entries].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   let paths = FNV_OFFSET;
   let stats = FNV_OFFSET;
+
   for (const entry of sorted) {
     for (const character of entry.path) {
       const code = character.codePointAt(0) ?? 0;
       paths = mixByte(paths, code & 0xff);
       paths = mixByte(paths, code >>> 8);
     }
+
     paths = mixByte(paths, 0);
     stats = mixNumber(stats, entry.size);
     stats = mixNumber(stats, Math.round(entry.modifiedMs));
   }
+
   return `${hex8(paths)}${hex8(stats)}${sorted.length.toString(16)}`;
 }
 
@@ -66,17 +71,22 @@ export function diffFingerprintEntries(
   const before = new Map(previous.map((entry) => [entry.path, entry]));
   const added: string[] = [];
   const changed: string[] = [];
+
   for (const entry of next) {
     const old = before.get(entry.path);
+
     if (!old) {
       added.push(entry.path);
       continue;
     }
+
     if (old.size !== entry.size || Math.round(old.modifiedMs) !== Math.round(entry.modifiedMs)) {
       changed.push(entry.path);
     }
+
     before.delete(entry.path);
   }
+
   return { added, changed, removed: [...before.keys()] };
 }
 

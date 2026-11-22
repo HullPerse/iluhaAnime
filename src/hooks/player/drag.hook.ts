@@ -17,8 +17,10 @@ export function usePlayerDrag() {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDrag(null);
+
     if (!over) return;
     const data = active.data.current as CategoryDragData | undefined;
+
     if (!data) return;
     addCategoryEntry(String(over.id), data);
   }, []);

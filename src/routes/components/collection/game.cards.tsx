@@ -66,15 +66,15 @@ export default function GameCards() {
   const prepareAudio = usePrepareDailyAudio(day);
   const { mutate: warmOp, isPending: warmingOp } = useWarmDailyOp(day);
   const { mutate: warmAudio, isPending: warmingAudio } = useWarmDailyAudio(day);
-  const warmedOp = useRef(false);
-  const warmedAudio = useRef(false);
+  const warmedOp = useRef<boolean>(false);
+  const warmedAudio = useRef<boolean>(false);
   const [clipProgress, setClipProgress] = useState<Partial<Record<DailyMode, DailyClipProgress>>>(
     {}
   );
   const [frames, setFrames] = useState<DailyFramesView | null>(null);
   const [op, setOp] = useState<DailyOpView | null>(null);
   const [audio, setAudio] = useState<DailyOpView | null>(null);
-  const dayRef = useRef(day);
+  const dayRef = useRef<string>(day);
 
   useEffect(() => {
     if (dayRef.current === day) return;
@@ -89,14 +89,17 @@ export default function GameCards() {
 
   useTauriEvent<DailyClipProgress>("daily-clip-progress", (event) => {
     const payload = event.payload;
+
     if (payload.day !== day || payload.total <= 0) return;
     setClipProgress((previous) => ({ ...previous, [payload.mode]: payload }));
   });
 
   useEffect(() => {
     const data = game.data;
+
     if (warmedOp.current || data === undefined || data.day !== day) return;
     const view = data.modes.find((mode) => mode.mode === "op");
+
     if (!view || view.result !== null) return;
     warmedOp.current = true;
     warmOp();
@@ -126,6 +129,7 @@ export default function GameCards() {
   }
 
   const data = game.data;
+
   if (!data) {
     return (
       <div className="daily-game">
@@ -163,6 +167,7 @@ export default function GameCards() {
   const clearClipProgress = (mode: DailyMode) => {
     setClipProgress((previous) => ({ ...previous, [mode]: undefined }));
   };
+
   const starts: Record<
     DailyMode,
     {
@@ -175,7 +180,9 @@ export default function GameCards() {
     frames: {
       onStart: () =>
         prepare.mutate("frames", {
-          onSuccess: (view) => setFrames(view),
+          onSuccess: (view) => {
+            if (view.day === dayRef.current) setFrames(view);
+          },
         }),
       starting: prepare.isPending,
       progress: null,
@@ -184,7 +191,9 @@ export default function GameCards() {
       onStart: () => {
         clearClipProgress("op");
         prepareOp.mutate(undefined, {
-          onSuccess: (view) => setOp(view),
+          onSuccess: (view) => {
+            if (view.day === dayRef.current) setOp(view);
+          },
         });
       },
       starting: prepareOp.isPending,
@@ -194,12 +203,15 @@ export default function GameCards() {
       onStart: () => {
         clearClipProgress("audio");
         prepareAudio.mutate(undefined, {
-          onSuccess: (view) => setAudio(view),
+          onSuccess: (view) => {
+            if (view.day === dayRef.current) setAudio(view);
+          },
         });
       },
       onWarm: () => {
         if (warmedAudio.current) return;
         const view = data.modes.find((mode) => mode.mode === "audio");
+
         if (!view || view.result !== null) return;
         warmedAudio.current = true;
         warmAudio();

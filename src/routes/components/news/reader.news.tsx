@@ -21,17 +21,11 @@ import { ignore } from "@/lib/core/shared/promise.utils";
 import { showError } from "@/lib/core/ui/notification.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
-import type { NewsAttachment, NewsItem } from "@/types/news/news";
+import type { NewsAttachment, NewsItem, NewsReaderMode } from "@/types/news/news";
 
 import AniListDetailModal from "@/routes/components/anilist/detail/modal.detail";
 import ContentNews from "@/routes/components/news/content.news";
 import MediaNews from "@/routes/components/news/media.news";
-
-type ReaderMode =
-  | { kind: "post" }
-  | { kind: "image"; images: readonly string[]; index: number }
-  | { kind: "youtube"; youtubeId: string }
-  | { kind: "vk"; url: string; pageUrl: string };
 
 const imageUrl = (attachment: NewsAttachment): string =>
   attachment.fullUrl ?? attachment.previewUrl;
@@ -47,7 +41,7 @@ export default function ReaderNews({
   onClose: () => void;
 }) {
   const { t, locale } = useI18n();
-  const [mode, setMode] = useState<ReaderMode>({ kind: "post" });
+  const [mode, setMode] = useState<NewsReaderMode>({ kind: "post" });
   const [linkCopied, setLinkCopied] = useState<boolean>(false);
   const copyTimer = useRef<number | null>(null);
   useEffect(
@@ -60,10 +54,12 @@ export default function ReaderNews({
     ignore(
       attempt(writeText(buildNewsLink(item.id, page))).then(([, error]) => {
         if (error !== null) reportBackgroundError("news.copy-link", error);
+
         return null;
       })
     );
     setLinkCopied(true);
+
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
     copyTimer.current = window.setTimeout(() => setLinkCopied(false), 1500);
   }, [item.id, page]);
@@ -88,6 +84,7 @@ export default function ReaderNews({
     ignore(
       attempt(openUrl(url)).then(([, error]) => {
         if (error !== null) reportBackgroundError("news.open-external", error);
+
         return null;
       })
     );
@@ -105,16 +102,22 @@ export default function ReaderNews({
       attempt(newsApi.animeLink(linkedAnimeId, newsProxyUrl || null, anilistProxyUrl || null)).then(
         ([link, error]) => {
           setAnimeLinkPending(false);
+
           if (error !== null) {
             reportBackgroundError("news.anilist-link", error);
             showError(t("common.error"), t("news.anilist.error"));
+
             return null;
           }
+
           if (link === null) {
             showError(t("common.error"), t("news.anilist.missing"));
+
             return null;
           }
+
           setAnimeDetailId(link.anilistId);
+
           return null;
         }
       )
@@ -146,6 +149,7 @@ export default function ReaderNews({
             }
       );
     const current = mode.images.at(mode.index) ?? "";
+
     return (
       <Modal
         header={t("news.images")}

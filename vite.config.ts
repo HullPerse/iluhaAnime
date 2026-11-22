@@ -4,39 +4,15 @@ import { resolve, join, basename } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
-
-const ISOLATED_TESTS = [
-  "src/tests/lib/media.test.ts",
-  "src/tests/lib/anilistNotifications.test.ts",
-  "src/tests/components/player/side.player.test.tsx",
-  "src/tests/components/player/modal.player.test.tsx",
-  "src/tests/components/search/modern/dither/settings.dither.test.tsx",
-  "src/tests/components/search/modern/dither/preview/modal.preview.test.tsx",
-  "src/tests/components/collection/importAnilist.collection.test.tsx",
-  "src/tests/lib/torrent.test.ts",
-  "src/tests/components/collection/wizard/modal.wizard.test.tsx",
-  "src/tests/lib/cardCache.utils.test.ts",
-  "src/tests/hooks/collection/quickAdd.hook.test.tsx",
-  "src/tests/hooks/discordPresence.hook.test.tsx",
-  "src/tests/hooks/following.hook.test.tsx",
-  "src/tests/hooks/game/session.hook.test.tsx",
-  "src/tests/hooks/screen.hook.test.tsx",
-  "src/tests/components/player/stream.player.test.tsx",
-  "src/tests/lib/sessionCache.test.ts",
-  "src/tests/hooks/player/discordPresence.hook.test.tsx",
-  "src/tests/hooks/player/stream.hook.test.tsx",
-  "src/tests/hooks/prewarmStream.hook.test.tsx",
-  "src/tests/store/settings.store.test.ts",
-  "src/tests/components/stream/episodes.stream.test.tsx",
-  "src/tests/components/stream/detail.stream.test.tsx",
-  "src/tests/lib/streamWarm.test.ts",
-  "src/tests/routes/player.init.test.tsx",
-  "src/tests/components/anilist/sort.anilist.test.tsx",
-  "src/tests/lib/playerChrome.utils.test.ts",
-  "src/tests/lib/playlist.utils.test.ts",
-  "src/tests/lib/statsCalendar.utils.test.ts",
-  "src/tests/lib/themeEditor.utils.test.ts",
-];
+import {
+  COVERAGE_EXCLUDE,
+  COVERAGE_INCLUDE,
+  DEDUPE_MODULES,
+  DEV_SERVER,
+  OPTIMIZE_DEPS,
+  SPLIT_GROUPS,
+  TEST_PROJECTS,
+} from "./src/config/vite.shared.config.ts";
 
 export default defineConfig({
   build: {
@@ -45,67 +21,13 @@ export default defineConfig({
         const id = log.id ?? "";
         const isCompilerRuntime =
           id.includes("react-compiler-runtime") || log.message.includes("react-compiler-runtime");
+
         if (log.code === "MODULE_LEVEL_DIRECTIVE" && isCompilerRuntime) return;
         defaultHandler(level, log);
       },
       output: {
         codeSplitting: {
-          groups: [
-            {
-              name: "vendor-react",
-              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/u,
-              priority: 40,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-zod",
-              test: /node_modules[\\/]zod[\\/]/u,
-              priority: 30,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-query",
-              test: /node_modules[\\/]@tanstack[\\/]/u,
-              priority: 30,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-base-ui",
-              test: /node_modules[\\/](@base-ui|@floating-ui|use-sync-external-store)[\\/]/u,
-              priority: 20,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-icons",
-              test: /node_modules[\\/]lucide-react[\\/]/u,
-              priority: 20,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-classes",
-              test: /node_modules[\\/](cn|clsx|class-variance-authority)[\\/]/u,
-              priority: 20,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-tauri",
-              test: /node_modules[\\/]@tauri-apps[\\/]/u,
-              priority: 20,
-              minShareCount: 2,
-            },
-            {
-              name: "vendor-hp",
-              test: /node_modules[\\/]@hullperse[\\/]/u,
-              priority: 20,
-              minShareCount: 2,
-            },
-            {
-              name: "locale-ru",
-              test: /src[\\/]lib[\\/]locale[\\/]ru[\\/]/u,
-              priority: 10,
-              includeDependenciesRecursively: false,
-            },
-          ],
+          groups: [...SPLIT_GROUPS],
         },
       },
     },
@@ -115,7 +37,7 @@ export default defineConfig({
   clearScreen: false,
 
   optimizeDeps: {
-    include: ["d3-force"],
+    include: OPTIMIZE_DEPS,
   },
 
   plugins: [
@@ -128,21 +50,27 @@ export default defineConfig({
         if (!id.endsWith(".data.json")) return null;
         const overridePath = resolve(import.meta.dirname, "config.local.json");
         let overrides: Record<string, Record<string, unknown>> = {};
+
         try {
           overrides = JSON.parse(await readFile(overridePath, "utf-8"));
         } catch {
           return null;
         }
+
         const base = basename(id);
         const fileOverride = overrides[base];
+
         if (!fileOverride || typeof fileOverride !== "object") return null;
         let original: Record<string, unknown>;
+
         try {
           original = JSON.parse(await readFile(id, "utf-8"));
         } catch {
           return null;
         }
+
         const merged = { ...original, ...fileOverride };
+
         return `export default ${JSON.stringify(merged)}`;
       },
     },
@@ -160,6 +88,7 @@ export default defineConfig({
             const s = await stat(join(dir, f));
             total += s.size;
           }
+
           this.info?.(`icon-sprite: ${files.length} icons, ${(total / 1024).toFixed(1)}KB`);
         } catch {}
       },
@@ -167,34 +96,13 @@ export default defineConfig({
   ],
 
   resolve: {
-    dedupe: [
-      "react",
-      "react-dom",
-      "@base-ui/react",
-      "@base-ui/utils",
-      "@floating-ui/react",
-      "@floating-ui/react-dom",
-      "@hullperse/hp_utils",
-      "@tanstack/react-query",
-      "@tanstack/react-router",
-      "@tanstack/react-virtual",
-      "@testing-library/react",
-      "lucide-react",
-      "use-sync-external-store",
-    ],
+    dedupe: DEDUPE_MODULES,
     alias: {
       "@": resolve(import.meta.dirname, "./src"),
     },
   },
 
-  server: {
-    host: "127.0.0.1",
-    port: 1420,
-    strictPort: true,
-    watch: {
-      ignored: ["**/src-tauri/**"],
-    },
-  },
+  server: DEV_SERVER,
 
   test: {
     environment: "jsdom",
@@ -203,24 +111,9 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text"],
-      include: ["src/lib/**", "src/store/**", "src/hooks/**", "src/config/**"],
-      exclude: ["src/tests/**", "src/**/*.d.ts"],
+      include: COVERAGE_INCLUDE,
+      exclude: COVERAGE_EXCLUDE,
     },
-    projects: [
-      {
-        test: {
-          name: "isolated",
-          include: ISOLATED_TESTS,
-        },
-      },
-      {
-        test: {
-          name: "shared",
-          isolate: true,
-          include: ["src/tests/**/*.test.ts", "src/tests/**/*.test.tsx"],
-          exclude: ISOLATED_TESTS,
-        },
-      },
-    ],
+    projects: TEST_PROJECTS,
   },
 });

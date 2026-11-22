@@ -23,10 +23,13 @@ function mergeStat(
   stat: SearchQueryStat
 ): void {
   const current = target[key];
+
   if (!current) {
     target[key] = { ...stat };
+
     return;
   }
+
   target[key] = {
     count: current.count + stat.count,
     ignoredCount: (current.ignoredCount ?? 0) + (stat.ignoredCount ?? 0),
@@ -43,8 +46,10 @@ export function buildLearningMaps(
   const cutoff = now - RANKING.TTL_MS;
   const queryStats: Record<string, SearchQueryStat> = {};
   const suggestionStats: Record<string, SearchQueryStat> = {};
+
   for (const row of rows) {
     const lastUsedAt = row.lastUsedAt > 0 ? row.lastUsedAt * 1000 : 0;
+
     if (lastUsedAt < cutoff) continue;
     const stat: SearchQueryStat = {
       count: Math.max(0, row.useCount),
@@ -52,11 +57,14 @@ export function buildLearningMaps(
       lastUsedAt,
       selectedCount: Math.max(0, row.selectedCount),
     };
+
     if (row.kind === "history") {
       queryStats[learningStatKey(row.scope, row.value)] = stat;
     }
+
     mergeStat(suggestionStats, row.value, stat);
   }
+
   return { queryStats, suggestionStats };
 }
 
@@ -69,13 +77,18 @@ export function applyLearningAction(
 ): Record<string, SearchQueryStat> {
   const current = stats[key] ?? { count: 0, lastUsedAt: now, selectedCount: 0 };
   const next: SearchQueryStat = { ...current, lastUsedAt: now };
+
   if (reason) next.lastReason = reason;
+
   if (action === "use") next.count = current.count + 1;
+
   if (action === "select") next.selectedCount = current.selectedCount + 1;
+
   if (action === "ignore") {
     next.ignoredCount = (current.ignoredCount ?? 0) + 1;
     next.lastIgnoredAt = now;
   }
+
   return { ...stats, [key]: next };
 }
 
@@ -85,8 +98,10 @@ export function dropLearningScope(
 ): Record<string, SearchQueryStat> {
   const prefix = `${scope}:`;
   const next: Record<string, SearchQueryStat> = {};
+
   for (const [key, value] of Object.entries(stats)) {
     if (!key.startsWith(prefix)) next[key] = value;
   }
+
   return next;
 }

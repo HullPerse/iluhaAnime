@@ -10,5 +10,6 @@ export async function applyWindowChrome(chrome: WindowChrome): Promise<void> {
       chrome.roundedWindowCorners
     )
   );
+
   if (error) reportBackgroundError("settings.window.chrome", error);
 }

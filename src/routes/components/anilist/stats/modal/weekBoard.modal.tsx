@@ -27,6 +27,7 @@ export function WeekBoard({
         {weekDays.map((day) => {
           const date = new Date(day.dayStartMs);
           const isToday = day.dayStartMs === today.getTime();
+
           return (
             <section
               key={day.dayStartMs}
@@ -61,6 +62,7 @@ export function WeekBoard({
               <div className="flex flex-col gap-1 p-1">
                 {day.entries.map((entry) => {
                   const time = formatAiringTime(entry.airingAt, locale);
+
                   return (
                     <button
                       key={entry.id}

@@ -99,6 +99,7 @@ export function TorrentFileRow({
     if (type !== "player" || track) return;
     setAnilistSearchQuery(parseMediaPath(resolvedPath ?? file.displayName).searchTitle);
   };
+
   const rootRef = useRef<HTMLDivElement>(null);
   const rowKey = `file:${file.index}`;
 
@@ -106,6 +107,7 @@ export function TorrentFileRow({
   const clickOwn = (name: "external" | "builtin" | "upscale"): void => {
     clickRowActionButton(rootRef.current, name);
   };
+
   const menuEntries: ContextMenuEntry[] | null = interactions.interactive
     ? [
         {
@@ -157,6 +159,7 @@ export function TorrentFileRow({
           if (!(event.ctrlKey || event.metaKey)) return;
           event.preventDefault();
           event.stopPropagation();
+
           if (track || busy || !file.completed || !file.exists || !resolvedPath) return;
           onOpenInApp?.(resolvedPath);
         }

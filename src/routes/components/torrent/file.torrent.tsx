@@ -106,9 +106,11 @@ function TorrentFilesSection({
 
   const queueMap = useMemo(() => {
     const m = new Map<string, string>();
+
     for (const item of items) {
       m.set(item.filePath, item.status);
     }
+
     return m;
   }, [items]);
 
@@ -123,8 +125,10 @@ function TorrentFilesSection({
   const toggle = useCallback((key: string) => {
     setOpen((prev) => {
       const next = new Set(prev);
+
       if (next.has(key)) next.delete(key);
       else next.add(key);
+
       return next;
     });
   }, []);
@@ -137,18 +141,23 @@ function TorrentFilesSection({
   const fileFilter = useMemo(() => {
     if (type !== "player") return;
     const hideTracks = showTrackFiles === "hide" || showTrackFiles === "folders";
+
     return (f: TorrentTreeFile) => {
       if (!f.completed) return false;
+
       if (hideTracks) {
         const ext = mediaFileExtension(f.name);
+
         if (ext && trackExts.has(ext)) return false;
       }
+
       return true;
     };
   }, [type, showTrackFiles, trackExts]);
 
   const flatItems = useMemo(() => {
     const items = flattenTorrentTree(trees, open, fileFilter, rootFiles);
+
     if (extraFiles && type === "player") {
       for (const file of extraFiles) {
         const extraIndex = -(2000 + items.length);
@@ -168,6 +177,7 @@ function TorrentFilesSection({
         items.push({ kind: "file", file: extraFile, depth: 0 });
       }
     }
+
     return items;
   }, [trees, open, fileFilter, rootFiles, extraFiles, type]);
 
@@ -180,11 +190,13 @@ function TorrentFilesSection({
 
   const treeRows = useMemo<TreeRow[]>(() => {
     const stack: string[] = [];
+
     return flatItems.map((item, index) => {
       const path = item.kind === "folder" ? item.node.name + item.depth : `file:${item.file.index}`;
       const parent = item.depth === 0 ? "" : (stack[item.depth - 1] ?? "");
       stack[item.depth] = String(index);
       stack.length = item.depth + 1;
+
       return item.kind === "folder"
         ? {
             path,
@@ -208,6 +220,7 @@ function TorrentFilesSection({
   const pendingFocus = useRef<string | null>(null);
   useEffect(() => {
     const path = pendingFocus.current;
+
     if (!path) return;
     pendingFocus.current = null;
     findRow(scrollRef.current, path)?.focus();
@@ -216,16 +229,20 @@ function TorrentFilesSection({
   useResolvedHotkeys<TorrentTreeKeyAction>(TORRENT_TREE_KEYBINDS, {
     ignore: (event) => {
       const row = rowElement(event.target);
+
       if (!row || !scrollRef.current?.contains(row)) return true;
+
       return Boolean(row.closest("[data-hotkeys-disabled]"));
     },
     onAction: (action, event) => {
       const row = rowElement(event.target);
       const path = row?.dataset.treePath;
+
       if (!path) return;
 
       if (action === "treeActivate" || action === "rowSearch") {
         activateTreeRow(row);
+
         return;
       }
 
@@ -234,24 +251,33 @@ function TorrentFilesSection({
         setVimCount("");
         const step = count === "" ? 1 : Math.max(Number.parseInt(count, 10) || 1, 1);
         const next = resolveTreeMove(treeRows, path, (action === "treeUp" ? -1 : 1) * step);
+
         if (next) findRow(scrollRef.current, next)?.focus();
+
         return;
       }
 
       const torrentFileAction = TORRENT_FILE_ACTION_BY_KEY[action];
+
       if (torrentFileAction !== undefined) {
         setVimCount("");
+
         if (row.dataset.treeKind !== "file") return;
         runRowAction(row, torrentFileAction);
+
         return;
       }
 
       const result = resolveTreeArrow(treeRows, path, action === "treeCollapse" ? "left" : "right");
+
       if (!result) return;
+
       if (result.kind === "focus") {
         findRow(scrollRef.current, result.path)?.focus();
+
         return;
       }
+
       pendingFocus.current = result.path;
       toggle(result.path);
     },
@@ -260,11 +286,13 @@ function TorrentFilesSection({
   const handleToggleFile = (index: number, completed: boolean, selected: boolean) => {
     if (completed) return;
     onFilePriorityChange?.(id, [index], selected ? "do_not_download" : "normal");
+
     if (!selected) onResume?.();
   };
 
   const handleToggleFolder = (indices: number[], target: boolean) => {
     onToggle?.(id, applyFolderSelection(files, indices, target));
+
     if (target) onResume?.();
   };
 
@@ -281,17 +309,22 @@ function TorrentFilesSection({
       }}
       onFocus={(event) => {
         const row = rowElement(event.target);
+
         if (!row || !scrollRef.current?.contains(row)) return;
         const path = row.dataset.treePath;
+
         if (path) setAnchorPath(path);
       }}
     >
       <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((vItem) => {
           const item = flatItems[vItem.index];
+
           if (!item) return null;
+
           if (item.kind === "folder") {
             const key = item.node.name + item.depth;
+
             return (
               <FolderRow
                 key={`folder-${item.node.name}-${item.depth}-${vItem.index}`}
@@ -309,7 +342,9 @@ function TorrentFilesSection({
               />
             );
           }
+
           const { file } = item;
+
           return (
             <TorrentFileRow
               key={file.index}

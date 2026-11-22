@@ -18,6 +18,7 @@ export function BackdropLayer({
 }) {
   if (!ghostSuffix && !hasHighlight) return null;
   const seen = new Map<string, number>();
+
   return (
     <div
       aria-hidden="true"

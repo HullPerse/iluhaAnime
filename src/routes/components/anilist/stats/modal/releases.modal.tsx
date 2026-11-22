@@ -20,16 +20,19 @@ export function StatsReleases({
   const releases = useCell(anilistNotificationsAtoms.releases);
   const covers = useMemo(() => {
     const byId = new Map<number, string>();
+
     for (const list of lists) {
       for (const entry of list.entries) {
         if (entry.media.cover_url) byId.set(entry.media.id, entry.media.cover_url);
       }
     }
+
     return byId;
   }, [lists]);
   useEffect(() => {
     markAnilistReleasesRead();
   }, []);
+
   if (releases.length === 0) {
     return (
       <section className="windows95-border bg-field flex min-h-40 items-center justify-center p-3">
@@ -42,10 +45,12 @@ export function StatsReleases({
       </section>
     );
   }
+
   return (
     <section className="windows95-border bg-field max-h-96 overflow-y-auto">
       {releases.map((release, index) => {
         const coverUrl = release.coverUrl ?? covers.get(release.mediaId) ?? null;
+
         return (
           <div
             key={`${release.mediaId}:${release.episode}`}

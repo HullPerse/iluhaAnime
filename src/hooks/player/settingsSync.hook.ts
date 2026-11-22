@@ -38,16 +38,21 @@ function buildSettingsJobs(
     [audioOptions(reference), audioOptions(latest)],
   ];
   const jobs: Array<Promise<string[]>> = [];
+
   for (const [prevOptions, nextOptions] of groups) {
     const options = full ? nextOptions : diffOptions(prevOptions, nextOptions);
+
     if (Object.keys(options).length > 0) jobs.push(applyProperties(options));
   }
+
   return jobs;
 }
 
 function reportRejectedSettings(rejected: string[], seen: Set<string>): void {
   const fresh = rejected.filter((name) => !seen.has(name));
+
   if (fresh.length === 0) return;
+
   for (const name of fresh) seen.add(name);
   addNotification(
     translate("player.media.settings.rejected.title"),
@@ -76,6 +81,7 @@ export function usePlayerSettingsSync(): void {
       if (volumeThrottlerRef.current === null) {
         volumeThrottlerRef.current = new Throttler(sendVolumeNow, { wait: VOLUME_IPC_MS });
       }
+
       volumeThrottlerRef.current.maybeExecute(value);
     },
     [sendVolumeNow]
@@ -90,19 +96,24 @@ export function usePlayerSettingsSync(): void {
 
   useEffect(() => {
     let previous = getPlayerSnapshot();
+
     return subscribePlayer(() => {
       const state = getPlayerSnapshot();
+
       if (state.volume !== previous.volume) {
         sendVolumeThrottled(state.volume);
       }
+
       if (state.hwdec !== previous.hwdec && !playbackAtoms.hasFile.get()) {
         ignore(setMpvProperty("hwdec", state.hwdec));
       }
+
       if (state.profile !== previous.profile && streamSession.get() === null) {
         applyPlayerProfile(state.profile).catch((error: unknown) =>
           reportBackgroundError("player.settings.profile", error)
         );
       }
+
       if (state.settings !== previous.settings) {
         if (settingsDebouncerRef.current === null) {
           settingsDebouncerRef.current = new Debouncer(
@@ -112,19 +123,26 @@ export function usePlayerSettingsSync(): void {
               previousSettingsRef.current = latest;
               const reference = baseline ?? latest;
               const jobs = buildSettingsJobs(reference, latest, full);
+
               if (jobs.length === 0) {
                 settingsSyncFailedRef.current = false;
+
                 return;
               }
+
               ignore(
                 Promise.all(jobs).then((failedLists) => {
                   const rejected = failedLists.flat();
                   settingsSyncFailedRef.current = rejected.length > 0;
+
                   if (rejected.length === 0) {
                     rejectedSettingsRef.current.clear();
+
                     return null;
                   }
+
                   reportRejectedSettings(rejected, rejectedSettingsRef.current);
+
                   return null;
                 })
               );
@@ -132,13 +150,16 @@ export function usePlayerSettingsSync(): void {
             { wait: SETTINGS_FLUSH_MS }
           );
         }
+
         settingsDebouncerRef.current.maybeExecute(state.settings);
       }
+
       if (state.eofMode !== previous.eofMode) {
         setEofModeCommand(state.eofMode).catch((error: unknown) =>
           reportBackgroundError("player.settings.eof", error)
         );
       }
+
       previous = state;
     });
   }, [sendVolumeThrottled]);

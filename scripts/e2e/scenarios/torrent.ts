@@ -13,6 +13,7 @@ function fixtureDir(): string {
   writeFileSync(join(dir, "[SubsPlease] Frieren - 01 [1080p].mkv"), content);
   writeFileSync(join(dir, "[SubsPlease] Frieren - 01 [1080p].ass"), content);
   writeFileSync(join(dir, "info.nfo"), "e2e");
+
   return dir;
 }
 
@@ -26,6 +27,7 @@ export const torrent: Scenario = {
         { sourceDir: fixtureDir() }
       );
       const hash = result.info_hash ?? "";
+
       if (!/^[0-9a-f]{40}$/.test(hash)) throw new Error(`bad info hash: ${hash || "empty"}`);
     });
 
@@ -36,6 +38,7 @@ export const torrent: Scenario = {
 
     await step("row is not in an error state", async () => {
       const error = page.locator("text=/failed|error/i").first();
+
       if ((await error.count()) > 0) throw new Error("error text visible on the torrent row");
     });
   },

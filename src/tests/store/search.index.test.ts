@@ -35,8 +35,10 @@ describe("unified index sync chain", () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "upsert_unified_index") {
         upserts += 1;
+
         if (upserts === 1) return firstGate;
       }
+
       return Promise.resolve(undefined);
     });
 

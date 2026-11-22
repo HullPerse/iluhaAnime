@@ -60,9 +60,12 @@ function Timeline({
   const timeFromClientX = useCallback(
     (clientX: number): number => {
       const element = barRef.current;
+
       if (!element || duration <= 0) return 0;
       const rect = element.getBoundingClientRect();
+
       if (rect.width <= 0) return 0;
+
       return clamp01((clientX - rect.left) / rect.width) * duration;
     },
     [duration]
@@ -71,6 +74,7 @@ function Timeline({
   const describeHover = useCallback(
     (clientX: number, time: number): void => {
       const element = barRef.current;
+
       if (!element) return;
       const rect = element.getBoundingClientRect();
       const half = TOOLTIP_WIDTH / 2;
@@ -94,11 +98,13 @@ function Timeline({
       setScrubTime(time);
       describeHover(event.clientX, time);
       const now = Date.now();
+
       if (now - lastScrub >= LIVE_SCRUB_INTERVAL) {
         lastScrub = now;
         onScrub(time);
       }
     };
+
     const onUp = (event: PointerEvent) => {
       setDragging(false);
       setScrubTime(null);
@@ -108,16 +114,19 @@ function Timeline({
         : rawTime;
       onCommitSeek(commitTime);
     };
+
     const cancel = () => {
       setDragging(false);
       setScrubTime(null);
     };
+
     const previousSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", cancel);
     window.addEventListener("blur", cancel);
+
     return () => {
       document.body.style.userSelect = previousSelect;
       window.removeEventListener("pointermove", onMove);
@@ -204,6 +213,7 @@ function Timeline({
                   : delta[event.key] === undefined
                     ? undefined
                     : displayTime + delta[event.key];
+
             if (target === undefined) return;
             event.preventDefault();
             event.stopPropagation();

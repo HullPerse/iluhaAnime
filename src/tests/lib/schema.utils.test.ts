@@ -19,6 +19,7 @@ describe("parseValue contract", () => {
   it("names the failing path in the error", () => {
     const parsed = parseValue({ id: -1, title: "x" }, ItemSchema);
     expect(parsed.ok).toBe(false);
+
     if (!parsed.ok) expect(parsed.error.message).toContain("id");
   });
 
@@ -42,10 +43,12 @@ describe("parseJson contract", () => {
   it("keeps a malformed json failure distinct from a schema failure", () => {
     const malformed = parseJson("{not json", ItemSchema);
     expect(malformed.ok).toBe(false);
+
     if (!malformed.ok) expect(malformed.error.message).not.toContain("id");
 
     const wrongShape = parseJson('{"id":"one"}', ItemSchema);
     expect(wrongShape.ok).toBe(false);
+
     if (!wrongShape.ok) expect(wrongShape.error.message).toContain("id");
   });
 

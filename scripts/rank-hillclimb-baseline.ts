@@ -1,4 +1,3 @@
-
 import { buildLearningMaps, countersOf } from "../src/lib/core/anilist/learning.utils";
 import { RANKING } from "../src/config/anilist/ranking.config";
 import { normalizeSearchText } from "@hullperse/hp_utils/normalize";
@@ -87,6 +86,7 @@ const TITLES = [
 ];
 
 const EVAL: Case[] = [];
+
 for (let i = 0; i < TITLES.length; i++) {
   const title = TITLES[i];
   const _query = title.slice(0, 5);
@@ -113,11 +113,13 @@ function rankWith(params: Params, candidates: FixtureCandidate[]): FixtureCandid
     value: normalizeSearchText(entry.value),
   }));
   const maps = buildLearningMaps(rows, NOW);
+
   return candidates
     .map((candidate) => {
       const stat = maps.suggestionStats[normalizeSearchText(candidate.value)];
       const counters = stat ? countersOf(stat) : null;
       let bonus = 0;
+
       if (counters) {
         const capped = (value: number, weight: number, cap: number) => Math.min(cap, Math.max(0, value) * weight);
         const positive =
@@ -127,6 +129,7 @@ function rankWith(params: Params, candidates: FixtureCandidate[]): FixtureCandid
         const ageHours = Math.max(0, (NOW - counters.lastUsedAt) / 3_600_000);
         bonus = (positive - negative) * 0.5 ** (ageHours / params.halflifeHours);
       }
+
       return { ...candidate, score: (candidate.score ?? 0) + bonus };
     })
     .sort(
@@ -142,15 +145,19 @@ function measure(params: Params): Metric {
   let top1 = 0;
   let mrr = 0;
   let found = 0;
+
   for (const { expected, candidates } of EVAL) {
     const ranked = rankWith(params, candidates);
     const rank = ranked.findIndex((entry) => normalizeSearchText(entry.value) === normalizeSearchText(expected)) + 1;
+
     if (rank > 0) {
       found += 1;
       mrr += 1 / rank;
+
       if (rank === 1) top1 += 1;
     }
   }
+
   return { top1: top1 / EVAL.length, mrr: mrr / EVAL.length, found: found / EVAL.length };
 }
 
@@ -178,8 +185,10 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
   let steps = 0;
   let improved = true;
   const startMs = performance.now();
+
   while (improved && steps < 60) {
     improved = false;
+
     for (const key of Object.keys(current) as (keyof Params)[]) {
       for (const delta of [-step[key], step[key]]) {
         const next = { ...current };
@@ -188,6 +197,7 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
         const better =
           metric.mrr > currentMetric.mrr + 1e-9 ||
           (Math.abs(metric.mrr - currentMetric.mrr) <= 1e-9 && metric.top1 > currentMetric.top1);
+
         if (better) {
           current = next;
           currentMetric = metric;
@@ -197,6 +207,7 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
       }
     }
   }
+
   return { params: current, metric: currentMetric, steps, ms: performance.now() - startMs };
 }
 

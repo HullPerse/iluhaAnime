@@ -24,6 +24,7 @@ function box(node: HTMLElement, rect: Partial<DOMRect> = {}): HTMLElement {
     ...rect,
   } as DOMRect;
   node.getBoundingClientRect = () => full;
+
   return node;
 }
 
@@ -32,13 +33,16 @@ function layer(role: string, rect: Partial<DOMRect> = {}): HTMLElement {
   node.setAttribute("role", role);
   document.body.append(node);
   nodes.push(node);
+
   return node;
 }
 
 function control(parent: HTMLElement = document.body): HTMLElement {
   const node = box(document.createElement("button"));
   parent.append(node);
+
   if (parent === document.body) nodes.push(node);
+
   return node;
 }
 
@@ -102,6 +106,7 @@ describe("scoped hint scan", () => {
 
     const top = topLayerElement();
     expect(top).toBe(dialog);
+
     if (!top) throw new Error("layer missing");
 
     const found = scanHintTargets(top).badges.map((badge) => badge.element);

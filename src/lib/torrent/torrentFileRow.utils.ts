@@ -10,6 +10,7 @@ import type { TorrentTreeFile } from "@/types/torrent/torrent";
 
 export function onDiskTitle(file: TorrentTreeFile, t: TFunc): string | undefined {
   if (!file.selected || file.completed) return undefined;
+
   return t("torrent.files.on.disk", { size: formatBytes(file.on_disk_bytes ?? 0) });
 }
 
@@ -23,6 +24,7 @@ export function resolvePlayerRowTarget(
   const resolvedPath = fullPath ?? (saveDir ? joinMediaPath(saveDir, file.name) : undefined);
   const track = isTrackFileName(fileNameFromPath(resolvedPath ?? file.displayName), trackExts);
   const queueStatus = resolvedPath ? queueMap.get(resolvedPath) : undefined;
+
   return {
     resolvedPath,
     track,
@@ -44,12 +46,16 @@ export function handlePlayerContextMenu(
   }
 ): void {
   event.preventDefault();
+
   if (args.type !== "player") return;
+
   if (event.ctrlKey || event.metaKey) {
     if (args.track || args.busy || !args.completed || !args.exists || !args.resolvedPath) return;
     args.onOpenInApp?.(args.resolvedPath);
+
     return;
   }
+
   openPath(String(args.saveDir));
 }
 
@@ -64,6 +70,7 @@ export function resolveFileRowInteractions(args: {
   onOpenInApp: ((fullPath: string) => void) | undefined;
 }): FileRowInteractions {
   const interactive = args.type === "player" && !args.track;
+
   return {
     interactive,
     contextMenu: interactive && Boolean(args.saveDir),

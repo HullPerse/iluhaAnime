@@ -26,7 +26,9 @@ export const SpellCorrectionsPanel = memo(
     placement: "below" | "above";
   }) => {
     const { t } = useI18n();
+
     if (corrections.length === 0) return null;
+
     return (
       <div
         role="tooltip"

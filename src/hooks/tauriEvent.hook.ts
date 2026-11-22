@@ -28,14 +28,17 @@ export function useTauriEvent<T>(
     let unlisten: (() => void) | undefined;
 
     listen<T>(event, (received) => {
-      handlerRef.current(received);
+      if (!disposed) handlerRef.current(received);
     })
       .then((unlistenFn) => {
         if (disposed) {
           unlistenFn();
+
           return;
         }
+
         unlisten = unlistenFn;
+
         return null;
       })
       .catch((error) => {
@@ -44,6 +47,7 @@ export function useTauriEvent<T>(
 
     return () => {
       disposed = true;
+
       if (unlisten) {
         unlisten();
       }

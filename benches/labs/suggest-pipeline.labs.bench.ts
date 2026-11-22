@@ -23,6 +23,7 @@ const WORDS = [
 
 function makeIndex(count: number): SearchAnimeSuggestion[] {
   const out: SearchAnimeSuggestion[] = [];
+
   for (let i = 0; i < count; i++) {
     out.push({
       id: i,
@@ -35,14 +36,17 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
       seasonYear: 2000 + (i % 26),
     });
   }
+
   return out;
 }
 
 function makeStats(count: number): Record<string, SearchQueryStat> {
   const stats: Record<string, SearchQueryStat> = {};
+
   for (let i = 0; i < count; i += 4) {
     stats[`frieren ${i}`] = { count: 2, lastUsedAt: Date.now(), selectedCount: 1 };
   }
+
   return stats;
 }
 
@@ -54,6 +58,7 @@ const QUERIES = ["friren", "naruto ship", "attack", "one", "steins"];
 group("suggest-pipeline @search @quick", () => {
   bench("suggest x5k steady state (per keystroke)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const out = getSearchSuggestions(q, {
         animeIndex: INDEX,
@@ -63,6 +68,7 @@ group("suggest-pipeline @search @quick", () => {
       });
       checksum += out.length + out.map((s) => s.value.length).reduce((a, b) => a + b, 0);
     }
+
     return checksum;
   });
 });

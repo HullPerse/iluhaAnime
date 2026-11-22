@@ -5,6 +5,7 @@ const PROXY_SCHEME = /^(socks5h?|https?):\/\//u;
 export function proxyScheme(value: string | null): ProxyScheme | null {
   if (value === null) return null;
   const match = PROXY_SCHEME.exec(value.trim());
+
   return (match?.[1] as ProxyScheme | undefined) ?? null;
 }
 
@@ -14,7 +15,9 @@ export function isValidProxyUrlFor(
 ): boolean {
   if (value === null || value.trim().length === 0) return true;
   const scheme = proxyScheme(value);
+
   if (scheme === null) return false;
+
   return schemes === undefined || schemes.includes(scheme);
 }
 
@@ -31,8 +34,10 @@ export function effectiveProxyUrl(
   fallback: string | null | undefined
 ): string | null {
   const primary = override?.trim() ?? "";
+
   if (primary !== "") return primary;
   const secondary = fallback?.trim() ?? "";
+
   return secondary !== "" ? secondary : null;
 }
 
@@ -42,7 +47,10 @@ export function searchProxyUrl(
   source: string
 ): string | undefined {
   const direct = proxies[source]?.trim();
+
   if (direct) return direct;
+
   if (source !== "sukebei") return undefined;
+
   return proxies.nyaa?.trim() || undefined;
 }

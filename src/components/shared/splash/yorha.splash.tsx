@@ -20,6 +20,7 @@ export function YorhaSplash({ stages, texts, fastLaunch, onToggleFastLaunch }: S
         location: 1 + Math.floor(Math.random() * 90),
       });
     }, 100);
+
     return () => {
       dotsTask.cancel();
       bandTask.cancel();

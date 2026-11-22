@@ -7,6 +7,7 @@ const ORBS = ["#f65314", "#7cbb00", "#00a1f1", "#ffbb00"];
 export function Win7Splash({ stages, texts, fastLaunch, onToggleFastLaunch }: SplashVariantProps) {
   const progress = splashProgress(stages);
   const percent = Math.round(progress * 100);
+
   return (
     <div
       role="status"

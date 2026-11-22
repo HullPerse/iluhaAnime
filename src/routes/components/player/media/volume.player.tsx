@@ -29,8 +29,10 @@ function VolumeControl({
   const handleVolume = useCallback(
     (clientX: number) => {
       const element = volumeRef.current;
+
       if (!element) return;
       const rect = element.getBoundingClientRect();
+
       if (rect.width <= 0) return;
       onVolume(clamp01((clientX - rect.left) / rect.width));
     },
@@ -47,6 +49,7 @@ function VolumeControl({
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
     window.addEventListener("blur", onUp);
+
     return () => {
       document.body.style.userSelect = previousSelect;
       window.removeEventListener("pointermove", onMove);
@@ -59,8 +62,11 @@ function VolumeControl({
   const displayVolume = Number(muted ? 0 : volume);
   const volumeIcon = (() => {
     if (volume === 0 || muted) return <VolumeX />;
+
     if (volume <= 0.33) return <Volume className="ml-1" />;
+
     if (volume <= 0.66) return <Volume1 />;
+
     return <Volume2 />;
   })();
 
@@ -109,6 +115,7 @@ function VolumeControl({
                 : delta[event.key] === undefined
                   ? undefined
                   : volume + delta[event.key];
+
           if (target === undefined) return;
           event.preventDefault();
           event.stopPropagation();

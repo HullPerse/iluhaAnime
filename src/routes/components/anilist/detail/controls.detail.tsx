@@ -94,14 +94,19 @@ function AniListActionControls({
 
   const handleSave = async () => {
     if (statusMissing) return;
+
     if (scoreInvalid) {
       setSaveError(scoreErrorMessage);
+
       return;
     }
+
     if (datesInvalid(editStarted, editCompleted)) {
       setSaveError(t("anilist.controls.date.invalid"));
+
       return;
     }
+
     const values = buildSaveValues({
       status: editStatus,
       progressInput: editProgress,
@@ -119,14 +124,16 @@ function AniListActionControls({
     });
     setSaving(true);
     setSaveError("");
-    try {
+    await (async () => {
       const previousStatus = readListStatus(queryClient, anime.id);
       const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
+
       if (previousStatus !== null) {
         patchListEntry(queryClient, anime.id, values);
       } else {
         insertListEntry(queryClient, anime, values);
       }
+
       const startedAt = performance.now();
       const [saved, error] = await attempt(
         anilistApi.saveEntry({
@@ -143,6 +150,7 @@ function AniListActionControls({
           customLists: (customLists ?? []).length > 0 ? values.custom_lists : undefined,
         })
       );
+
       if (error) {
         if (previous !== undefined) queryClient.setQueryData(queryKeys.anilistData(), previous);
         const message = error instanceof Error ? error.message : String(error);
@@ -155,15 +163,18 @@ function AniListActionControls({
           error: reason,
         });
         setSaveError(t("anilist.controls.save.error.detail", { error: reason }));
+
         return;
       }
+
       const reconciled = reconcileSavedEntry(queryClient, anime.id, previousStatus, values, saved);
       markOwnAnilistListStatus(anime.id, reconciled.status);
+
       if (reconciled.bucketChanged) onSaved?.();
       onClose?.();
-    } finally {
+    })().finally(() => {
       setSaving(false);
-    }
+    });
   };
 
   return (

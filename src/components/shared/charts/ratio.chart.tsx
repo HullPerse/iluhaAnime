@@ -66,6 +66,7 @@ export function RatioChart({
             plot.width
           );
           const activeSegment = cursor.active == null ? undefined : segments[cursor.active];
+
           return (
             <>
               <rect
@@ -81,6 +82,7 @@ export function RatioChart({
               {segments.map((segment, index) => {
                 const datum = data[index];
                 const isActive = cursor.active === index;
+
                 return (
                   <rect
                     key={datum.key}
@@ -114,13 +116,16 @@ export function RatioChart({
                   const rect = event.currentTarget.getBoundingClientRect();
                   const x = clamp(event.clientX - rect.left, 0, Math.max(0, plot.width - 1));
                   let index = segments.length - 1;
+
                   for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
                     const segment = segments[segmentIndex];
+
                     if (x < segment.start + segment.length) {
                       index = segmentIndex;
                       break;
                     }
                   }
+
                   cursor.setActive(index);
                 }}
                 onPointerLeave={cursor.handlePointerLeave}

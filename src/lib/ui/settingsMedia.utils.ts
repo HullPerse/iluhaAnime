@@ -7,5 +7,6 @@ export function parseExtensions(raw: string): string[] | null {
         .filter(Boolean)
     ),
   ];
+
   return list.length > 0 ? list : null;
 }

@@ -79,8 +79,11 @@ export function useStreamRouteGuard({
     retriedAt: 0,
   });
   const sessionRef = useRef<StreamOpen | null>(session);
-  const retryRef = useRef(0);
-  const ioRef = useRef({ setLoadingFile, setFailed });
+  const retryRef = useRef<number>(0);
+  const ioRef = useRef<{ setLoadingFile: typeof setLoadingFile; setFailed: typeof setFailed }>({
+    setLoadingFile,
+    setFailed,
+  });
 
   useEffect(() => {
     ioRef.current = { setLoadingFile, setFailed };
@@ -90,6 +93,7 @@ export function useStreamRouteGuard({
     const key = session ? streamRouteKey(session) : "";
     sessionRef.current = session;
     const current = stateRef.current;
+
     if (current.key === key) return;
     retryRef.current += 1;
     stateRef.current = freshState(key, session?.proxyUrl ?? null);
@@ -97,6 +101,7 @@ export function useStreamRouteGuard({
 
   const giveUp = useCallback(() => {
     const state = stateRef.current;
+
     if (state.gaveUp) return;
     state.gaveUp = true;
     state.playing = false;
@@ -108,18 +113,24 @@ export function useStreamRouteGuard({
   const retry = useCallback(() => {
     const state = stateRef.current;
     const current = sessionRef.current;
+
     if (!current || state.gaveUp) return;
     const now = Date.now();
+
     if (now - state.retriedAt < RETRY_COOLDOWN_MS) return;
+
     if (state.attempts >= MAX_RETRIES) {
       giveUp();
+
       return;
     }
 
     let nextProxy: string | null | undefined;
+
     if (state.attempts === 0) {
       nextProxy = alternateProxyUrl(state.baseProxy, getAnimelibProxyUrl());
     }
+
     if (nextProxy === undefined) nextProxy = state.baseProxy;
 
     const resume = streamRetryPosition(current, playbackAtoms.timePos.get());
@@ -134,6 +145,7 @@ export function useStreamRouteGuard({
     state.startedAt = now;
     state.playing = false;
     const retryId = ++retryRef.current;
+
     if (resume !== undefined) playbackAtoms.streamResume.set(resume);
     ioRef.current.setFailed(false);
     ioRef.current.setLoadingFile(true);
@@ -141,6 +153,7 @@ export function useStreamRouteGuard({
       openStream(next)
         .then(() => {
           const latest = streamSession.get();
+
           if (
             retryRef.current !== retryId ||
             latest === null ||
@@ -150,6 +163,7 @@ export function useStreamRouteGuard({
             return undefined;
           sessionRef.current = next;
           streamSession.set(next);
+
           return undefined;
         })
         .catch((error: unknown) => reportBackgroundError("player.stream.route", error))
@@ -159,14 +173,18 @@ export function useStreamRouteGuard({
   useEffect(() => {
     const { cancel } = createInterval(() => {
       const state = stateRef.current;
+
       if (sessionRef.current === null || state.playing || state.gaveUp) return;
       const elapsed = Date.now() - state.startedAt;
+
       if (elapsed < STALL_MS) return;
       const speed = playbackAtoms.cacheSpeed.get() ?? 0;
       const stalled = elapsed >= STALL_LIMIT_MS || speed < SLOW_BYTES_PER_SECOND;
+
       if (!stalled) return;
       retry();
     }, CHECK_MS);
+
     return () => {
       cancel();
       retryRef.current += 1;
@@ -176,7 +194,9 @@ export function useStreamRouteGuard({
   const markPlaying = useCallback(() => {
     const state = stateRef.current;
     const current = sessionRef.current;
+
     if (!current) return;
+
     if (playbackAtoms.path.get() !== current.mediaUrl) return;
     state.playing = true;
     state.gaveUp = false;
@@ -185,11 +205,14 @@ export function useStreamRouteGuard({
 
   const failNow = useCallback(() => {
     const current = sessionRef.current;
+
     if (!current) {
       ioRef.current.setLoadingFile(false);
       ioRef.current.setFailed(true);
+
       return;
     }
+
     retry();
   }, [retry]);
 

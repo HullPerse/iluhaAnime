@@ -67,6 +67,7 @@ import { tauriTransport } from "@/api/transport.api";
 
 export class CardsApi {
   private readonly transport: ApiTransport;
+
   private readonly cardsClient: CardsClient;
 
   constructor(config: CardsApiConfig = {}) {

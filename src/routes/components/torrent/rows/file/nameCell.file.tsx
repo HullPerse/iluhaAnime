@@ -39,6 +39,8 @@ export function FileNameCell({
       {children}
     </span>
   );
+
   if (!menuEntries) return cell;
+
   return <ContextMenu entries={menuEntries}>{cell}</ContextMenu>;
 }

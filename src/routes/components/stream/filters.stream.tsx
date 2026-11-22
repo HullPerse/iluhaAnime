@@ -16,7 +16,9 @@ export default function StreamFiltersModal({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+
   if (!open) return null;
+
   return (
     <Modal header={t("stream.filters.title")} onClose={onClose} className="w-xl">
       <FiltersContent initial={filters} onApply={onApply} onClose={onClose} />

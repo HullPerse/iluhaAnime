@@ -18,6 +18,7 @@ export default function LabMatrix({ cards }: { cards: readonly OpenedCard[] }) {
     >
       {cards.map((card) => {
         const combination = `${card.kind}:${card.rarity}:${card.variant}`;
+
         return (
           <figure
             key={`${card.entityId}:${combination}`}

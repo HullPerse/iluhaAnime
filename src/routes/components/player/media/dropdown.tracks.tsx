@@ -55,7 +55,9 @@ function TrackDropdown({
         setOpen(false);
       }
     };
+
     window.addEventListener("mousedown", onDown);
+
     return () => {
       window.removeEventListener("mousedown", onDown);
     };
@@ -120,6 +122,7 @@ function TrackDropdown({
           )}
           {options.map((option) => {
             const selected = option.value === value;
+
             return (
               <button
                 key={option.value}

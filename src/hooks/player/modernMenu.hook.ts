@@ -93,6 +93,7 @@ export function usePlayerModernMenu({
 }: PlayerModernMenuDeps): ContextMenuEntry[] {
   return useMemo(() => {
     if (!enabled) return [];
+
     return buildModernPlayerMenu(
       {
         hasFile,

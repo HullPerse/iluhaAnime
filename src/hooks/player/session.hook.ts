@@ -53,6 +53,7 @@ function startPlayerSession(initialOptions: Record<string, unknown>): Promise<vo
   })();
 
   sessionStart = started;
+
   return started;
 }
 
@@ -67,7 +68,7 @@ export function usePlayerSession({
   resumeRef: RefObject<number | undefined>;
   initialWatchRef: RefObject<WatchState | null | undefined>;
 }) {
-  const [attempt, setAttempt] = useState(0);
+  const [attempt, setAttempt] = useState<number>(0);
   const [failed, setFailed] = useState<boolean>(false);
   const [loadingFile, setLoadingFile] = useState<boolean>(false);
   const [liveWatch, setLiveWatch] = useState<PlaylistWatch | null>(null);
@@ -77,7 +78,9 @@ export function usePlayerSession({
       destroyTask.cancel();
       destroyTask = null;
     }
+
     let disposed = false;
+
     if (attempt > 0) sessionStart = null;
 
     const start = async () => {
@@ -96,11 +99,15 @@ export function usePlayerSession({
         }),
         ...marginOptions(seedMargins),
       });
+
       if (disposed) return;
       syncMarginsRef.current();
       const request = await takePendingOpen();
+
       if (disposed) return;
+
       if (request) initialWatchRef.current = request.initialWatch;
+
       if (request && request.stream) {
         streamSession.set(request.stream);
         setLoadingFile(true);
@@ -115,6 +122,7 @@ export function usePlayerSession({
 
     start().catch((error: unknown) => {
       sessionStart = null;
+
       if (disposed) return;
       setFailed(true);
       addNotification(translate("player.media.error.title"), "error", String(error));

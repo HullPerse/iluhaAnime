@@ -17,14 +17,20 @@ const NO_SESSIONS: SearchSessionsData = { rutracker: false, nekobt: false, erai:
 async function checkSession(source: Source): Promise<SearchSessionsData> {
   switch (source) {
     case "rutracker": {
-      return { ...NO_SESSIONS, rutracker: await withSessionTimeout(torrentApi.checkRutrackerSession()) };
+      return {
+        ...NO_SESSIONS,
+        rutracker: await withSessionTimeout(torrentApi.checkRutrackerSession()),
+      };
     }
+
     case "nekobt": {
       return { ...NO_SESSIONS, nekobt: await withSessionTimeout(torrentApi.checkNekobtSession()) };
     }
+
     case "erai-raws": {
       return { ...NO_SESSIONS, erai: await withSessionTimeout(torrentApi.checkEraiSession()) };
     }
+
     default: {
       return NO_SESSIONS;
     }
@@ -41,6 +47,7 @@ export function useSearchSessions(source: Source) {
     enabled: authRequired,
     queryFn: () => checkSession(source),
   });
+
   return {
     rutrackerAuth: sessions?.rutracker ?? false,
     nekobtAuth: sessions?.nekobt ?? false,

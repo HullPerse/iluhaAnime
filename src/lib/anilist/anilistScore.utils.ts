@@ -14,8 +14,10 @@ const KNOWN_FORMATS: readonly AnilistScoreFormat[] = [
 export function parseScoreFormat(value: unknown): AnilistScoreFormat {
   if (typeof value === "string") {
     const upper = value.toUpperCase();
+
     if ((KNOWN_FORMATS as readonly string[]).includes(upper)) return upper as AnilistScoreFormat;
   }
+
   return DEFAULT_SCORE_FORMAT;
 }
 
@@ -27,6 +29,7 @@ export function resolveDisplayScoreFormat(
   if (mode === "friend") {
     return parseScoreFormat(friendFormat);
   }
+
   return parseScoreFormat(userFormat);
 }
 
@@ -64,15 +67,18 @@ export function numericInputStep(format: AnilistScoreFormat): string {
 
 export function scoreOptions(format: AnilistScoreFormat): Array<{ value: string; label: string }> {
   const none = [{ value: "", label: "-" }];
+
   if (format === "POINT_10") {
     return [
       ...none,
       ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: String(n), label: String(n) })),
     ];
   }
+
   if (format === "POINT_5") {
     return [...none, ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))];
   }
+
   if (format === "POINT_3") {
     return [
       ...none,
@@ -81,6 +87,7 @@ export function scoreOptions(format: AnilistScoreFormat): Array<{ value: string;
       { value: "3", label: ":)" },
     ];
   }
+
   return [];
 }
 
@@ -96,6 +103,7 @@ export function hasRating(score: number | null | undefined): boolean {
 
 export function smileyForScore(score: number | null | undefined): string | null {
   if (score == null || score === 0) return null;
+
   return SMILEYS[score] ?? null;
 }
 
@@ -105,16 +113,22 @@ export function scoreIconFor(
 ): ScoreIcon {
   if (format === "POINT_3") {
     if (score === 1) return "frown";
+
     if (score === 2) return "meh";
+
     if (score === 3) return "smile";
+
     return "meh";
   }
+
   return "star";
 }
 
 export function formatScore(score: number | null | undefined, format: AnilistScoreFormat): string {
   if (score == null || score === 0) return "-";
+
   if (format === "POINT_3") return smileyForScore(score) ?? "-";
+
   return `${score}${scoreFormatSuffix(format)}`;
 }
 
@@ -123,6 +137,7 @@ export function formatEntryScore(
   format: AnilistScoreFormat
 ): string | null {
   if (score == null || score === 0) return null;
+
   return formatScore(score, format);
 }
 
@@ -131,15 +146,19 @@ export function normalizeToTen(
   format: AnilistScoreFormat
 ): number | null {
   if (score == null || score === 0) return null;
+
   if (format === "POINT_100") {
     return score / 10;
   }
+
   if (format === "POINT_5") {
     return score * 2;
   }
+
   if (format === "POINT_3") {
     return Math.round((score * 10) / 3);
   }
+
   return score;
 }
 
@@ -153,18 +172,26 @@ const SCORE_FORMAT_ERROR: Record<AnilistScoreFormat, TranslationKey> = {
 
 export function validateScoreInput(raw: string, format: AnilistScoreFormat): ValidatedScore {
   const trimmed = raw.trim();
+
   if (trimmed === "") return { value: null, error: null };
   const value = Number(trimmed);
+
   if (!Number.isFinite(value)) return { value: null, error: "anilist.controls.score.need.number" };
   const max = scoreFormatMax(format);
   const formatError = SCORE_FORMAT_ERROR[format];
+
   if (value < 0 || value > max) return { value: null, error: formatError };
+
   if (format === "POINT_10_DECIMAL") {
     const rounded = Math.round(value * 10) / 10;
+
     if (Math.abs(rounded - value) > 1e-9) return { value: null, error: formatError };
+
     return { value, error: null };
   }
+
   if (!Number.isInteger(value)) return { value: null, error: formatError };
+
   return { value, error: null };
 }
 
@@ -176,5 +203,6 @@ export function formatMeanScore(
   const max = scoreFormatMax(format);
   const score = meanScore > max ? (meanScore * max) / 100 : meanScore;
   const rounded = Math.round(score * 10) / 10;
+
   return `${rounded}${scoreFormatSuffix(format) || `/${max}`}`;
 }

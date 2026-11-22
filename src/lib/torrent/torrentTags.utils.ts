@@ -41,6 +41,7 @@ const TOKEN_RE = /(\S+?)(>=|<=|!=|=|>|<)(\S+)/;
 
 function splitTagToken(raw: string): { key: string; op: string; value: string } | null {
   const tokenMatch = TOKEN_RE.exec(raw);
+
   if (!tokenMatch) return null;
   const keyRaw = tokenMatch[1] ?? "";
   const op = tokenMatch[2] ?? "";
@@ -48,31 +49,40 @@ function splitTagToken(raw: string): { key: string; op: string; value: string } 
   const value =
     valueRaw.startsWith('"') && valueRaw.endsWith('"') ? valueRaw.slice(1, -1) : valueRaw;
   const key = keyRaw.toLowerCase();
+
   if (!key || !value) return null;
+
   return { key, op, value };
 }
 
 export function findInvalidTorrentTag(query: string): { key: string; raw: string } | null {
   const tokenRe = /"[^"]*"|\S+/g;
   let match: RegExpExecArray | null;
+
   while ((match = tokenRe.exec(query)) !== null) {
     const raw = match[0];
     const split = splitTagToken(raw);
+
     if (!split || !KNOWN_TAG_KEYS.has(split.key)) continue;
+
     if (!validTag(split.key, split.op, split.value)) return { key: split.key, raw };
   }
+
   return null;
 }
 
 function parseSeeds(value: string): number | undefined {
   if (!/^\d+$/.test(value)) return undefined;
   const num = Number(value);
+
   return num >= 0 ? num : undefined;
 }
 
 function parseSizeMb(value: string): number | undefined {
   const bytes = parseSize(value);
+
   if (!bytes || bytes <= 0) return undefined;
+
   return bytes / 1_048_576;
 }
 
@@ -88,7 +98,9 @@ const TAG_VALIDATORS: Record<string, (op: string, value: string) => boolean> = {
 
 function validTag(key: string, op: string, value: string): TorrentTagKey | null {
   const validate = TAG_VALIDATORS[key];
+
   if (!validate || !validate(op, value)) return null;
+
   return key as TorrentTagKey;
 }
 
@@ -113,42 +125,52 @@ export function torrentTagsToFilters(tags: TorrentTag[]): {
 } {
   const filters: Partial<SearchFilters> = {};
   let source: Source | null = null;
+
   for (const tag of tags) {
     const value = normalizeTagValue(tag);
+
     switch (tag.key) {
       case "quality": {
         filters.quality = value;
         break;
       }
+
       case "codec": {
         filters.codec = value;
         break;
       }
+
       case "lang": {
         filters.language = value;
         break;
       }
+
       case "seeds": {
         const num = parseSeeds(value) ?? 0;
         filters.minSeeders = tag.op === ">" ? num + 1 : num;
         break;
       }
+
       case "size": {
         const mb = parseSizeMb(value) ?? 0;
+
         if (tag.op === "<" || tag.op === "<=") filters.sizeMax = mb;
         else if (tag.op === ">" || tag.op === ">=") filters.sizeMin = mb;
         else {
           filters.sizeMin = mb;
           filters.sizeMax = mb;
         }
+
         break;
       }
+
       case "source": {
         source = value as Source;
         break;
       }
     }
   }
+
   return { filters, source };
 }
 
@@ -157,14 +179,18 @@ export function parseTorrentTags(query: string): ParsedTorrentTags {
   const kept: string[] = [];
   const tokenRe = /"[^"]*"|\S+/g;
   let match: RegExpExecArray | null;
+
   while ((match = tokenRe.exec(query)) !== null) {
     const raw = match[0];
     const split = splitTagToken(raw);
+
     if (!split) {
       kept.push(raw);
       continue;
     }
+
     const key = validTag(split.key, split.op, split.value);
+
     if (key && split.value) {
       tags.push({
         end: match.index + raw.length,
@@ -176,7 +202,9 @@ export function parseTorrentTags(query: string): ParsedTorrentTags {
       });
       continue;
     }
+
     kept.push(raw);
   }
+
   return { cleanQuery: kept.join(" ").trim(), tags };
 }

@@ -12,6 +12,7 @@ export function buildTorrentView(
   source: Source
 ): TorrentView {
   const shellTitle = source === "nekobt" && /^(home|neko\s*bt)$/i.test(details.title);
+
   return {
     ...details,
     title: shellTitle ? item.title : nonEmpty(details.title, item.title),

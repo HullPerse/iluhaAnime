@@ -9,6 +9,7 @@ export function useWindowDrag(onMove: (clientX: number) => void) {
     const handleUp = () => setDragging(false);
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);

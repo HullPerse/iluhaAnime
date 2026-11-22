@@ -17,6 +17,7 @@ export default function AniListRecsModal({
   onAnimeClick,
 }: Props) {
   const { t } = useI18n();
+
   if (!open) return null;
 
   const visible = recommendations.filter((r) => !watchedIds.has(r.id));

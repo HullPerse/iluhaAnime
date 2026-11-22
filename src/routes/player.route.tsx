@@ -118,6 +118,7 @@ function PlayerRoute() {
           limit: 100,
         })
       );
+
       return results ?? [];
     },
     enabled: !!debouncedSearch,
@@ -128,20 +129,24 @@ function PlayerRoute() {
   const allCategoryEntries = useCell(categoryAtoms.entries);
   const categorizedPaths = useMemo(() => {
     const paths = new Set<string>();
+
     for (const list of Object.values(allCategoryEntries)) {
       for (const e of list) {
         if (e.type === "folder" && e.folderPath) paths.add(e.folderPath);
       }
     }
+
     return paths;
   }, [allCategoryEntries]);
   const categorizedHashes = useMemo(() => {
     const hashes = new Set<string>();
+
     for (const list of Object.values(allCategoryEntries)) {
       for (const e of list) {
         if (e.type === "torrent" && e.infoHash) hashes.add(e.infoHash);
       }
     }
+
     return hashes;
   }, [allCategoryEntries]);
 
@@ -162,12 +167,14 @@ function PlayerRoute() {
 
   const displayTrees = useMemo(() => {
     let trees = visibleFolderTrees;
+
     if (debouncedSearch) {
       const matchingPaths = new Set(searchResults.map((r) => r.path));
       trees = trees
         .map((t) => filterTreeByPaths(t, matchingPaths))
         .filter((t): t is FolderNode => t !== null);
     }
+
     return trees.filter((t) => !categorizedPaths.has(t.path));
   }, [visibleFolderTrees, searchResults, debouncedSearch, categorizedPaths]);
 
@@ -190,7 +197,9 @@ function PlayerRoute() {
       names.set(node.path, node.name);
       node.children.forEach(visit);
     };
+
     folderTrees.forEach(visit);
+
     return hiddenPlayerFolders.map((path) => ({
       path,
       name: names.get(path) ?? path.split(/[\\/]/).filter(Boolean).pop() ?? path,
@@ -214,12 +223,15 @@ function PlayerRoute() {
         attempts: 2,
         delay: 200,
       });
+
       if (error !== null) return false;
+
       return unwrapOr(parseValue(value, FfprobeSchema), false);
     },
     staleTime: 0,
   });
   let probeStatus: FFMPEGStatus = "checking";
+
   if (ffprobeOk === true) probeStatus = "ok";
   else if (ffprobeOk === false) probeStatus = "missing";
   const ffmpegStatus: FFMPEGStatus = ffmpegOverride ?? probeStatus;
@@ -227,9 +239,11 @@ function PlayerRoute() {
   const allTorrentIds = useMemo(() => torrents.map((t) => t.id), [torrents]);
   const pollingTorrentIds = useMemo(() => {
     const ids = new Set<number>();
+
     for (const torrent of torrents) {
       if (isCurrentDownload(torrent) || expanded.has(torrent.id)) ids.add(torrent.id);
     }
+
     return ids;
   }, [expanded, torrents]);
   const { files: torrentFilesMap, pendingIds: torrentPendingIds } = useTorrentFilesMap(
@@ -242,13 +256,16 @@ function PlayerRoute() {
   useEffect(() => {
     setTorrentLoading((prev) => {
       if (prev.size !== torrentPendingIds.size) return torrentPendingIds;
+
       for (const id of torrentPendingIds) if (!prev.has(id)) return torrentPendingIds;
+
       return prev;
     });
   }, [torrentPendingIds]);
 
   useEffect(() => {
     const cached = cacheAtoms.folderTrees.get();
+
     if (cached.length > 0) setFolderTrees(cached.map((c) => c.tree));
   }, []);
 
@@ -257,6 +274,7 @@ function PlayerRoute() {
     let cancelled = false;
 
     const print = fingerprint(savedFolderPaths, videoExtensions);
+
     if (print === scannedFingerprint.current) return;
 
     setScanProgress({ current: 0, total: savedFolderPaths.length });
@@ -282,6 +300,7 @@ function PlayerRoute() {
         done?: boolean;
       }>("folder-scan-progress", (event) => {
         if (cancelled || !event.payload.done) return;
+
         if (!savedFolderPaths.includes(event.payload.path)) return;
         done.add(event.payload.path);
         setScanProgress({ current: done.size, total: savedFolderPaths.length });
@@ -289,26 +308,34 @@ function PlayerRoute() {
         .then((unlisten) =>
           runScan().then((outcome) => {
             unlisten();
+
             return outcome;
           })
         )
         .catch((error: unknown) => {
           reportBackgroundError("folders.scan.progress", error);
+
           return runScan();
         });
       const [results, scanError] = await scan;
+
       if (cancelled) return;
+
       if (scanError) {
         reportBackgroundError("folders.scan", scanError);
+
         if (settingsAtoms.notifyScanErrors.get())
           showErrorOnce("folders-scan", t("notification.scan.failed"), scanError.message);
         setScanProgress(null);
+
         return;
       }
+
       const trees = folderTreesFromScan(results ?? []);
       setFolderTrees(trees);
       setScanProgress(null);
       scannedFingerprint.current = print;
+
       if (cancelled) return;
       setCachedFolderTrees(trees.map((t) => ({ path: t.path, tree: t })));
     })();
@@ -346,9 +373,11 @@ function PlayerRoute() {
       debounceMs: WATCHER_DEBOUNCE_MS[watcherDelay],
     }).catch((error) => {
       reportBackgroundError("folders.watch.start", error);
+
       if (settingsAtoms.notifyScanErrors.get())
         showErrorOnce("folders-scan", t("notification.scan.failed"), String(error));
     });
+
     return () => {
       invokeTyped("stop_watching_folders").catch((error) =>
         reportBackgroundError("folders.watch.stop", error)
@@ -366,21 +395,24 @@ function PlayerRoute() {
 
   const handleOpenFolder = useCallback(async () => {
     const folder = await open({ multiple: false, directory: true });
+
     if (!folder) return;
+
     if (folderTrees.some((f) => f.path === folder)) return;
 
     setLoading(true);
     setScanProgress({ current: 0, total: 0 });
-    try {
-      const unlistenPromise = listen<{
+    const unlistenPromise = attempt(
+      listen<{
         path: string;
         current: number;
         total: number;
       }>("folder-scan-progress", (e) => {
         if (e.payload.path !== folder) return;
         setScanProgress({ current: e.payload.current, total: e.payload.total });
-      });
-
+      })
+    );
+    await (async () => {
       const [results, scanError] = await attempt(
         invokeValidated<FolderScanResult[]>(
           "scan_video_folders_indexed",
@@ -394,8 +426,10 @@ function PlayerRoute() {
         )
       );
       const entries = results?.[0]?.entries ?? [];
+
       if (scanError) {
         reportBackgroundError("folders.scan", scanError);
+
         if (settingsAtoms.notifyScanErrors.get())
           showError(t("notification.scan.failed"), scanError.message);
       } else if (entries.length > 0) {
@@ -403,6 +437,7 @@ function PlayerRoute() {
         const next = [...folderTrees, tree];
         setFolderTrees(next);
         patchSettings({ savedFolderPaths: next.map((t) => t.path) });
+
         if (scannedFingerprint.current !== null)
           scannedFingerprint.current = fingerprint(
             next.map((t) => t.path),
@@ -410,14 +445,14 @@ function PlayerRoute() {
           );
         setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
       }
-      const unlisten = await unlistenPromise.catch((error) =>
-        reportBackgroundError("folderscan.unlisten", error)
-      );
-      unlisten?.();
-    } finally {
+    })().finally(async () => {
+      const [unlisten, error] = await unlistenPromise;
       setLoading(false);
       setScanProgress(null);
-    }
+
+      if (error) reportBackgroundError("folderscan.unlisten", error);
+      unlisten?.();
+    });
   }, [folderTrees, t, videoExtensions, scanThreads]);
 
   const handleRemoveFolder = useCallback(
@@ -430,6 +465,7 @@ function PlayerRoute() {
       const next = folderTrees.filter((t) => t.path !== path);
       setFolderTrees(next);
       patchSettings({ savedFolderPaths: next.map((t) => t.path) });
+
       if (scannedFingerprint.current !== null)
         scannedFingerprint.current = fingerprint(
           next.map((t) => t.path),
@@ -444,8 +480,10 @@ function PlayerRoute() {
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
       const next = new Set(prev);
+
       if (next.has(id)) next.delete(id);
       else next.add(id);
+
       return next;
     });
   }, []);

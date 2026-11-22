@@ -47,31 +47,39 @@ const NORM_CANDIDATES = CANDIDATES.map(normalizeSearchText);
 group("score @pilot @search @quick", () => {
   bench("query-aware x200 (normalize + parse per call)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       for (const c of CANDIDATES) {
         checksum += fuzzyMatchScore(q, c) ?? 0;
       }
     }
+
     return checksum;
   });
 
   bench("pre-normalized x200 (norm once per side)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
+
       for (const nc of NORM_CANDIDATES) {
         checksum += fuzzyMatchScorePreNormalized(nq, nc) ?? 0;
       }
     }
+
     return checksum;
   });
 
   bench("pre-normalized SLOWED x200 (added 2-gram loop)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
+
       for (const nc of NORM_CANDIDATES) {
         checksum += fuzzyMatchScorePreNormalized(nq, nc) ?? 0;
+
         for (let a = 0; a < nq.length; a++) {
           for (let b = a + 1; b <= nq.length; b++) {
             checksum ^= Math.trunc(a * 31 + b * 17 + nc.length);
@@ -79,6 +87,7 @@ group("score @pilot @search @quick", () => {
         }
       }
     }
+
     return checksum;
   });
 });

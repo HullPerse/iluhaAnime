@@ -6,11 +6,13 @@ const SAMPLES = 1000;
 function percentile(sorted: number[], q: number): number {
   if (sorted.length === 0) throw new Error("no samples collected");
   const index = Math.min(sorted.length - 1, Math.floor(q * sorted.length));
+
   return sorted[index] ?? 0;
 }
 
 async function main(): Promise<void> {
   const browser = await connectCdp(60_000);
+
   try {
     const page = await mainPage(browser);
     await waitForReady(page);
@@ -21,15 +23,20 @@ async function main(): Promise<void> {
             __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: unknown) => Promise<unknown> };
           }
         ).__TAURI_INTERNALS__;
+
         if (!internals) throw new Error("Tauri runtime not present in page");
+
         for (let i = 0; i < input.warmup; i++) await internals.invoke("ping");
         const out: number[] = [];
+
         for (let i = 0; i < input.samples; i++) {
           const start = performance.now();
           const pong = await internals.invoke("ping");
+
           if (pong !== "pong") throw new Error(`unexpected ping reply: ${String(pong)}`);
           out.push(performance.now() - start);
         }
+
         return out;
       },
       { warmup: WARMUP, samples: SAMPLES }

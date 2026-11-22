@@ -9,6 +9,7 @@ function flushAll(): void {
 
 function installListeners(): void {
   if (installed) return;
+
   if (typeof window === "undefined" || typeof document === "undefined") return;
   installed = true;
   window.addEventListener("beforeunload", flushAll);

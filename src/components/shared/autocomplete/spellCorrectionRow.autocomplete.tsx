@@ -16,6 +16,7 @@ export const SpellCorrectionRow = memo(
       () => splitByRanges(correction, findSubsequenceRanges(correction, query)),
       [correction, query]
     );
+
     return (
       <button
         type="button"

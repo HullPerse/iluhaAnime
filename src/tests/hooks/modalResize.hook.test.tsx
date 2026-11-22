@@ -19,6 +19,7 @@ const rafMock = vi.fn((callback: FrameRequestCallback): number => {
   const id = nextFrameId;
   nextFrameId += 1;
   frames.set(id, callback);
+
   return id;
 });
 
@@ -29,6 +30,7 @@ const cancelRafMock = vi.fn((id: number): void => {
 function Harness({ enabled }: { enabled: boolean }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   useModalResize(element, enabled);
+
   return <div data-testid="popup" ref={setElement} />;
 }
 
@@ -36,6 +38,7 @@ function DelayedHarness({ enabled }: { enabled: boolean }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState<boolean>(false);
   useModalResize(element, enabled);
+
   return (
     <div>
       <button type="button" onClick={() => setMounted(true)}>
@@ -94,8 +97,11 @@ beforeEach(() => {
       constructor(callback: ResizeObserverCallback) {
         resizeCallback = callback;
       }
+
       observe(): void {}
+
       unobserve(): void {}
+
       disconnect(): void {}
     }
   );
@@ -120,8 +126,10 @@ const restoreProperty = (
 ): void => {
   if (descriptor) {
     Object.defineProperty(target, key, descriptor);
+
     return;
   }
+
   Reflect.deleteProperty(target, key);
 };
 

@@ -20,8 +20,11 @@ const MINUTES_IN_ALMOST_TWO_DAYS = 2520;
 
 function compareAsc(laterMs: number, earlierMs: number): number {
   const diff = laterMs - earlierMs;
+
   if (diff < 0) return -1;
+
   if (diff > 0) return 1;
+
   return diff;
 }
 
@@ -39,12 +42,14 @@ function timezoneOffsetMs(dateMs: number): number {
     )
   );
   utc.setUTCFullYear(date.getFullYear());
+
   return dateMs - utc.getTime();
 }
 
 function calendarMonths(laterMs: number, earlierMs: number): number {
   const later = new Date(laterMs);
   const earlier = new Date(earlierMs);
+
   return (
     (later.getFullYear() - earlier.getFullYear()) * 12 + (later.getMonth() - earlier.getMonth())
   );
@@ -52,21 +57,27 @@ function calendarMonths(laterMs: number, earlierMs: number): number {
 
 function isLastDayOfMonth(dateMs: number): boolean {
   const date = new Date(dateMs);
+
   return date.getDate() === new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
 function differenceInMonths(laterMs: number, earlierMs: number): number {
   const sign = compareAsc(laterMs, earlierMs);
   const calendar = Math.abs(calendarMonths(laterMs, earlierMs));
+
   if (calendar < 1) return 0;
   const working = new Date(laterMs);
+
   if (working.getMonth() === 1 && working.getDate() > 27) working.setDate(30);
   working.setMonth(working.getMonth() - sign * calendar);
   let lastNotFull = compareAsc(working.getTime(), earlierMs) === -sign;
+
   if (isLastDayOfMonth(laterMs) && calendar === 1 && compareAsc(laterMs, earlierMs) === 1) {
     lastNotFull = false;
   }
+
   const result = sign * (calendar - Number(lastNotFull));
+
   return result === 0 ? 0 : result;
 }
 
@@ -96,6 +107,7 @@ const EN_OTHER: Record<DistanceToken, string> = {
 
 function formatEn(token: DistanceToken, count: number, comparison: number): string {
   const result = count === 1 ? EN_ONE[token] : EN_OTHER[token].replace("{{count}}", String(count));
+
   return comparison > 0 ? `in ${result}` : `${result} ago`;
 }
 
@@ -116,12 +128,15 @@ function declension(scheme: RuScheme, count: number): string {
   if (scheme.one !== undefined && count === 1) return scheme.one;
   const rem10 = count % 10;
   const rem100 = count % 100;
+
   if (rem10 === 1 && rem100 !== 11) {
     return scheme.singularNominative.replace("{{count}}", String(count));
   }
+
   if (rem10 >= 2 && rem10 <= 4 && (rem100 < 10 || rem100 > 20)) {
     return scheme.singularGenitive.replace("{{count}}", String(count));
   }
+
   return scheme.pluralGenitive.replace("{{count}}", String(count));
 }
 
@@ -235,11 +250,13 @@ const RU: Record<DistanceToken, RuToken> = {
 
 function formatRu(token: DistanceToken, count: number, comparison: number): string {
   const entry = RU[token];
+
   if (comparison > 0) {
     return entry.future
       ? declension(entry.future, count)
       : `через ${declension(entry.regular, count)}`;
   }
+
   return entry.past ? declension(entry.past, count) : `${declension(entry.regular, count)} назад`;
 }
 
@@ -297,13 +314,17 @@ function resolveDistance(minutes: number, laterMs: number, earlierMs: number): D
   for (const bucket of DISTANCE_BUCKETS) {
     if (minutes < bucket.limit) return bucket.resolve(minutes);
   }
+
   const months = differenceInMonths(laterMs, earlierMs);
+
   if (months < 12) {
     return { token: "xMonths", count: Math.round(minutes / MINUTES_IN_MONTH) };
   }
+
   const rest = months % 12;
   const years = Math.trunc(months / 12);
   const bucket = YEAR_BUCKETS.find((entry) => rest < entry.restLimit) ?? YEAR_BUCKETS[2];
+
   return { token: bucket.token, count: years + bucket.extraYears };
 }
 
@@ -314,6 +335,7 @@ export function formatDistanceToNowOwn(
 ): string {
   const dateMs = date instanceof Date ? date.getTime() : date;
   const comparison = compareAsc(dateMs, nowMs);
+
   if (Number.isNaN(comparison)) throw new RangeError("Invalid time value");
   const earlierMs = comparison > 0 ? nowMs : dateMs;
   const laterMs = comparison > 0 ? dateMs : nowMs;
@@ -321,5 +343,6 @@ export function formatDistanceToNowOwn(
   const offsetSec = (timezoneOffsetMs(earlierMs) - timezoneOffsetMs(laterMs)) / 1000;
   const minutes = Math.round((seconds - offsetSec) / 60);
   const { token, count } = resolveDistance(minutes, laterMs, earlierMs);
+
   return locale === "ru" ? formatRu(token, count, comparison) : formatEn(token, count, comparison);
 }

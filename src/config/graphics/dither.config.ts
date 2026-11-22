@@ -141,6 +141,7 @@ export const DITHER_BAKE_TIMEOUT_MS = parsed.DITHER_BAKE_TIMEOUT_MS;
 
 export function resolveDitherPreset(id: DitherPresetId): DitherEffectOptions {
   const found = DITHER_PRESETS.find((preset) => preset.id === id);
+
   return (found?.options ?? DITHER_PRESETS[0]?.options) as DitherEffectOptions;
 }
 

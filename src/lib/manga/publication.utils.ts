@@ -17,7 +17,9 @@ export function mangaSourceStatus(
   translate: (key: TranslationKey) => string
 ): string | null {
   const value = status?.trim();
+
   if (!value) return null;
   const key = STATUS_KEYS[value.toLowerCase()];
+
   return key ? translate(key) : value;
 }

@@ -51,9 +51,11 @@ export default function AniListFriendsModal({
   useEffect(() => {
     setProfiles((current) => {
       const next = { ...current };
+
       for (const friend of friends) {
         if (friend.profile && hasFreshCachedProfile(friend)) next[friend.id] = friend.profile;
       }
+
       return next;
     });
   }, [friends]);
@@ -61,31 +63,37 @@ export default function AniListFriendsModal({
   const fetchProfile = async (friend: AniFriend, force = false): Promise<void> => {
     setRefreshing(true);
     setProfileError(null);
-    try {
+    await (async () => {
       const [profile, fetchError] = await attempt(anilistApi.getProfile(friend.id));
+
       if (fetchError) {
         if (force || !friend.profile) setProfileError(fetchError.message);
+
         return;
       }
+
       setProfiles((current) => ({ ...current, [profile.id]: profile }));
       cacheAnilistProfile(profile);
-    } finally {
+    })().finally(() => {
       setRefreshing(false);
-    }
+    });
   };
 
   const selectFriend = (friend: AniFriend) => {
     setSelectedId(friend.id);
     setProfileError(null);
+
     if (!profiles[friend.id] && friend.profile) {
       const cached = friend.profile;
       setProfiles((current) => ({ ...current, [friend.id]: cached }));
     }
+
     if (!hasFreshCachedProfile(friend)) ignore(fetchProfile(friend));
   };
 
   const loadProfile = async (value: string, force = false) => {
     const input = value.trim();
+
     if (!input) return;
     const id = /^\d+$/.test(input) ? Number(input) : undefined;
     const cachedFriend = friends.find((friend) =>
@@ -93,18 +101,21 @@ export default function AniListFriendsModal({
         ? friend.name.toLocaleLowerCase() === input.toLocaleLowerCase()
         : friend.id === id
     );
+
     if (!force && cachedFriend) {
       selectFriend(cachedFriend);
       setQuery("");
+
       return;
     }
 
     setLoading(true);
     setError(null);
-    try {
+    await (async () => {
       const [profile, fetchError] = await attempt(
         anilistApi.getProfile(id, id === undefined ? input : undefined)
       );
+
       if (fetchError) setError(fetchError.message);
       else {
         setProfiles((current) => ({ ...current, [profile.id]: profile }));
@@ -112,9 +123,9 @@ export default function AniListFriendsModal({
         onAdd(profile);
         setQuery("");
       }
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   const selectedProfile = selectedId != null ? profiles[selectedId] : undefined;

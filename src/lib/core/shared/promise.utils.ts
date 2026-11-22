@@ -18,13 +18,17 @@ export function createCoalescedRunner(): (task: () => Promise<void>) => Promise<
   const settle = (): void => {
     const next = queued;
     queued = null;
+
     if (!next) {
       current = null;
       const done = waiters;
       waiters = [];
+
       for (const resolve of done) resolve();
+
       return;
     }
+
     start(next);
   };
 
@@ -34,6 +38,7 @@ export function createCoalescedRunner(): (task: () => Promise<void>) => Promise<
     } else {
       start(task);
     }
+
     return new Promise<void>((resolve) => waiters.push(resolve));
   };
 }

@@ -26,6 +26,7 @@ export function TorrentRowShell({
   children: ReactNode;
 }) {
   const player = type === "player";
+
   return (
     <div
       ref={rootRef}

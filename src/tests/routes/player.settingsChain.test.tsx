@@ -53,6 +53,7 @@ beforeEach(() => {
     if (command === "player_take_pending_open" || command === "player_load_watch") {
       return Promise.resolve(null);
     }
+
     return Promise.resolve(undefined);
   });
   listenMock.mockReset();
@@ -68,7 +69,9 @@ beforeEach(() => {
     "ResizeObserver",
     class {
       observe(): void {}
+
       unobserve(): void {}
+
       disconnect(): void {}
     }
   );
@@ -199,6 +202,7 @@ describe("player settings rejections reach the user", () => {
     if (command === "player_set_property" && args?.name === "brightness") {
       throw new Error("Failed to set property 'brightness': error accessing property");
     }
+
     return undefined;
   };
 

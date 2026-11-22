@@ -13,6 +13,7 @@ export function DetailsError({
   onOpenOriginal: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="text-destructive flex min-h-36 flex-col items-center justify-center gap-2">
       <AlertCircle className="size-7" />

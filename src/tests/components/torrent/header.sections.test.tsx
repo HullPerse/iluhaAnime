@@ -49,6 +49,7 @@ const info = (overrides: Partial<TorrentInfo> = {}): TorrentInfo => {
 
 const renderHeader = (item: TorrentInfo, onSetSequential = vi.fn()) => {
   const client = new QueryClient();
+
   return {
     onSetSequential,
     view: render(

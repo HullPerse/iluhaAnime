@@ -12,14 +12,17 @@ export function isCacheReady(): boolean {
 export function markCacheReady(): void {
   if (cacheReady) return;
   cacheReady = true;
+
   for (const listener of listeners) {
     listener();
   }
+
   listeners.clear();
 }
 
 export function awaitCacheReady(timeoutMs: number): Promise<boolean> {
   if (cacheReady) return Promise.resolve(true);
+
   return new Promise<boolean>((resolve) => {
     const timer = scheduleTask("timeout", Math.max(0, timeoutMs), () => {
       listeners.delete(done);
@@ -30,6 +33,7 @@ export function awaitCacheReady(timeoutMs: number): Promise<boolean> {
       listeners.delete(done);
       resolve(true);
     };
+
     listeners.add(done);
   });
 }
@@ -58,14 +62,17 @@ export function isSpellingReady(): boolean {
 export function markSpellingReady(): void {
   if (spellingReady) return;
   spellingReady = true;
+
   for (const listener of spellingListeners) {
     listener();
   }
+
   spellingListeners.clear();
 }
 
 export function onSpellingReady(listener: WarmListener): () => void {
   spellingListeners.add(listener);
+
   return () => {
     spellingListeners.delete(listener);
   };
@@ -78,14 +85,17 @@ export function isIndexReady(): boolean {
 export function markIndexReady(): void {
   if (indexReady) return;
   indexReady = true;
+
   for (const listener of indexListeners) {
     listener();
   }
+
   indexListeners.clear();
 }
 
 export function onIndexReady(listener: WarmListener): () => void {
   indexListeners.add(listener);
+
   return () => {
     indexListeners.delete(listener);
   };
@@ -97,6 +107,7 @@ export function awaitSignal(
   timeoutMs: number
 ): Promise<boolean> {
   if (isReady()) return Promise.resolve(true);
+
   return new Promise<boolean>((resolve) => {
     const timer = scheduleTask("timeout", Math.max(0, timeoutMs), () => {
       stop();

@@ -30,8 +30,10 @@ function PlayerSlider({
   const setFromClientX = useCallback(
     (clientX: number) => {
       const element = ref.current;
+
       if (!element) return;
       const rect = element.getBoundingClientRect();
+
       if (rect.width === 0) return;
       const raw = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
       const stepped = Math.round((min + raw * (max - min)) / step) * step;
@@ -47,6 +49,7 @@ function PlayerSlider({
     const onUp = () => setDragging(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -56,13 +59,16 @@ function PlayerSlider({
   useEffect(() => {
     if (!wheel) return;
     const element = ref.current;
+
     if (!element) return;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const amount = (event.shiftKey ? step * 10 : step) * (event.deltaY > 0 ? -1 : 1);
       onChange(Math.max(min, Math.min(max, clamped + amount)));
     };
+
     element.addEventListener("wheel", onWheel, { passive: false });
+
     return () => element.removeEventListener("wheel", onWheel);
   }, [wheel, min, max, step, clamped, onChange]);
 
@@ -90,6 +96,7 @@ function PlayerSlider({
             End: () => onChange(max),
           };
           const action = keyMap[event.key];
+
           if (!action) return;
           event.preventDefault();
           action();

@@ -59,10 +59,13 @@ export default function SettingsRoute() {
   const findHits = useMemo(() => searchSettingsFind(deferredQuery), [deferredQuery]);
   const findCounts = useMemo(() => {
     const counts = new Map<SettingsFindTab, number>();
+
     if (trimmedQuery.length === 0) return counts;
+
     for (const hit of findHits) {
       counts.set(hit.entry.tab, (counts.get(hit.entry.tab) ?? 0) + 1);
     }
+
     return counts;
   }, [findHits, trimmedQuery]);
   const navGroups = useMemo(() => SETTINGS_TAB_GROUPS.filter((group) => group.tabs.length > 0), []);
@@ -71,12 +74,14 @@ export default function SettingsRoute() {
   const prevTabRef = useRef<SettingsTab | null>(null);
   useEffect(() => {
     if (!animateTabSwitch || tabContentRef.current === null) return;
+
     if (prevTabRef.current !== null && prevTabRef.current !== activeTab) {
       tabContentRef.current.animate([{ opacity: 0 }, { opacity: 1 }], {
         duration: 150,
         easing: "ease-out",
       });
     }
+
     prevTabRef.current = activeTab;
   }, [activeTab, animateTabSwitch]);
   const handleFindChange = (value: string) => {
@@ -101,6 +106,7 @@ export default function SettingsRoute() {
 
   const handleJumpSelected = () => {
     const hit = findHits[findActive] ?? findHits[0];
+
     if (hit) handleFindJump(hit);
   };
 
@@ -112,8 +118,10 @@ export default function SettingsRoute() {
 
   useEffect(() => {
     const content = contentRef.current;
+
     if (!content) return;
     const panel = content.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
+
     if (panel instanceof HTMLElement) content.scrollTo({ top: 0 });
   }, [activeTab]);
 
@@ -136,6 +144,7 @@ export default function SettingsRoute() {
       ignore: (event) => ignoreTabCycle(event),
       onAction: (id) => {
         const next = stepTabId(navTabs, activeTab, id === "tab-next" ? 1 : -1);
+
         if (next) handleTabSelect(next);
       },
     }
@@ -147,12 +156,14 @@ export default function SettingsRoute() {
 
   useEffect(() => {
     const content = contentRef.current;
+
     if (!content || findOpen) return;
     const matched = new Set(
       trimmedQuery.length === 0
         ? []
         : findHits.filter((hit) => hit.entry.tab === activeTab).map((hit) => hit.entry.sectionId)
     );
+
     for (const section of content.querySelectorAll("[data-find-section]")) {
       if (!(section instanceof HTMLElement)) continue;
       const id = section.dataset.findSection;
@@ -162,7 +173,9 @@ export default function SettingsRoute() {
 
   useEffect(() => {
     const panel = contentRef.current?.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
+
     if (!(panel instanceof HTMLElement) || findOpen) return;
+
     for (const section of panel.querySelectorAll("[data-find-section]")) {
       if (!(section instanceof HTMLElement)) continue;
       const id = section.dataset.findSection;
@@ -182,12 +195,15 @@ export default function SettingsRoute() {
 
   useEffect(() => {
     const panel = contentRef.current?.querySelector(`[data-active-tab="${CSS.escape(activeTab)}"]`);
+
     if (!(panel instanceof HTMLElement) || findOpen || flashRequest === null) return;
     const target = panel.querySelector(
       `[data-find-section="${CSS.escape(flashRequest.sectionId)}"]`
     );
+
     if (!(target instanceof HTMLElement)) return;
     target.scrollIntoView({ block: "start" });
+
     return flashTarget(target);
   }, [activeTab, findOpen, flashRequest]);
 
@@ -212,6 +228,7 @@ export default function SettingsRoute() {
       >
         {navGroups.map((group) => {
           const groupActive = group.tabs.includes(activeTab);
+
           return (
             <div key={group.id} className="flex flex-col gap-0.5">
               <Button
@@ -223,6 +240,7 @@ export default function SettingsRoute() {
                 disabled={groupActive}
                 onClick={() => {
                   const first = group.tabs[0];
+
                   if (first !== undefined && !groupActive) handleTabSelect(first);
                 }}
               >
@@ -232,6 +250,7 @@ export default function SettingsRoute() {
                 <div className="border-muted ml-2 flex flex-col gap-0.5 border-l pl-1.5">
                   {group.tabs.map((tabId) => {
                     const active = activeTab === tabId;
+
                     return (
                       <Button
                         key={tabId}

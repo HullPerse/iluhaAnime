@@ -19,6 +19,7 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
     mutations.invalidate();
     onClose();
   };
+
   const choose = (slot: number) => claim.mutate({ packId: pack.id, slot });
 
   useEffect(() => {

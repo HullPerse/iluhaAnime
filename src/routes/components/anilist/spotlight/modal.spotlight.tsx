@@ -47,6 +47,7 @@ export default function SpotlightModal({
   useEffect(() => {
     cancelled.current = false;
     const { cancel } = createInterval(() => setNow(Date.now()), SPOTLIGHT_REFRESH_TICK_MS);
+
     return () => {
       cancelled.current = true;
       cancel();
@@ -59,26 +60,35 @@ export default function SpotlightModal({
     const load = async (kind: SpotlightKind) => {
       const periodKey = spotlightPeriodKey(kind, new Date());
       const cached = await readAppCache<AniMedia>("spotlight", `pick:${kind}:${periodKey}`);
+
       if (!active) return;
+
       if (cached?.payload) {
         setRows((prev) => ({ ...prev, [kind]: { status: "ready", media: cached.payload } }));
+
         return;
       }
+
       const [, error] = await attempt(
         (async () => {
           const media = await resolveSpotlightPick(kind, periodKey);
+
           if (!active) return;
           await writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media);
+
           if (!active) return;
           setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
         })()
       );
+
       if (error && active) setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
     };
+
     for (const kind of SPOTLIGHT_KINDS) {
       setRows((prev) => ({ ...prev, [kind]: { status: "loading" } }));
       load(kind);
     }
+
     return () => {
       active = false;
     };
@@ -89,15 +99,21 @@ export default function SpotlightModal({
     const periodKey = spotlightPeriodKey(kind, new Date());
     (async () => {
       const [media, error] = await attempt(resolveSpotlightPick(kind, periodKey));
+
       if (cancelled.current) return;
+
       if (error || !media) {
         setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
+
         return;
       }
+
       const [, cacheError] = await attempt(
         writeAppCache("spotlight", `pick:${kind}:${periodKey}`, media)
       );
+
       if (cancelled.current) return;
+
       if (cacheError) setRows((prev) => ({ ...prev, [kind]: { status: "error" } }));
       else setRows((prev) => ({ ...prev, [kind]: { status: "ready", media } }));
     })();
@@ -121,6 +137,7 @@ export default function SpotlightModal({
             const secs = Math.max(0, Math.round((spotlightBoundaryMs(kind, now) - now) / 1000));
             const countdown =
               secs > 0 ? t("anilist.spotlight.refresh.in", { time: formatETA(secs, t) }) : "";
+
             return (
               <div key={kind} className="flex flex-col gap-1">
                 <span className="windows95-text text-xs font-bold">

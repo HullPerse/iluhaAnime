@@ -142,6 +142,7 @@ export default function SearchFiltersModal({
             onChange={(e) => setPresetName(e.target.value)}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return;
+
               if (e.key === "Enter" && presetName.trim()) {
                 saveSearchFilterPreset(presetName, local);
                 setPresetName("");

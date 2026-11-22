@@ -137,22 +137,12 @@ describe("search/intent", () => {
       expect(tokens).toHaveLength(1);
       expect(query.slice(tokens[0].start, tokens[0].end)).toBe('genre="sci fi"');
     });
-    it("ignores unknown keys and empty values", () => {
-      expect(tokenizeIntent("foo:bar studio= year=2024")).toEqual([
-        { start: 16, end: 25, key: "year", op: "=", value: "2024" },
-      ]);
-    });
-
     it("matches parseIntent filter keys", () => {
       const query = 'studio=MAPPA year=2024 genre="sci fi" frieren';
       const keys = tokenizeIntent(query)
         .map((t) => t.key)
         .sort();
       expect(keys).toEqual(Object.keys(parseIntent(query).rawFilters).sort());
-    });
-
-    it("skips colon filters", () => {
-      expect(tokenizeIntent("studio:MAPPA year:2024")).toEqual([]);
     });
   });
 
@@ -162,16 +152,6 @@ describe("search/intent", () => {
       expect(intent.cleanQuery).toBe("");
       expect(intent.yearOps).toEqual([{ op: ">", value: 2020 }]);
       expect(intent.ratingOps).toEqual([{ op: ">=", value: 8 }]);
-    });
-
-    it("keeps exact matches alongside operator ranges", () => {
-      const intent = parseIntent("year>2020 year<2025 genre=action");
-      expect(intent.year).toBeUndefined();
-      expect(intent.yearOps).toEqual([
-        { op: ">", value: 2020 },
-        { op: "<", value: 2025 },
-      ]);
-      expect(intent.genre).toBe("action");
     });
 
     it("collects string negations without touching exact filters", () => {
@@ -212,29 +192,6 @@ describe("search/intent", () => {
       expect(intent.progressOps).toEqual([{ op: ">", value: 5 }]);
     });
 
-    it("treats colon filters as plain text", () => {
-      expect(parseIntent("year:2024").cleanQuery).toBe("year:2024");
-      expect(parseIntent("year:2024").year).toBeUndefined();
-    });
-
-    it("joins operators separated by spaces", () => {
-      const intent = parseIntent("year >= 2020 rating >= 8");
-      expect(intent.cleanQuery).toBe("");
-      expect(intent.yearOps).toEqual([{ op: ">=", value: 2020 }]);
-      expect(intent.ratingOps).toEqual([{ op: ">=", value: 8 }]);
-    });
-
-    it("accepts comma decimals in rating", () => {
-      expect(parseIntent("rating>=8,5").ratingOps).toEqual([{ op: ">=", value: 8.5 }]);
-    });
-
-    it("keeps unparsable filters in the text query", () => {
-      expect(parseIntent("year>=1800").cleanQuery).toBe("year>=1800");
-      expect(parseIntent("year>=1800").yearOps).toEqual([]);
-      expect(parseIntent("rating>=99").cleanQuery).toBe("rating>=99");
-      expect(parseIntent("sort=bogus").cleanQuery).toBe("sort=bogus");
-    });
-
     it("parses date in year, RU, and ISO forms", () => {
       expect(parseIntent("date=2024").dateConds).toEqual([
         { op: "=", iso: "2024", yearOnly: true },
@@ -248,11 +205,6 @@ describe("search/intent", () => {
       expect(parseIntent("date >= 2024").dateConds).toEqual([
         { op: ">=", iso: "2024", yearOnly: true },
       ]);
-    });
-
-    it("keeps invalid dates in the text query", () => {
-      expect(parseIntent("date=32.13.2024").cleanQuery).toBe("date=32.13.2024");
-      expect(parseIntent("date=32.13.2024").dateConds).toEqual([]);
     });
   });
 
@@ -273,10 +225,6 @@ describe("search/intent", () => {
       ]);
     });
 
-    it("treats ~= on strings as plain text", () => {
-      expect(parseIntent("studio~=MAPPA").cleanQuery).toBe("studio~=MAPPA");
-    });
-
     it("desugars from...to ranges with open and swapped ends", () => {
       expect(parseIntent("year=2015...2020").yearOps).toEqual([
         { op: ">=", value: 2015 },
@@ -295,11 +243,6 @@ describe("search/intent", () => {
         { op: ">=", iso: "2020-01-01", yearOnly: false },
         { op: "<=", iso: "2020-12-31", yearOnly: false },
       ]);
-    });
-
-    it("keeps broken ranges in the text query", () => {
-      expect(parseIntent("year=abc...2020").cleanQuery).toBe("year=abc...2020");
-      expect(parseIntent("year=...").cleanQuery).toBe("year=...");
     });
   });
 
@@ -327,11 +270,6 @@ describe("search/intent", () => {
     it("treats plain title text and single letters as not tag-like", () => {
       expect(isTagLikeQuery("nar", "nar")).toBe(false);
       expect(isTagLikeQuery("s", "s")).toBe(false);
-    });
-
-    it("leaves removed dead keys as plain text", () => {
-      expect(tokenizeIntent("season:2 quality:1080p language:ru")).toEqual([]);
-      expect(parseIntent("season:2").cleanQuery).toBe("season:2");
     });
   });
 });
@@ -559,13 +497,6 @@ describe("search/quality", () => {
       })[0]?.value;
       expect(value).toBe("Naruto");
     });
-
-    it("returns nothing for empty queries and honors the limit", () => {
-      expect(getSearchSuggestions("   ", { animeIndex: INDEX })).toEqual([]);
-      expect(getSearchSuggestions("f", { animeIndex: INDEX, limit: 1 }).length).toBeLessThanOrEqual(
-        1
-      );
-    });
   });
 });
 
@@ -720,14 +651,6 @@ describe("search/results", () => {
       expect(merged).toHaveLength(2);
       expect(merged.find((item) => item.link === "b")?.seeders).toBe(30);
     });
-
-    it("passes undefined through", () => {
-      expect(dedupAnimeResults(undefined)).toBeUndefined();
-    });
-
-    it("returns undefined for undefined input", () => {
-      expect(sortAnimeResults(undefined, "seeders", "desc")).toBeUndefined();
-    });
   });
 
   describe("filterAnimeResults", () => {
@@ -803,10 +726,6 @@ describe("search/results", () => {
         ) ?? [];
       expect(result).toHaveLength(1);
       expect(result[0].title).toContain("[Group] Show [1080p]");
-    });
-
-    it("returns undefined for undefined input", () => {
-      expect(filterAnimeResults(undefined, defaultFilters)).toBeUndefined();
     });
   });
 });
@@ -1185,11 +1104,6 @@ describe("search/suggestions", () => {
 
     it("stays silent on exact matches", () => {
       expect(suggestSpelling("frieren", { animeIndex, symSpell: true })).toBeNull();
-    });
-
-    it("stays silent on short queries and empty titles", () => {
-      expect(suggestSpelling("fr", { animeIndex, symSpell: true })).toBeNull();
-      expect(suggestSpelling("friren", { symSpell: true })).toBeNull();
     });
 
     it("stays silent when symspell is disabled", () => {

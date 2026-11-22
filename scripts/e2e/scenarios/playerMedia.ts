@@ -17,6 +17,7 @@ interface Track {
 
 function requireOpen(opened: OpenMedia | null): OpenMedia {
   if (!opened) throw new Error("player was not opened");
+
   return opened;
 }
 
@@ -66,11 +67,14 @@ async function waitFor<T>(
 ): Promise<T> {
   const deadline = Date.now() + timeoutMs;
   let last: T | null = null;
+
   while (Date.now() < deadline) {
     last = await read();
+
     if (last !== null && accept(last)) return last;
     await sleep(200);
   }
+
   throw new Error(`${what} did not settle within ${timeoutMs}ms; last value: ${String(last)}`);
 }
 
@@ -98,14 +102,18 @@ async function playerPages(browser: Browser): Promise<Page[]> {
 async function closePlayer(browser: Browser): Promise<void> {
   const open = await playerPages(browser);
   const page = open[0];
+
   if (!page) return;
   await invoke(page, "player_close_window").catch(() => undefined);
   const deadline = Date.now() + 20_000;
+
   while (Date.now() < deadline) {
     const remaining = await playerPages(browser);
+
     if (remaining.length === 0) return;
     await sleep(200);
   }
+
   throw new Error("player window did not close");
 }
 
@@ -117,6 +125,7 @@ async function openMedia(
 ): Promise<OpenMedia> {
   const openPages = await playerPages(browser);
   const prewarmed = reusePrewarmed && openPages.length > 0;
+
   if (!prewarmed) await closePlayer(browser);
   const started = Date.now();
   await invoke(main, "player_open", {
@@ -132,6 +141,7 @@ async function openMedia(
     "mpv path",
     120_000
   );
+
   if (!samePath(path, media.path)) throw new Error(`mpv opened ${path}, expected ${media.path}`);
   await waitFor(
     () => prop<number>(page, "duration", "double"),
@@ -145,6 +155,7 @@ async function openMedia(
     "video output",
     120_000
   );
+
   return { page, startedAt: started, ms: Date.now() - started, prewarmed };
 }
 
@@ -158,6 +169,7 @@ async function startPlayback(player: Page): Promise<number> {
     "playback position to advance",
     20_000
   );
+
   return Date.now();
 }
 
@@ -166,6 +178,7 @@ async function pauseAndVerify(player: Page): Promise<void> {
   const pausedAt = await timePos(player);
   await sleep(1200);
   const after = await timePos(player);
+
   if (Math.abs(after - pausedAt) > 0.4) {
     throw new Error(`paused position moved from ${pausedAt} to ${after}`);
   }
@@ -187,19 +200,23 @@ async function seekTo(player: Page, target: number, tolerance: number): Promise<
     `seek to ${target.toFixed(1)}s`,
     30_000
   );
+
   return Date.now() - started;
 }
 
 async function tracksOf(player: Page): Promise<Track[]> {
   const count = (await prop<number>(player, "track-list/count", "int64")) ?? 0;
   const tracks: Track[] = [];
+
   for (let index = 0; index < Math.min(count, TRACK_SCAN_LIMIT); index += 1) {
     const type = await prop<string>(player, `track-list/${index}/type`, "string");
     const id = await prop<number>(player, `track-list/${index}/id`, "int64");
+
     if (type === null || id === null) continue;
     const selected = (await prop<boolean>(player, `track-list/${index}/selected`, "flag")) ?? false;
     tracks.push({ index, id, type, selected });
   }
+
   return tracks;
 }
 
@@ -210,8 +227,10 @@ async function switchTrack(
   property: "aid" | "sid"
 ): Promise<string | null> {
   const available = tracks.filter((track) => track.type === type);
+
   if (available.length < 2) return `only ${available.length} ${type} track(s)`;
   const target = available.find((track) => !track.selected) ?? available[0];
+
   if (!target) return `no alternate ${type} track`;
   const before = await timePos(player);
   await setProperty(player, property, String(target.id));
@@ -221,16 +240,20 @@ async function switchTrack(
     `${type} track selection`
   );
   await sleep(500);
+
   if (Math.abs((await timePos(player)) - before) > 2) {
     throw new Error(`${type} switch moved playback away from ${before.toFixed(1)}s`);
   }
+
   return null;
 }
 
 async function subtitleToggle(player: Page, tracks: Track[]): Promise<string | null> {
   const subtitles = tracks.filter((track) => track.type === "sub" || track.type === "subtitle");
+
   if (subtitles.length === 0) return "no subtitle track";
   const first = subtitles[0];
+
   if (!first) return "no subtitle track";
   await setProperty(player, "sid", String(first.id));
   await waitFor(
@@ -245,6 +268,7 @@ async function subtitleToggle(player: Page, tracks: Track[]): Promise<string | n
     "subtitle disable"
   );
   await setProperty(player, "sid", String(first.id));
+
   return null;
 }
 
@@ -272,15 +296,20 @@ export const playerMedia: Scenario = {
   name: "playerMedia",
   async run({ browser, page, outDir, step, skip }) {
     let inventory;
+
     try {
       inventory = await ensureMediaInventory(outDir);
     } catch (error) {
       await skip("media inventory", error instanceof Error ? error.message : String(error));
+
       return;
     }
+
     const candidates = inventory.selected.slice(0, 3);
+
     if (candidates.length === 0) {
       await skip("media inventory", "inventory selected no playable candidates");
+
       return;
     }
 
@@ -303,16 +332,21 @@ export const playerMedia: Scenario = {
         await invoke(page, "player_prewarm");
         await findPlayerPage(browser, 30_000);
         const released = await invoke<boolean>(page, "player_release_prewarm");
+
         if (!released) throw new Error("idle prewarm was not released");
         const deadline = Date.now() + 20_000;
         let remaining = await playerPages(browser);
+
         while (remaining.length > 0) {
           if (Date.now() > deadline) throw new Error("released prewarm window stayed open");
           await sleep(200);
           remaining = await playerPages(browser);
         }
+
         const again = await invoke<boolean>(page, "player_release_prewarm");
+
         if (again) throw new Error("release reported a window that did not exist");
+
         if (process.env.E2E_PREWARM === "1") {
           await invoke(page, "player_prewarm");
           await findPlayerPage(browser, 30_000);
@@ -360,15 +394,19 @@ export const playerMedia: Scenario = {
         await step(`seek ${label}`, async () => {
           const current = requireOpen(opened);
           const duration = (await prop<number>(current.page, "duration", "double")) ?? 0;
+
           if (duration <= 0) throw new Error("duration is unavailable");
           const tolerance = Math.max(2, duration * 0.02);
+
           for (const fraction of [0.2, 0.5, 0.75]) {
             measurement.seekMs.push(await seekTo(current.page, duration * fraction, tolerance));
           }
+
           for (const fraction of [0.3, 0.6, 0.8, 0.4]) {
             await seek(current.page, duration * fraction);
             await sleep(120);
           }
+
           await seekTo(current.page, duration * 0.4, tolerance);
           await take(`seek:${label}`);
         });
@@ -377,9 +415,11 @@ export const playerMedia: Scenario = {
           const current = requireOpen(opened);
           const tracks = await tracksOf(current.page);
           const audio = await switchTrack(current.page, tracks, "audio", "aid");
+
           if (audio) await skip(`audio track ${label}`, audio);
           else measurement.trackChanges.push("audio");
           const subtitles = await subtitleToggle(current.page, tracks);
+
           if (subtitles) await skip(`subtitle track ${label}`, subtitles);
           else measurement.trackChanges.push("subtitle");
           await take(`tracks:${label}`);
@@ -394,6 +434,7 @@ export const playerMedia: Scenario = {
 
       await step("player restart rebuilds mpv", async () => {
         const media = candidates[0]?.file;
+
         if (!media) throw new Error("no media candidate for restart");
         const opened = await openMedia(browser, page, media);
         await startPlayback(opened.page);
@@ -407,6 +448,7 @@ export const playerMedia: Scenario = {
           60_000
         );
         const idlePath = await prop<string>(opened.page, "path", "string");
+
         if (idlePath !== null && idlePath !== "") {
           throw new Error(`restart left the previous file loaded: ${idlePath}`);
         }
@@ -433,8 +475,10 @@ export const playerMedia: Scenario = {
 
       await step("repeated player cycles", async () => {
         const media = candidates[0]?.file;
+
         if (!media) throw new Error("no media candidate for cycles");
         const cycles = Math.max(1, Number.parseInt(process.env.E2E_PLAYER_CYCLES ?? "3", 10));
+
         for (let cycle = 1; cycle <= cycles; cycle += 1) {
           await take(`cycle:${cycle}:before`);
           const opened = await openMedia(browser, page, media);
@@ -450,12 +494,15 @@ export const playerMedia: Scenario = {
       await step("preview generation", async () => {
         if (process.env.E2E_PREVIEW !== "1") {
           await skip("preview generation", "set E2E_PREVIEW=1 to run the real FFmpeg preview");
+
           return;
         }
+
         const hevc = candidates.find((candidate) =>
           candidate.file.video.some((stream) => stream.codec === "hevc")
         );
         const media = hevc?.file ?? candidates[0]?.file;
+
         if (!media) throw new Error("no media candidate for preview");
         const started = Date.now();
         const frames = await invoke<Array<{ timestamp: number; before: string; after: string }>>(
@@ -463,6 +510,7 @@ export const playerMedia: Scenario = {
           "preview_upscale_frames",
           { inputPath: media.path, width: 0, height: 0 }
         );
+
         if (frames.length === 0) throw new Error("preview returned no frames");
         await take(`preview:${Date.now() - started}ms`);
       });

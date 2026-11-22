@@ -7,11 +7,13 @@ const YOUTUBE_EMBED =
 export function orderedAttachments(attachments: readonly NewsAttachment[]): NewsAttachment[] {
   const videos = attachments.filter((attachment) => attachment.kind !== "image");
   const images = attachments.filter((attachment) => attachment.kind === "image");
+
   return [...videos, ...images];
 }
 
 /** Extracts the video id from a YouTube embed URL so the inline player can use it. */
 export function youtubeIdOf(embedUrl: string | undefined): string | null {
   if (!embedUrl) return null;
+
   return YOUTUBE_EMBED.exec(embedUrl)?.[1] ?? null;
 }

@@ -18,6 +18,7 @@ export function BandAxisLabels({
     <>
       {entries.map((entry) => {
         const label = truncateLabel(entry.label, maxChars);
+
         if (side === "left") {
           return (
             <text
@@ -33,6 +34,7 @@ export function BandAxisLabels({
             </text>
           );
         }
+
         return (
           <text
             key={`bottom:${entry.position}:${entry.label}`}

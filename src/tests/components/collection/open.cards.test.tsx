@@ -80,9 +80,11 @@ describe("collection pack opening", () => {
     for (let index = 0; index < 7; index += 1) {
       fireEvent.click(screen.getByTestId(`card-flip-${index}`));
     }
+
     for (let index = 0; index < 7; index += 1) {
       expect(screen.getByTestId(`card-flip-${index}`).dataset.flipped).toBe("true");
     }
+
     expect(finish).toHaveProperty("disabled", false);
 
     fireEvent.click(finish);
@@ -124,6 +126,7 @@ describe("collection pack opening", () => {
     for (let index = 0; index < 7; index += 1) {
       expect(screen.getByTestId(`card-flip-${index}`).dataset.flipped).toBe("true");
     }
+
     expect(onClose).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Забрать" }));
@@ -147,9 +150,11 @@ describe("collection pack opening", () => {
       if (command === "cards_open_pack") {
         return Promise.resolve({ packId: "pack-1", cards, value: 0, chosenSlot: null });
       }
+
       if (command === "cards_claim_pack_card") {
         return Promise.resolve({ packId: "pack-1", cards, value: 12, chosenSlot: 0 });
       }
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(

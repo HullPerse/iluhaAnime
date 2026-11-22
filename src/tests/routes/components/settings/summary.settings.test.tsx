@@ -22,9 +22,11 @@ const renderSummary = (seed: Update | null = null) => {
   queryClient.setQueryData(queryKeys.summaryFfprobe(), true);
   queryClient.setQueryData(queryKeys.summaryStorage(), {
     images: { bytes: 0, count: 0 },
+    mangaCache: { bytes: 0, count: 0 },
     anilistCache: { hits: 0, misses: 0 },
     videoCache: { hits: 0, misses: 0 },
   });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <SettingsSummary onJump={() => {}} />
@@ -43,6 +45,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+
   if (ONLINE) Object.defineProperty(window.navigator, "onLine", ONLINE);
 });
 

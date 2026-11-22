@@ -49,6 +49,7 @@ export default function Pagination({
             defaultValue={String(page)}
             onChange={(e) => {
               const num = Number(e.target.value);
+
               if (Number.isFinite(num) && num >= 1) {
                 handlePageChange(Math.min(num, lastPage));
               }

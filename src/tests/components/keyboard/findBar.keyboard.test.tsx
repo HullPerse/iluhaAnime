@@ -18,12 +18,14 @@ const content = (text: string): HTMLElement => {
   element.textContent = text;
   document.body.append(element);
   nodes.push(element);
+
   return element;
 };
 
 beforeEach(() => {
   patchSettings({ language: "ru" });
   closeFindBar();
+
   if (typeof Element.prototype.scrollIntoView !== "function") {
     (Element.prototype as unknown as Record<string, unknown>).scrollIntoView = () => undefined;
   } else {
@@ -37,6 +39,7 @@ afterEach(() => {
   setFindBarCaseSensitive(false);
   setFindBarWholeWords(false);
   vi.restoreAllMocks();
+
   for (const item of nodes.splice(0)) item.remove();
 });
 

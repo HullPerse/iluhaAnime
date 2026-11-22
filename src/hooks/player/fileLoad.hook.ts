@@ -37,6 +37,7 @@ function watchDuration(entry: LoadedMediaEntry): number {
 
 async function resolveLiveDuration(hint: number, position: number): Promise<number> {
   if (hint > 0) return hint;
+
   return position > 0 ? await readDuration() : 0;
 }
 
@@ -48,27 +49,28 @@ async function seekToSavedPosition(
 ): Promise<void> {
   const inside =
     position > RESUME_MIN && (liveDuration <= 0 || position < liveDuration - RESUME_END_MARGIN);
+
   if (position > 0) {
     playbackAtoms.seekTarget.set(position);
     playbackAtoms.seekSettle.set(false);
   }
+
   if (!shouldSkipFrontendSeek(reload, resume, position)) {
     if (needsExactSeek(reload, position, inside)) await seekTo(position, "exact");
   }
 }
 
-async function applyRestoredTracks(
-  state: FilePlaybackState,
-  loaded: string
-): Promise<void> {
+async function applyRestoredTracks(state: FilePlaybackState, loaded: string): Promise<void> {
   const tracks = playbackAtoms.tracks.get();
   const audioTrack = resolveTrackId(tracks, "audio", state.audioTrack, state.audioTrackKey);
   const subtitleTrack =
     state.subtitleTrack === "no"
       ? "no"
       : resolveTrackId(tracks, "sub", state.subtitleTrack, state.subtitleTrackKey);
+
   if (audioTrack === undefined && subtitleTrack === undefined) return;
   const [, failure] = await attempt(applyFileTracks({ audioTrack, subtitleTrack }, loaded));
+
   if (failure) {
     seedTrackSelection({});
     reportBackgroundError("player.file-tracks", failure);
@@ -110,6 +112,7 @@ export function usePlayerFileLoad({
   );
   const reloadPlayingFile = useCallback(() => {
     const playlistIndex = playbackAtoms.playlistIndex.get();
+
     if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
     hwdecReloadRef.current = {
       position: playbackAtoms.timePos.get(),
@@ -126,10 +129,13 @@ export function usePlayerFileLoad({
 
   const retryPlayback = useCallback(() => {
     setFailed(false);
+
     if (stream !== null) {
       streamRoute.retryNow();
+
       return;
     }
+
     reloadPlayingFile();
   }, [reloadPlayingFile, setFailed, stream, streamRoute]);
 
@@ -140,22 +146,30 @@ export function usePlayerFileLoad({
     setFinished(false);
     setFileReady(false);
     const loaded = await readPath();
+
     if (!isCurrent()) return;
+
     if (!loaded) {
       setFileReady(true);
+
       return;
     }
+
     playbackAtoms.durationHint.set(0);
     seedTrackSelection({});
+
     if (streamSession.get() !== null) {
       syncMarginsRef.current(true);
+
       return;
     }
+
     playbackAtoms.duration.set(0);
     const reload = hwdecReloadRef.current;
     const initialWatch = initialWatchRef.current;
     initialWatchRef.current = undefined;
     const entry = await hydrateMediaEntry(loaded, initialWatch);
+
     if (!isCurrent()) return;
     const hintedDuration = watchDuration(entry);
     playbackAtoms.durationHint.set(hintedDuration);
@@ -168,29 +182,37 @@ export function usePlayerFileLoad({
     });
 
     await setPaused(true);
+
     if (!isCurrent()) return;
     const [, timingFailure] = await attempt(
       applyFileState({ ...state, audioTrack: undefined, subtitleTrack: undefined }, loaded)
     );
+
     if (timingFailure) reportBackgroundError("player.file-state", timingFailure);
+
     if (!isCurrent()) return;
 
     const resume = resumeRef.current;
     resumeRef.current = undefined;
     const position = resolveLoadPosition(reload, resume, entry?.position);
     const liveDuration = await resolveLiveDuration(hintedDuration, position);
+
     if (!isCurrent()) return;
     await seekToSavedPosition(position, reload, resume, liveDuration);
+
     if (!isCurrent()) return;
 
     await loadSidecarTracks(loaded, isCurrent);
+
     if (!isCurrent()) return;
     await applyRestoredTracks(state, loaded);
+
     if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 
     await setPaused(true);
     await restoreReloadPaused(reload);
+
     if (!isCurrent()) return;
     syncMarginsRef.current(true);
     setFileReady(true);

@@ -18,7 +18,7 @@ export function usePrepareCardsPacks(enabled: boolean) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
-  const started = useRef(false);
+  const started = useRef<boolean>(false);
 
   useEffect(() => {
     if (!enabled || !online || started.current) return;
@@ -32,6 +32,7 @@ export function usePrepareCardsPacks(enabled: boolean) {
         .preparePacks(proxy)
         .then(async (result) => {
           if (cancelled) return null;
+
           if (result.repaired > 0) {
             Promise.all([
               queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionScope() }),
@@ -40,6 +41,7 @@ export function usePrepareCardsPacks(enabled: boolean) {
               reportBackgroundError("cards.prepare-packs.invalidate", error);
             });
           }
+
           if (result.unnotified > 0) {
             addNotification(
               t("collection.packs.ready.title"),
@@ -49,18 +51,24 @@ export function usePrepareCardsPacks(enabled: boolean) {
             );
             await cardsApi.acknowledgePreparedPacks();
           }
+
           completed = true;
+
           return null;
         })
         .catch((error: unknown) => {
           reportBackgroundError("cards.prepare-packs", error);
+
           if (!cancelled) retry = scheduleTask("timeout", 30_000, prepare);
         });
     };
+
     prepare();
+
     return () => {
       cancelled = true;
       retry?.cancel();
+
       if (!completed) started.current = false;
     };
   }, [enabled, online, queryClient, t]);

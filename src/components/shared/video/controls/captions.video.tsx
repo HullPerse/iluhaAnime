@@ -13,6 +13,7 @@ export function CaptionsSelect() {
   useEffect(() => {
     setSelected(showingId);
   }, [showingId]);
+
   if (tracks.length === 0) return null;
 
   const trackValue = (track: TextTrackLike) => track.id || track.language;
@@ -30,6 +31,7 @@ export function CaptionsSelect() {
     for (const track of tracks) {
       track.mode = trackValue(track) === value && value !== CAPTIONS_OFF ? "showing" : "disabled";
     }
+
     setSelected(value);
   };
 

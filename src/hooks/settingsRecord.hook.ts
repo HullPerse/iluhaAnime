@@ -10,8 +10,10 @@ export function useRecordValue<T>(cell: RecordCell<T>, key: string): T | undefin
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       let current = cell.get()[key];
+
       return cell.subscribe(() => {
         const next = cell.get()[key];
+
         if (Object.is(next, current)) return;
         current = next;
         onStoreChange();
@@ -20,5 +22,6 @@ export function useRecordValue<T>(cell: RecordCell<T>, key: string): T | undefin
     [cell, key]
   );
   const getSnapshot = useCallback(() => cell.get()[key], [cell, key]);
+
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

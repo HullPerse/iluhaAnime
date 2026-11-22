@@ -6,6 +6,7 @@ import { patchSettings, settingsAtoms } from "@/store/settings.store";
 export function BackdropSlider() {
   const value = useCell(settingsAtoms.modalBackdropOpacity);
   const { t } = useI18n();
+
   return (
     <div className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
       <span className="windows95-text text-text flex items-center text-xs font-bold">

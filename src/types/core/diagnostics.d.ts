@@ -108,3 +108,5 @@ export interface DiagnosticReport {
   findings: DiagnosticFinding[];
   summary: DiagnosticSummary;
 }
+
+export type DiagnosticRunMode = "quick" | "full";

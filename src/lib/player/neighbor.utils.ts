@@ -13,15 +13,20 @@ export function neighborAt(
   const delta = direction === "prev" ? -1 : 1;
   const anchor =
     playlistIndex >= 0 && playlistIndex < entries.length ? entries[playlistIndex] : undefined;
+
   if (anchor && isSameMediaPath(anchor.filename, currentPath)) {
     return entries[playlistIndex + delta] ?? null;
   }
+
   let pos = entries.findIndex((entry) => entry.filename === currentPath);
+
   if (pos === -1) {
     pos = entries.findIndex(
       (entry) => entry.filename && isSameMediaPath(entry.filename, currentPath)
     );
   }
+
   if (pos === -1) return null;
+
   return entries[pos + delta] ?? null;
 }

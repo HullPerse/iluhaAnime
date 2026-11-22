@@ -39,6 +39,7 @@ export function resetAllSharedMocks(): void {
   ]) {
     spy.mockReset();
   }
+
   mockConvertFileSrc.mockImplementation(
     (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`
   );

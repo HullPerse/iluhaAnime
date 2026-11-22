@@ -55,12 +55,19 @@ function isRecapTitle(lower: string): boolean {
 
 export function skipLabel(title: string): string | null {
   const lower = title.toLowerCase();
+
   if (isOpeningTitle(lower)) return "OP";
+
   if (isEndingTitle(lower)) return "ED";
+
   if (isIntroTitle(lower)) return "Intro";
+
   if (isPreviewTitle(lower)) return "Preview";
+
   if (isIntermissionTitle(lower)) return "Intermission";
+
   if (isRecapTitle(lower)) return "Recap";
+
   return null;
 }
 
@@ -73,10 +80,12 @@ export function findActiveChapter(
     const chapter = chapters[i];
     const start = chapter.time;
     const end = chapter.end ?? chapters[i + 1]?.time ?? duration;
+
     if (timePos >= start && timePos < end) {
       return { chapter, index: i, target: chapter.end ?? chapters[i + 1]?.time ?? duration };
     }
   }
+
   return null;
 }
 
@@ -87,9 +96,12 @@ export function resolveSkipTarget(
   hasNext: boolean
 ): SkipTarget | null {
   const active = findActiveChapter(chapters, timePos, duration);
+
   if (!active) return null;
   const label = skipLabel(active.chapter.title);
+
   if (!label) return null;
   const isLastChapter = active.index === chapters.length - 1;
+
   return { nextEpisode: isLastChapter && label === "ED" && hasNext, target: active.target };
 }

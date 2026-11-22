@@ -77,6 +77,7 @@ function TorrentFilePicker({
       const { cancel } = createInterval(() => {
         setElapsed(Math.floor((Date.now() - startedAt) / 1000));
       }, PICKER_ELAPSED_TICK_MS);
+
       return cancel;
     } else {
       startRef.current = null;
@@ -87,8 +88,10 @@ function TorrentFilePicker({
   const toggleFile = useCallback((index: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
+
       if (next.has(index)) next.delete(index);
       else next.add(index);
+
       return next;
     });
   }, []);
@@ -99,6 +102,7 @@ function TorrentFilePicker({
       if (prev.size === torrent.files.length) {
         return new Set();
       }
+
       return new Set(torrent.files.map((f) => f.index));
     });
   }, [torrent]);
@@ -106,11 +110,13 @@ function TorrentFilePicker({
   const toggleFolder = useCallback((indices: number[]) => {
     setSelected((prev) => {
       const next = new Set(prev);
+
       if (indices.every((index) => next.has(index))) {
         for (const index of indices) next.delete(index);
       } else {
         for (const index of indices) next.add(index);
       }
+
       return next;
     });
   }, []);
@@ -121,6 +127,7 @@ function TorrentFilePicker({
       directory: true,
       title: t("picker.select.folder"),
     });
+
     if (dir) setSaveDir(dir);
     setBrowsing(false);
   }, [t]);
@@ -128,13 +135,14 @@ function TorrentFilePicker({
   const handleConfirm = useCallback(async () => {
     if (!torrent) return;
     setIsLoading(true);
-    try {
+    await (async () => {
       const subFolder = torrent.hasCommonFolder ? undefined : torrent.name;
       const [, error] = await attempt(onConfirm([...selected], saveDir, subFolder, sequential));
+
       if (error) showError(t("common.error"), error.message);
-    } finally {
+    })().finally(() => {
       setIsLoading(false);
-    }
+    });
   }, [torrent, selected, saveDir, sequential, onConfirm, t]);
 
   const allSelected = torrent ? selected.size === torrent.files.length : false;
@@ -195,6 +203,7 @@ function TorrentFilePicker({
                 groupFilesByDirectory(torrent.files, fileOrder).map((group) => {
                   const indices = group.files.map((file) => file.index);
                   const folderOn = indices.every((index) => selected.has(index));
+
                   return (
                     <div key={group.dir || "__root__"}>
                       {group.dir && (
@@ -219,6 +228,7 @@ function TorrentFilePicker({
                       {group.files.map((item) => {
                         const conflict = torrent.conflictingFiles.includes(item.name);
                         const picked = selected.has(item.index);
+
                         return (
                           <label
                             key={item.index}

@@ -13,6 +13,7 @@ import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke: invoke } = await import("@/tests/mocks");
+
   return {
     invoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -47,6 +48,7 @@ const renderRow = (
   source = "erai-raws"
 ) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <SearchResultItem
@@ -84,8 +86,11 @@ const mockCoverPipeline = () => {
   patchSettings({ torrentCoverMode: "full" });
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "search_anilist") return [NARUTO_MEDIA];
+
     if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
     if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
     return null;
   });
 };
@@ -139,8 +144,11 @@ describe("SearchResultItem covers", () => {
     patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
+
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       return null;
     });
     const { container } = renderRow();
@@ -157,7 +165,9 @@ describe("SearchResultItem covers", () => {
     patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
+
       if (command === "download_remote_image") return new Promise(() => {});
+
       return null;
     });
     const { container } = renderRow();
@@ -185,8 +195,11 @@ describe("SearchResultItem covers", () => {
     patchSettings({ torrentCoverMode: "full" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO_MEDIA];
+
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       if (command === "get_user_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       return null;
     });
     const onOpenDetails = vi.fn();
@@ -212,8 +225,11 @@ describe("SearchResultItem covers", () => {
     patchSettings({ torrentCoverMode: "pages" });
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "get_torrent_poster") return "https://img.rutracker.org/f/009/poster.jpg";
+
       if (command === "download_remote_image") return { id: "blob2", path: "covers/rt.jpg" };
+
       if (command === "get_user_image") return { id: "blob2", path: "covers/rt.jpg" };
+
       return null;
     });
     const { container } = renderRow(undefined, RUTRACKER_ITEM, "rutracker");

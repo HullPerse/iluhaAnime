@@ -32,6 +32,7 @@ const ROMS = [
 
 const renderRoute = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <GameRoute />
@@ -46,8 +47,11 @@ beforeEach(() => {
   mockListen.mockImplementation(() => Promise.resolve(() => undefined));
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "game_rom_list") return ROMS;
+
     if (command === "game_platforms") return ["chip8", "schip", "schip11", "xochip"];
+
     if (command === "game_store_list") return [];
+
     if (command === "game_start") {
       return {
         session: 1,
@@ -63,6 +67,7 @@ beforeEach(() => {
         palette: null,
       };
     }
+
     return null;
   });
 });
@@ -159,11 +164,16 @@ describe("game route", () => {
     let starts = 0;
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "game_rom_list") return ROMS;
+
       if (command === "game_platforms") return ["chip8", "schip", "schip11", "xochip"];
+
       if (command === "game_store_list") return [];
+
       if (command === "game_start") {
         starts += 1;
+
         if (starts === 1) throw new Error("boom");
+
         return {
           session: 1,
           id: "builtin:snake",
@@ -178,6 +188,7 @@ describe("game route", () => {
           palette: null,
         };
       }
+
       return null;
     });
     renderRoute();

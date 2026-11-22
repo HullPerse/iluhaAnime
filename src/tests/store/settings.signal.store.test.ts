@@ -34,6 +34,7 @@ function setup(backing = new Map<string, string>()): {
   backing: Map<string, string>;
 } {
   const store = createSettingsSignalStore({ getStorage: () => memoryStorage(backing) });
+
   return { store, backing };
 }
 
@@ -54,6 +55,7 @@ describe("settings signal defaults", () => {
     const { store } = setup();
     const snapshot = store.snapshot();
     expect(Object.keys(snapshot).length).toBe(Object.keys(DEFAULT_SETTINGS).length + 1);
+
     for (const value of Object.values(snapshot)) {
       expect(typeof value).not.toBe("function");
     }

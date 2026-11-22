@@ -30,6 +30,7 @@ export const SuggestionItem = memo(
   }) => {
     const { t } = useI18n();
     const Icon = suggestionIcons[suggestion.kind];
+
     return (
       <div className="flex w-full items-center">
         <div

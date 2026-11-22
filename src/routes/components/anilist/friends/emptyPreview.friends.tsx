@@ -28,6 +28,7 @@ export function FriendPreviewEmpty({
       </div>
     );
   }
+
   if (profileError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6">
@@ -44,6 +45,7 @@ export function FriendPreviewEmpty({
       </div>
     );
   }
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6">
       <SmallLoader size={5} />

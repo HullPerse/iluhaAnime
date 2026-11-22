@@ -40,6 +40,7 @@ function FranchiseGraph({
           {filtered.edges.map((edge, index) => {
             const source = positions.get(edge.source);
             const target = positions.get(edge.target);
+
             if (!source || !target) return null;
             const style = EDGE_STYLES[edge.relation_type] ?? {
               color: "#bdc3c7",
@@ -63,8 +64,10 @@ function FranchiseGraph({
         </svg>
         {[...filtered.nodeMap.values()].map((node) => {
           const position = positions.get(node.id);
+
           if (!position) return null;
           const dimmed = searchMatchIds !== null && !searchMatchIds.has(node.id);
+
           return (
             <FranNode
               key={node.id}

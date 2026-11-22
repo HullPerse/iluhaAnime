@@ -42,6 +42,7 @@ beforeEach(() => {
   patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anime_full") return new Promise(() => undefined);
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 });

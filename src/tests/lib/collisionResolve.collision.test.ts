@@ -47,6 +47,7 @@ describe("resolveRowCollisions", () => {
     const twice = resolveRowCollisions(
       once.left.map((left, index) => {
         const source = boxes[index];
+
         return { ...source, minX: left, maxX: left + (source.maxX - source.minX) };
       }),
       { rowGap: ROW_GAP }

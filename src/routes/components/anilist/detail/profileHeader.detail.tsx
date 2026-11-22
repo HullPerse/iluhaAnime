@@ -24,6 +24,7 @@ export function DetailProfileHeader({
   siteUrl?: string | null;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-row items-start gap-3">
       <section className="windows95-border bg-field flex h-28 w-20 shrink-0 overflow-hidden">

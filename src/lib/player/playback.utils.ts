@@ -46,21 +46,27 @@ export function buildTorrentPlayerPlaylist(
   extraFullPaths?: string[]
 ): { files: string[]; startIndex: number } | null {
   const paths: string[] = [];
+
   for (const file of files) {
     if (!file.completed || !file.exists) continue;
     const full = file.fullPath ?? joinMediaPath(saveDir, file.name);
+
     if (trackExts && isTrackFileName(fileNameFromPath(full), trackExts)) continue;
     paths.push(full);
   }
+
   if (extraFullPaths) {
     for (const full of extraFullPaths) {
       if (trackExts && isTrackFileName(fileNameFromPath(full), trackExts)) continue;
       paths.push(full);
     }
   }
+
   const deduped = [...new Set(paths)].sort((a, b) => PLAYLIST_COLLATOR.compare(a, b));
   const startIndex = deduped.indexOf(clickedFullPath);
+
   if (deduped.length === 0 || startIndex === -1) return null;
+
   return { files: deduped, startIndex };
 }
 
@@ -69,20 +75,29 @@ const TIMECODE_LAST = /^\d+([.,]\d+)?$/;
 
 export function parseTimecode(value: string): number | null {
   const trimmed = value.trim();
+
   if (!trimmed) return null;
   const parts = trimmed.split(":");
+
   if (parts.length > 3) return null;
   const last = parts.at(-1);
+
   if (!last || !TIMECODE_LAST.test(last)) return null;
+
   for (const part of parts.slice(0, -1)) {
     if (!TIMECODE_INT.test(part)) return null;
   }
+
   const numbers = parts.map((part) => Number(part.replace(",", ".")));
+
   if (numbers.some((part) => !Number.isFinite(part))) return null;
   const ranged = parts.length > 1 ? numbers.slice(-2) : [];
+
   if (ranged.some((part) => part >= 60)) return null;
   let seconds = 0;
+
   for (const part of numbers) seconds = seconds * 60 + part;
+
   return seconds;
 }
 
@@ -96,6 +111,7 @@ function withAlpha(color: string, opacity: number): string {
   const alpha = Math.round((clamp(opacity, 0, 100) / 100) * 255)
     .toString(16)
     .padStart(2, "0");
+
   return `#${alpha}${color.slice(1)}`;
 }
 
@@ -137,9 +153,11 @@ export function diffOptions(
   next: Record<string, unknown>
 ): Record<string, unknown> {
   const changed: Record<string, unknown> = {};
+
   for (const [name, value] of Object.entries(next)) {
     if (!Object.is(previous[name], value)) changed[name] = value;
   }
+
   return changed;
 }
 
@@ -161,6 +179,7 @@ export async function applyProperties(options: Record<string, unknown>): Promise
       reportBackgroundError("player.settings.property", result.reason);
     }
   });
+
   return failed;
 }
 
@@ -179,6 +198,7 @@ export function hdrOptions(settings: PlayerSettings): Record<string, unknown> {
       "hdr-compute-peak": "auto",
     };
   }
+
   return {
     "tone-mapping": "clip",
     "target-peak": String(clamp(settings.targetPeak, 100, 10_000)),
@@ -269,6 +289,7 @@ async function runMpvCommand(
       ...(expectedPath === undefined ? {} : { expectedPath }),
     })
   );
+
   if (error !== null) {
     reportBackgroundError(`player.command.${name}`, error);
     addNotification(translate("player.media.error.title"), "error", error.message);
@@ -286,6 +307,7 @@ export async function playerShaderPath(id: string): Promise<string> {
 
 export async function setMpvProperty(name: string, value: unknown): Promise<void> {
   const [, error] = await attempt(invokeTyped("player_set_property", { name, value }));
+
   if (error !== null) {
     reportBackgroundError(`player.property.${name}`, error);
     throw error;
@@ -293,22 +315,27 @@ export async function setMpvProperty(name: string, value: unknown): Promise<void
 }
 
 type MpvPropertyFormat = "double" | "flag" | "int64" | "string";
+
 type MpvPropertyValue = string | number | boolean | null;
 
 async function getMpvProperty(name: string, format: "double" | "int64"): Promise<number | null>;
 async function getMpvProperty(name: string, format: "flag"): Promise<boolean | null>;
 async function getMpvProperty(name: string, format: "string"): Promise<string | null>;
+
 async function getMpvProperty(name: string, format: MpvPropertyFormat): Promise<MpvPropertyValue> {
   switch (format) {
     case "double": {
       return invokeValidated("player_get_property", MpvDoubleSchema, { name, format });
     }
+
     case "flag": {
       return invokeValidated("player_get_property", MpvFlagSchema, { name, format });
     }
+
     case "int64": {
       return invokeValidated("player_get_property", MpvInt64Schema, { name, format });
     }
+
     case "string": {
       return invokeValidated("player_get_property", MpvStringSchema, { name, format });
     }
@@ -328,16 +355,13 @@ export async function setEofMode(mode: EndOfFileMode): Promise<void> {
   await invokeTyped("player_eof_mode", { mode });
 }
 
-export async function saveWatch(path: string, state: WatchState): Promise<void> {
-  await invokeTyped("player_save_watch", { path, state });
-}
-
 export async function loadWatch(path: string): Promise<WatchState | null> {
   return invokeValidated<WatchState | null>("player_load_watch", WatchStateSchema, { path });
 }
 
 export function seekTo(seconds: number, mode: SeekMode = "keyframes"): Promise<void> {
   const precision = mode === "exact" ? "exact" : "keyframes";
+
   return runMpvCommand("seek", [seconds, `absolute+${precision}`]);
 }
 
@@ -443,15 +467,18 @@ export function addExternalAudioAuto(path: string, expectedPath?: string): Promi
 
 export async function readPath(): Promise<string> {
   const [value] = await attempt(getMpvProperty("path", "string"));
+
   return typeof value === "string" ? value : "";
 }
 
 export async function readDuration(): Promise<number> {
   const [value] = await attempt(getMpvProperty("duration", "double"));
+
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 export async function readPlaylistIndex(): Promise<number> {
   const [value] = await attempt(getMpvProperty("playlist-pos", "int64"));
+
   return typeof value === "number" && Number.isFinite(value) ? value : -1;
 }

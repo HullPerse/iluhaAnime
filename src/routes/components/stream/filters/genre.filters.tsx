@@ -35,9 +35,11 @@ export function GenrePicker({
         onChange={(value) => {
           if (!value) return;
           const id = Number(value);
+
           if (!filters.genres.includes(id)) {
             onChange({ ...filters, genres: [...filters.genres, id] });
           }
+
           setPick("");
         }}
         placeholder={t("stream.filters.genre.placeholder")}

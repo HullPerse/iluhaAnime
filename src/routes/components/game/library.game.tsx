@@ -35,6 +35,7 @@ export default function GameLibrary({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const rows = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-rom-row]"));
+
     if (rows.length === 0) return;
     const target = event.target;
     const targetRow =
@@ -44,15 +45,18 @@ export default function GameLibrary({
     if (event.key === "Enter") {
       if (target instanceof HTMLElement && target.tagName === "BUTTON") return;
       const rom = roms[current];
+
       if (rom !== undefined) {
         event.preventDefault();
         onPlay(rom);
       }
+
       return;
     }
 
     const delta = ROW_DELTAS[event.key] ?? 0;
     const boundary = ROW_BOUNDARIES[event.key]?.(rows.length) ?? null;
+
     if (delta === 0 && boundary === null) return;
     event.preventDefault();
     const next = boundary ?? moveIndex(current, delta, rows.length);
@@ -103,6 +107,7 @@ export default function GameLibrary({
         {error === null &&
           roms.map((rom) => {
             const active = rom.id === activeId;
+
             return (
               <div
                 key={rom.id}

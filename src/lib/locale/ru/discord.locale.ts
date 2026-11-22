@@ -5,6 +5,7 @@ const discord = {
   "discord.detail.state": "Просмотр AniList",
   "discord.idle.library": "Anilist: {{titles}}",
   "discord.idle.running": "iluhaAnime запущен",
+  "discord.manga.reading": "Читает мангу, глава {{chapter}}",
   "discord.player.paused": "Пауза",
   "discord.search.details": "Поиск аниме",
 } as const;

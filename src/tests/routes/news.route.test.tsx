@@ -83,6 +83,7 @@ const pages: Record<number, NewsPage> = {
 
 const renderRoute = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <NewsRoute />
@@ -92,6 +93,7 @@ const renderRoute = () => {
 
 const openReader = async (title: string) => {
   await userEvent.click(await screen.findByRole("button", { name: title }));
+
   return screen.getByRole("dialog");
 };
 
@@ -99,7 +101,9 @@ const CACHED_IMAGE_PATH = "C:/cache/images/remote_images/a1b164675a47232e556f.we
 
 const openImageMenu = (): Element => {
   const trigger = screen.getByRole("dialog").querySelector("div.contents");
+
   if (!trigger) throw new Error("image context menu trigger missing");
+
   return trigger;
 };
 
@@ -118,12 +122,16 @@ const mockImageCommands = (): void => {
   mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command === "news_feed") {
       const page = pages[Number(args?.page ?? 1)];
+
       return page === undefined
         ? Promise.reject(new Error("unreachable: no such page"))
         : Promise.resolve(page);
     }
+
     if (command === "fetch_remote_image") return Promise.resolve(cachedImage());
+
     if (command === "save_cached_image") return Promise.resolve("C:/out/full.webp");
+
     return Promise.reject(new Error(`unexpected ${command}`));
   });
 };
@@ -133,6 +141,7 @@ beforeEach(() => {
   mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
     if (command !== "news_feed") return Promise.reject(new Error(`unexpected ${command}`));
     const page = pages[Number(args?.page ?? 1)];
+
     return page === undefined
       ? Promise.reject(new Error("unreachable: no such page"))
       : Promise.resolve(page);
@@ -284,9 +293,11 @@ describe("news route", () => {
   it("opens the linked anime in the AniList detail modal", async () => {
     mockInvoke.mockImplementation((command: string, args?: Record<string, unknown>) => {
       if (command === "news_feed") return Promise.resolve(pages[Number(args?.page ?? 1)]);
+
       if (command === "news_anime_link") {
         return Promise.resolve({ anilistId: 194213, malId: 61813 });
       }
+
       return Promise.reject(new Error(`unexpected ${command}`));
     });
     renderRoute();

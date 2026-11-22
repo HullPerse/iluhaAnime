@@ -4,7 +4,9 @@ import { shouldIgnoreHotkeys } from "@/lib/core/hotkeys/filterHotkeys.utils";
 
 function makeElement(tag: string, attrs: Record<string, string> = {}): HTMLElement {
   const element = document.createElement(tag);
+
   for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
+
   return element;
 }
 

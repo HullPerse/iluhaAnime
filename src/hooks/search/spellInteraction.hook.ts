@@ -18,9 +18,11 @@ export function useSpellInteraction(
   }) => {
     if (!spellCheck) return false;
     const index = spellHitIndex(spellSpanRects(), event.clientX, event.clientY);
+
     if (index < 0 || !spellSpansOf(spellCheck)[index]) return false;
     event.preventDefault();
     onApplySpellCorrection?.(index);
+
     return true;
   };
 
@@ -31,9 +33,11 @@ export function useSpellInteraction(
   }) => {
     if (!spellCheck) return false;
     const index = spellHitIndex(spellSpanRects(), event.clientX, event.clientY);
+
     if (index < 0 || !spellSpansOf(spellCheck)[index]) return false;
     event.preventDefault();
     onAddWordToDictionary?.(index);
+
     return true;
   };
 

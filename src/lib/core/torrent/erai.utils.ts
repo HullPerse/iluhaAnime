@@ -13,5 +13,6 @@ const ERROR_KEYS: Record<EraiErrorCode, TranslationKey> = {
 
 export function mapError(raw: string, t: (key: TranslationKey) => string): string {
   const code = raw.split(":")[0].trim() as EraiErrorCode;
+
   return t(ERROR_KEYS[code] ?? "search.erai.err.unknown");
 }

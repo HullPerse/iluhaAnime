@@ -9,6 +9,7 @@ import type { AniListStatistics } from "@/types/anilist/anilist";
 
 function messageOf(error: unknown): string | null {
   if (error == null) return null;
+
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -31,6 +32,7 @@ export function useAnilistStatistics(userId: number | null) {
   const retry = useCallback(() => {
     ignore(query.refetch());
   }, [query]);
+
   return {
     statistics: query.data ?? null,
     isLoading: query.isLoading,

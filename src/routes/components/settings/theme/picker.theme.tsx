@@ -31,7 +31,9 @@ export function ThemePicker({
     <div className="flex flex-col gap-2">
       {THEME_MODES.map((mode) => {
         const themes = builtins.filter((theme) => themeMode(theme) === mode.id);
+
         if (themes.length === 0) return null;
+
         return (
           <section key={mode.id} className="flex flex-col gap-1">
             <h3 className="windows95-text text-hint text-xs font-bold">{t(mode.label)}</h3>

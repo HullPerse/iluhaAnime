@@ -12,6 +12,7 @@ export function FavouriteAnimeRow({
   onSelect: (id: number) => void;
 }) {
   const activate = () => onSelect(fav.id);
+
   return (
     <div
       className="windows95-active-border bg-primary hover:bg-surface flex flex-row items-center gap-2 p-1 hover:cursor-pointer"

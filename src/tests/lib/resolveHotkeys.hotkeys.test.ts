@@ -4,7 +4,9 @@ import { resolveKeybinds, resolveScopeChords } from "@/lib/search/resolveHotkeys
 
 function row(id: string) {
   const found = resolveKeybinds({}).find((entry) => entry.entry.id === id);
+
   if (!found) throw new Error(`missing manifest entry: ${id}`);
+
   return found;
 }
 
@@ -81,7 +83,9 @@ describe("resolveKeybinds", () => {
 describe("resolveScopeChords", () => {
   it("keeps reader arrows independent from player and iluhium chords", () => {
     const overrides = { "manga-reader.left": "KeyJ" };
-    expect([...resolveScopeChords("manga-reader", overrides).values()]).toContain("manga-reader.left");
+    expect([...resolveScopeChords("manga-reader", overrides).values()]).toContain(
+      "manga-reader.left"
+    );
     expect(row("player.seekBackward").activeChord).toBe("ArrowLeft");
     expect(row("tree.move.down").activeChord).toBe("KeyJ");
   });

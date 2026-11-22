@@ -5,6 +5,7 @@ import { dayLabel } from "@/lib/core/anilist/activity.utils";
 
 export function CalendarDayHeader() {
   const { locale } = useI18n();
+
   return (
     <div className="bg-surface grid grid-cols-7">
       {[0, 1, 2, 3, 4, 5, 6].map((i) => (

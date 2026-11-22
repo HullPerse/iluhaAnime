@@ -13,12 +13,15 @@ export function useDetailScreens(animeId: number, onRelated: ((id: number) => vo
   const pushScreen = (screen: AniListOverlayScreen) => {
     setScreens((prev) => [...prev, screen]);
   };
+
   const backScreen = () => {
     setScreens((prev) => prev.slice(0, -1));
   };
+
   const openAnime = (id: number) => {
     setScreens([]);
     onRelated?.(id);
   };
+
   return { backScreen, openAnime, pushScreen, screenTop };
 }

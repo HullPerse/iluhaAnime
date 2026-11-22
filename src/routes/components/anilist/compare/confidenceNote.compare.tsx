@@ -5,11 +5,13 @@ import { CONFIDENCE_KEYS } from "@/routes/components/anilist/compare/constants.c
 
 export function ConfidenceNote({ taste }: { taste: TasteMatch }) {
   const { t } = useI18n();
+
   if (taste.confidence === "none") {
     return (
       <p className="windows95-text text-hint mt-1 text-xs">{t("anilist.compare.no.scores")}</p>
     );
   }
+
   if (taste.confidence === "low") {
     return (
       <p className="windows95-text text-destructive mt-1 text-xs">
@@ -20,6 +22,7 @@ export function ConfidenceNote({ taste }: { taste: TasteMatch }) {
       </p>
     );
   }
+
   return (
     <p className="windows95-text text-hint mt-1 text-xs">
       {t("anilist.compare.confidence.summary", {

@@ -26,6 +26,7 @@ export function AnimeScreen({
   if (query.isLoading) {
     return <DetailLoading />;
   }
+
   if (query.isError || !query.data) {
     return <DetailError onRetry={() => query.refetch()} />;
   }

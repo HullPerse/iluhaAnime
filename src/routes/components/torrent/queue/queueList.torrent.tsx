@@ -42,6 +42,7 @@ export function QueueList({
   });
   useEffect(() => {
     scrollRef.current = virtualizer;
+
     return () => {
       scrollRef.current = null;
     };
@@ -49,6 +50,7 @@ export function QueueList({
   const virtualItems = virtualizer.getVirtualItems();
   const dropOf = (target: QueueDragTarget): QueuePlace | null => {
     if (!hint || !sameQueueTarget(hint.target, target)) return null;
+
     return hint.place;
   };
 
@@ -59,11 +61,7 @@ export function QueueList({
       className="windows95-border bg-field max-h-[50vh] overflow-y-auto p-0.5"
       style={{ minHeight: display.length > 0 ? QUEUE_VIEW_HEIGHT : undefined }}
     >
-      {display.length === 0 ? (
-        <span className="windows95-text text-hint block p-1" data-testid="torrent-queue-empty">
-          {t("torrent.queue.empty.done")}
-        </span>
-      ) : (
+      {display.length > 0 && (
         <div
           ref={treeRef}
           className="relative"
@@ -73,7 +71,9 @@ export function QueueList({
         >
           {virtualItems.map((virtualRow) => {
             const item = display[virtualRow.index];
+
             if (!item) return null;
+
             if (item.kind === "folder") {
               return (
                 <QueueFolderRow
@@ -92,9 +92,12 @@ export function QueueList({
                 />
               );
             }
+
             const file = byIndex.get(item.index);
+
             if (!file) return null;
             const entry = rowBlocks.get(item.index);
+
             return (
               <QueueFileRow
                 key={`file:${item.index}`}

@@ -42,8 +42,11 @@ const ANIME_ID = 21;
 
 function similarItems(): number[] {
   const excluded = new Set<number>([ANIME_ID]);
+
   for (const id of RELATION_IDS) excluded.add(id);
+
   for (const id of FRANCHISE_IDS) excluded.add(id);
+
   return RECS_50.filter((rec) => !excluded.has(rec.id))
     .sort((a, b) => b.recommendation_rating - a.recommendation_rating)
     .slice(0, SIMILAR_LIMIT)
@@ -53,6 +56,7 @@ function similarItems(): number[] {
 group("anilist-detail @anilist @quick", () => {
   bench("detail score rows x25", () => {
     let sum = 0;
+
     for (const row of ROWS_25) {
       const format: AnilistScoreFormat = resolveDisplayScoreFormat(
         "friend",
@@ -61,13 +65,16 @@ group("anilist-detail @anilist @quick", () => {
       );
       sum += formatScore(row.score, format).length + scoreIconFor(format, row.score).length;
     }
+
     return sum;
   });
 
   bench("similar filter-sort x50 recs", () => {
     const ids = similarItems();
     let sum = ids.length;
+
     for (const id of ids) sum += id;
+
     return sum;
   });
 });

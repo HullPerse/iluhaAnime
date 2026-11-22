@@ -49,7 +49,9 @@ const nameCache = new Map<string, string>();
 export function normalizeLangCode(code: string | undefined): string {
   if (!code) return "";
   const lower = code.trim().toLowerCase();
+
   if (UNKNOWN_CODES.has(lower)) return "";
+
   return ISO_639_2_TO_1[lower] ?? lower;
 }
 
@@ -67,11 +69,14 @@ function displayNamesEn(): Intl.DisplayNames | null {
 
 export function languageName(code: string | undefined): string {
   const normalized = normalizeLangCode(code);
+
   if (!normalized) return "";
   const cached = nameCache.get(normalized);
+
   if (cached !== undefined) return cached;
   const names = displayNamesEn();
   let resolved: string;
+
   if (!names) {
     resolved = normalized.toUpperCase();
   } else {
@@ -79,6 +84,8 @@ export function languageName(code: string | undefined): string {
     resolved =
       !name || name.toLowerCase() === normalized.toLowerCase() ? normalized.toUpperCase() : name;
   }
+
   nameCache.set(normalized, resolved);
+
   return resolved;
 }

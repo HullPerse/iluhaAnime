@@ -18,20 +18,26 @@ export function useAnilistFavouriteToggle(): (animeId: number) => Promise<void> 
       pendingRef.current.add(animeId);
       const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
       const wasFavourite = previous?.favourites.some((item) => item.id === animeId) ?? false;
+
       if (wasFavourite) {
         queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
           old ? { ...old, favourites: old.favourites.filter((item) => item.id !== animeId) } : old
         );
       }
+
       const [updated, error] = await attempt(anilistApi.toggleFavourite(animeId));
       pendingRef.current.delete(animeId);
+
       if (error) {
         if (wasFavourite) {
           queryClient.setQueryData(queryKeys.anilistData(), previous);
         }
+
         addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
+
         return;
       }
+
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old ? { ...old, favourites: updated } : old
       );

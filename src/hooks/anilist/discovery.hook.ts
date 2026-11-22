@@ -17,6 +17,7 @@ export function useDiscoveryQueue<T>(): DiscoveryQueue<T> {
   const push = useCallback((item: T) => {
     setState((prev) => {
       const kept = prev.history.slice(0, prev.index + 1);
+
       return { history: [...kept, item], index: kept.length };
     });
   }, []);
@@ -26,6 +27,7 @@ export function useDiscoveryQueue<T>(): DiscoveryQueue<T> {
   const reset = useCallback(() => {
     setState({ history: [], index: 0 });
   }, []);
+
   return {
     history: state.history,
     index: state.index,
@@ -46,15 +48,18 @@ async function fetchRandomMedia(
 ): Promise<AniMedia | null> {
   const baseArgs = { ...searchFiltersToParams(filters, null, FILTER_RANDOM_PER_PAGE, 1) };
   const [first, firstError] = await attempt(anilistApi.filterPage({ ...baseArgs, page: 1 }));
+
   if (firstError || !first || first.total === 0) return null;
   const pages = Math.max(1, Math.ceil(first.total / FILTER_RANDOM_PER_PAGE));
   const page = 1 + Math.floor(Math.random() * pages);
   const [pageData, pageError]: [FilterPage | null, Error | null] =
     page === 1 ? [first, null] : await attempt(anilistApi.filterPage({ ...baseArgs, page }));
+
   if (pageError) return null;
   const pool = pageData?.media ?? [];
   const fresh = pool.filter((media) => !seen.has(media.id));
   const source = fresh.length > 0 ? fresh : pool;
+
   return source.length > 0 ? (source[Math.floor(Math.random() * source.length)] ?? null) : null;
 }
 
@@ -76,6 +81,7 @@ export function useRandomDiscovery(): RandomDiscovery {
       queue.reset();
       (async () => {
         const [pick, error] = await attempt(fetchRandomMedia(filters, seenRef.current));
+
         if (error || !pick) {
           showError(
             t("anilist.filters.random"),
@@ -87,6 +93,7 @@ export function useRandomDiscovery(): RandomDiscovery {
           queue.push(pick);
           setOpen(true);
         }
+
         pendingRef.current = false;
         setPending(false);
       })();
@@ -95,11 +102,13 @@ export function useRandomDiscovery(): RandomDiscovery {
   );
   const reroll = useCallback(() => {
     const filters = filtersRef.current;
+
     if (pendingRef.current || !filters) return;
     pendingRef.current = true;
     setPending(true);
     (async () => {
       const [pick, error] = await attempt(fetchRandomMedia(filters, seenRef.current));
+
       if (error || !pick) {
         showError(
           t("anilist.filters.random"),
@@ -109,6 +118,7 @@ export function useRandomDiscovery(): RandomDiscovery {
         seenRef.current.add(pick.id);
         queue.push(pick);
       }
+
       pendingRef.current = false;
       setPending(false);
     })();
@@ -119,6 +129,7 @@ export function useRandomDiscovery(): RandomDiscovery {
     queue.reset();
     setOpen(false);
   }, [queue]);
+
   return {
     open,
     current: queue.current,

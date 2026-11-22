@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { attempt } from "@hullperse/hp_utils/attempt";
 
 import { invokeTyped } from "@/lib/core/system/invoke.utils";
+import { UpscaleProgressSchema } from "@/schemas/upscale.schema";
 import type {
   ConvertConfig,
   UpscaleConfig,
@@ -13,8 +14,10 @@ export async function runUpscaleJob(
   item: UpscaleQueueItem,
   onProgress: (payload: UpscaleProgressPayload) => void
 ): Promise<void> {
-  const unlisten = await listen<UpscaleProgressPayload>("upscale-progress", (event) => {
-    onProgress(event.payload);
+  const unlisten = await listen<unknown>("upscale-progress", (event) => {
+    const progress = UpscaleProgressSchema.safeParse(event.payload);
+
+    if (progress.success) onProgress(progress.data);
   });
 
   const [, error] = await attempt(
@@ -35,6 +38,7 @@ export async function runUpscaleJob(
           selectedShaders: config.selectedShaders,
           temporalDenoise: config.temporalDenoise,
         });
+
         return;
       }
 
@@ -47,5 +51,6 @@ export async function runUpscaleJob(
       });
     })()
   ).finally(unlisten);
+
   if (error !== null) throw error;
 }

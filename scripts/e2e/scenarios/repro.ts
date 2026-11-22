@@ -18,7 +18,9 @@ function powershell(script: string): string {
     encoding: "utf-8",
     windowsHide: true,
   });
+
   if (result.status !== 0) throw new Error(result.stderr ?? "powershell failed");
+
   return result.stdout ?? "";
 }
 
@@ -31,6 +33,7 @@ async function zipEntryNames(path: string): Promise<string[]> {
     `${openZip()} [System.IO.Compression.ZipFile]::OpenRead('${path}') ` +
       `| ForEach-Object { $_.Entries } | ForEach-Object { $_.FullName }`
   );
+
   return out
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -66,9 +69,12 @@ async function tryInvoke(
           __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: unknown) => Promise<unknown> };
         }
       ).__TAURI_INTERNALS__;
+
       if (!internals) throw new Error("no tauri runtime");
+
       try {
         await internals.invoke(input.command, input.args);
+
         return "";
       } catch (error) {
         return error instanceof Error ? error.message : String(error);
@@ -89,6 +95,7 @@ export const repro: Scenario = {
         .waitFor({ timeout: 20_000 })
         .then(() => true)
         .catch(() => false);
+
       if (!found) throw new Error("settings summary did not render");
     });
 
@@ -97,6 +104,7 @@ export const repro: Scenario = {
         name: new RegExp(`^(?:${RU_LABEL}|Bug report bundle)$`, "i"),
       });
       await button.waitFor({ timeout: 15_000 });
+
       if (!(await button.isEnabled())) throw new Error("repro action is disabled");
     });
 
@@ -105,28 +113,35 @@ export const repro: Scenario = {
         outPath: OUT,
         frontendJson: frontendPayload(),
       });
+
       if (saved !== OUT) throw new Error(`command returned ${String(saved)}`);
     });
 
     await step("bundle is well formed", async () => {
       const names = await zipEntryNames(OUT);
+
       for (const expected of ["meta.json", "frontend.json", "storage.json", "README.txt"]) {
         if (!names.includes(expected)) {
           throw new Error(`missing ${expected}; got ${names.join(", ")}`);
         }
       }
+
       const meta = JSON.parse(readZipEntry(OUT, "meta.json")) as { os: string };
+
       if (meta.os !== "windows") throw new Error(`meta.os = ${meta.os}`);
       const readme = readZipEntry(OUT, "README.txt");
+
       if (!readme.includes("Privacy")) throw new Error("README.txt has no privacy note");
     });
 
     await step("storage listing is a summary, not the data", async () => {
       const storage = JSON.parse(readZipEntry(OUT, "storage.json")) as { name: string }[];
       const names = storage.map((entry) => entry.name);
+
       if (!names.includes("app_data.sqlite3")) {
         throw new Error(`storage listing lacks the database: ${names.join(", ")}`);
       }
+
       if (names.some((name) => /\.(mkv|mp4)$/i.test(name))) {
         throw new Error("storage listing leaks media files");
       }
@@ -137,6 +152,7 @@ export const repro: Scenario = {
         outPath: OVERSIZE,
         frontendJson: `{"blob":"${"x".repeat(300 * 1024)}"}`,
       });
+
       if (!/too large/i.test(message))
         throw new Error(`expected a size rejection, got: ${message}`);
     });

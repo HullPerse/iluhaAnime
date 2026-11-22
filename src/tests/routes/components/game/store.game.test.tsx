@@ -58,6 +58,7 @@ const listener: { handler: ((event: { payload: GameStoreProgress }) => void) | n
 
 const renderStore = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <GameStoreModal onClose={() => undefined} />
@@ -71,12 +72,15 @@ beforeEach(() => {
   mockListen.mockImplementation(
     (_event: string, handler: (event: { payload: GameStoreProgress }) => void) => {
       listener.handler = handler;
+
       return Promise.resolve(() => undefined);
     }
   );
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "game_store_list") return STORE;
+
     if (command === "game_store_install") return INSTALLED;
+
     return null;
   });
 });
@@ -128,11 +132,13 @@ describe("GameStoreModal", () => {
     const deferred: { resolve: (() => void) | null } = { resolve: null };
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "game_store_list") return STORE;
+
       if (command === "game_store_install") {
         return await new Promise((resolve) => {
           deferred.resolve = () => resolve(INSTALLED);
         });
       }
+
       return null;
     });
     renderStore();

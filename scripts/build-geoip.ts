@@ -21,9 +21,12 @@ interface Range {
 
 function argValue(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
+
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
+
   if (!value || value.startsWith("--")) throw new Error(`--${name} needs a value`);
+
   return value;
 }
 
@@ -37,80 +40,106 @@ async function sourcePath(kind: keyof typeof SOURCES, override?: string): Promis
   if (override) return override;
   await mkdir(CACHE_DIR, { recursive: true });
   const path = join(CACHE_DIR, `${kind}.csv`);
+
   if (!force) {
     const cached = await stat(path).catch(() => null);
+
     if (cached?.size) {
       log(`[geoip] cached ${kind}: ${path} (${cached.size} bytes)`);
+
       return path;
     }
   }
+
   const url = SOURCES[kind];
   log(`[geoip] downloading ${kind}: ${url}`);
   const response = await fetch(url);
+
   if (!response.ok || !response.body) {
     throw new Error(`download failed for ${url}: ${response.status} ${response.statusText}`);
   }
+
   await writeFile(path, new Uint8Array(await response.arrayBuffer()));
   const saved = await stat(path);
   log(`[geoip] saved ${path} (${saved.size} bytes)`);
+
   return path;
 }
 
 function countryCode(raw: string): string {
   const code = raw.trim().toUpperCase();
+
   return /^[A-Z]{2}$/.test(code) ? code : UNKNOWN;
 }
 
 async function parseCsv(path: string, max: bigint): Promise<Range[]> {
   const text = await readFile(path, "utf-8");
   const ranges: Range[] = [];
+
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
+
     if (trimmed === "") continue;
     const parts = trimmed.split(",");
+
     if (parts.length !== 3) throw new Error(`unexpected row in ${path}: ${trimmed}`);
     const start = BigInt(parts[0]);
     const end = BigInt(parts[1]);
+
     if (start > end || end > max) throw new Error(`bad range in ${path}: ${trimmed}`);
     const previous = ranges.at(-1);
+
     if (previous && start <= previous.end) {
       throw new Error(`ranges are not sorted/unique in ${path}: ${trimmed}`);
     }
+
     ranges.push({ country: countryCode(parts[2]), end, start });
   }
+
   if (ranges.length === 0) throw new Error(`no ranges parsed from ${path}`);
+
   return ranges;
 }
 
 function seal(ranges: Range[], max: bigint): Range[] {
   const merged: Range[] = [];
+
   for (const range of ranges) {
     const last = merged.at(-1);
+
     if (last && last.country === range.country && range.start === last.end + 1n) {
       last.end = range.end;
       continue;
     }
+
     merged.push({ ...range });
   }
+
   const sealed: Range[] = [];
   let next = 0n;
+
   for (const range of merged) {
     if (range.start > next) sealed.push({ country: UNKNOWN, end: range.start - 1n, start: next });
     sealed.push(range);
     next = range.end + 1n;
   }
+
   if (next <= max) sealed.push({ country: UNKNOWN, end: max, start: next });
+
   return sealed;
 }
 
 function varint(value: bigint): number[] {
   const out: number[] = [];
   let rest = value;
+
   while (rest >= 0x80n) {
     out.push(Number((rest & 0x7fn) | 0x80n));
     rest >>= 7n;
   }
+
   out.push(Number(rest));
+
   return out;
 }
 
@@ -118,11 +147,13 @@ function encodeRanges(ranges: Range[], codes: Map<string, number>) {
   const starts: number[] = [];
   const indices: number[] = [];
   let previous = 0n;
+
   for (const range of ranges) {
     starts.push(...varint(range.start - previous));
     previous = range.start;
     indices.push(codes.get(range.country) ?? 0);
   }
+
   return { indices: Uint8Array.from(indices), starts: Uint8Array.from(starts) };
 }
 
@@ -132,9 +163,11 @@ async function main() {
   const outPath = argValue("out") ?? DEFAULT_OUT;
 
   const codes = new Map<string, number>([[UNKNOWN, 0]]);
+
   for (const range of [...v4, ...v6]) {
     if (!codes.has(range.country)) codes.set(range.country, codes.size);
   }
+
   if (codes.size > 255) throw new Error(`too many country codes: ${codes.size}`);
   const codeList = [...codes.keys()];
 
@@ -156,6 +189,7 @@ async function main() {
   const parts = [header, v4Encoded.starts, v4Encoded.indices, v6Encoded.starts, v6Encoded.indices];
   const raw = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
   let offset = 0;
+
   for (const part of parts) {
     raw.set(part, offset);
     offset += part.length;

@@ -33,6 +33,7 @@ const FULL_PAGE: Anime[] = Array.from({ length: 20 }, (_, index) => ({
 
 const renderResults = (controller: Partial<SearchQueryController>) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <ModernResults

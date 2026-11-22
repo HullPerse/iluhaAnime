@@ -11,6 +11,7 @@ export function FranchiseMeta({
   meta: string;
 }) {
   if (!entry || !statusLabel) return <span className="text-hint">{meta}</span>;
+
   return (
     <span className="text-hint flex flex-wrap items-center gap-x-1">
       <span className="flex items-center gap-1">

@@ -29,6 +29,7 @@ export function submitStreamSearch(query: string): void {
 
 export function setStreamSort(sortBy: StreamSortBy, sortType: "asc" | "desc"): void {
   const current = streamFilters.get();
+
   if (current.sortBy === sortBy && current.sortType === sortType) return;
   streamPage.set(1);
   streamFilters.set({ ...current, sortBy, sortType });

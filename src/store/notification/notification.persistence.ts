@@ -8,6 +8,7 @@ export const NOTIFICATION_STORAGE_KEY = "notifications";
 
 export function targetKey(target: NotificationItem["target"]): string {
   if (!target) return "";
+
   return target.source === "folder" ? `folder:${target.path}` : `anilist:${target.id}`;
 }
 
@@ -48,6 +49,7 @@ export function resolveNotificationPersisted(
   storageExists: boolean
 ): { items: NotificationItem[]; dismissed: DismissedEntry[] } | null {
   if (!storageExists) return null;
+
   if (!isRecord(persistedState)) return null;
   const items = Array.isArray(persistedState.items)
     ? persistedState.items
@@ -57,6 +59,7 @@ export function resolveNotificationPersisted(
   const dismissed = Array.isArray(persistedState.dismissed)
     ? pruneDismissed(persistedState.dismissed.filter(isDismissedEntry), Date.now())
     : [];
+
   return { items, dismissed };
 }
 
@@ -64,14 +67,19 @@ export function readLegacyNotifications(
   getStorage: () => Storage | undefined
 ): { data: { items: NotificationItem[]; dismissed: DismissedEntry[] }; maxId: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem(NOTIFICATION_STORAGE_KEY));
+
   if (readError !== null) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw ?? "null"));
+
   if (parseError !== null) return null;
   const envelope = isRecord(parsed) && "state" in parsed ? parsed.state : parsed;
   const resolved = resolveNotificationPersisted(envelope, raw !== null);
+
   if (!resolved) return null;
   const maxId = resolved.items.reduce((max, item) => Math.max(max, item.id), 0);
+
   return { data: { items: resolved.items, dismissed: resolved.dismissed }, maxId };
 }

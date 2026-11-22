@@ -23,7 +23,7 @@ import {
 } from "@/store/deeplink.store";
 import type { StarterStatus } from "@/types/api/cards";
 
-import AlbumCards from "@/routes/components/collection/album.cards";
+import AlbumCards from "@/routes/components/collection/album/view.album";
 import GameCards from "@/routes/components/collection/game.cards";
 import GiftDialog from "@/routes/components/collection/giftDialog.cards";
 import GiftReceiptDialog from "@/routes/components/collection/giftReceiptDialog.cards";
@@ -59,37 +59,35 @@ export default function CollectionShell() {
   const bootstrap = useCardsShell();
   const starterStatus = useCardsStarterStatus();
   const { grantStarter, markSeen } = useCardsMutations();
-  const [starterClaimed, setStarterClaimed] = useState(false);
-  const [seenReady, setSeenReady] = useState(false);
+  const [starterClaimed, setStarterClaimed] = useState<boolean>(false);
+  const [seenReady, setSeenReady] = useState<boolean>(false);
   const markSeenMutate = markSeen.mutate;
 
   useEffect(() => {
     const seen = bootstrap.data?.seen;
+
     if (seen === undefined || seenReady) return;
     const now = Math.floor(Date.now() / 1000);
-    const packsSeen = Math.max(
-      seen.packsReadAt,
-      Math.min(cardsAtoms.packsReadAt.get(), now)
-    );
-    const albumSeen = Math.max(
-      seen.albumReadAt,
-      Math.min(cardsAtoms.albumReadAt.get(), now)
-    );
+    const packsSeen = Math.max(seen.packsReadAt, Math.min(cardsAtoms.packsReadAt.get(), now));
+    const albumSeen = Math.max(seen.albumReadAt, Math.min(cardsAtoms.albumReadAt.get(), now));
     setCardsPacksReadAt(packsSeen);
     setCardsAlbumReadAt(albumSeen);
     setCardsPacksNewSince(packsSeen);
     setCardsAlbumNewSince(albumSeen);
     setSeenReady(true);
+
     if (packsSeen > seen.packsReadAt) markSeenMutate({ tab: "packs", at: packsSeen });
+
     if (albumSeen > seen.albumReadAt) markSeenMutate({ tab: "album", at: albumSeen });
   }, [bootstrap.data?.seen, seenReady, markSeenMutate]);
 
   useEffect(() => {
     if (!seenReady) return;
+
     if (tab !== "packs" && tab !== "album") return;
     const now = Math.floor(Date.now() / 1000);
-    const previous =
-      tab === "packs" ? cardsAtoms.packsReadAt.get() : cardsAtoms.albumReadAt.get();
+    const previous = tab === "packs" ? cardsAtoms.packsReadAt.get() : cardsAtoms.albumReadAt.get();
+
     if (tab === "packs") setCardsPacksNewSince(previous);
     else setCardsAlbumNewSince(previous);
     markSeenMutate({ tab });
@@ -97,10 +95,12 @@ export default function CollectionShell() {
       if (tab === "packs") setCardsPacksNewSince(now + 1);
       else setCardsAlbumNewSince(now + 1);
     }, NEW_BADGE_MS);
+
     return () => window.clearTimeout(timer);
   }, [tab, seenReady, markSeenMutate]);
 
   let body;
+
   if (bootstrap.isPending) {
     body = <TabLoader className="min-h-48 flex-1" />;
   } else if (bootstrap.isError) {

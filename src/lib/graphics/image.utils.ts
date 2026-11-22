@@ -10,7 +10,9 @@ export function isUserImageIcon(value: string): boolean {
 
 export function assetUrl(path: string, version?: string | null): string {
   const url = convertFileSrc(path);
+
   if (version === undefined || version === null || version === "") return url;
+
   return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 

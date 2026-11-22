@@ -7,6 +7,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 import {
   buildDetailActivity,
   buildIdleActivity,
+  buildReadingActivity,
   buildSearchActivity,
   samePresence,
 } from "@/lib/core/system/presence.utils";
@@ -28,15 +29,21 @@ export function useDiscordPresence(activeTab: TabId): void {
   const enabled = useCell(settingsAtoms.discordRpcEnabled);
   const searching = useCell(presenceAtoms.search);
   const detail = useCell(presenceAtoms.detail);
+  const reading = useCell(presenceAtoms.reading);
   const { t } = useI18n();
   const { user } = useUserAnilistData();
 
   const activity = useMemo(() => {
     if (!enabled) return null;
+
+    if (reading) return buildReadingActivity(reading, t);
+
     if (detail) return buildDetailActivity(detail, t);
+
     if (activeTab === "search" && searching) return buildSearchActivity(t);
+
     return buildIdleActivity(user, t);
-  }, [activeTab, detail, enabled, searching, t, user]);
+  }, [activeTab, detail, enabled, reading, searching, t, user]);
 
   const [scheduled] = useDebouncedValue(activity, {
     wait: PRESENCE_DEBOUNCE_MS,

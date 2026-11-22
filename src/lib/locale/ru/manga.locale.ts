@@ -165,7 +165,7 @@ export default {
   "manga.tracking.saved": "Прогресс сохранён в AniList.",
   "manga.tracking.failed": "Не удалось выполнить запрос AniList.",
   "manga.tracking.statsSummary":
-    "Тайтлы {{count}} - Прочитано глав {{chapters}} - Томов {{volumes}} - Средняя оценка {{meanScore}}",
+    "Тайтлы {{count}} - Главы {{chapters}} - Томы {{volumes}} - Оценка {{meanScore}}",
   "manga.tracking.stats.statuses": "По статусам",
   "manga.tracking.stats.formats": "По форматам",
   "manga.tracking.stats.genres": "По жанрам",

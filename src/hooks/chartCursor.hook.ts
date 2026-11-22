@@ -18,6 +18,7 @@ export function useChartCursor(count: number, onActivate?: (index: number) => vo
       if (count <= 0) return;
       setRawActive((current) => {
         const next = (current ?? (delta < 0 ? count : -1)) + delta;
+
         return clamp(next, 0, count - 1);
       });
     },
@@ -34,7 +35,9 @@ export function useChartCursor(count: number, onActivate?: (index: number) => vo
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLElement>) => {
       if (count <= 0) return;
+
       if (event.altKey || event.ctrlKey || event.metaKey) return;
+
       if (FORWARD_KEYS.has(event.key)) {
         move(1);
       } else if (BACKWARD_KEYS.has(event.key)) {
@@ -52,6 +55,7 @@ export function useChartCursor(count: number, onActivate?: (index: number) => vo
       } else {
         return;
       }
+
       event.preventDefault();
       event.stopPropagation();
     },

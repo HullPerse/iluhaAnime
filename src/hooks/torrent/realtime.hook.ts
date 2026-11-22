@@ -21,6 +21,7 @@ import {
 } from "@/lib/torrent/torrentCommon.utils";
 import { cacheAtoms } from "@/store/cache.store";
 import { torrentAtoms } from "@/store/download.store";
+import { TorrentUpdateSchema } from "@/schemas/torrent.schema";
 import type { TorrentInfo, TorrentUpdatePayload } from "@/types/torrent/torrent";
 
 interface TorrentRealtimeQuery {
@@ -37,12 +38,17 @@ function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentUpdateP
     pendingRemoveIds(torrentAtoms.opInFlight.get())
   );
   const patch = reduceTorrentEvent({ torrents: prev, lastActiveAt }, { ...event, payload: next });
+
   if (patch.torrents !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, patch.torrents);
+
   if (patch.lastActiveAt !== undefined) torrentAtoms.lastActiveAt.set(patch.lastActiveAt);
+
   for (const t of findNewErrors(prev, next)) {
     showError(tr("torrent.state.error"), `${t.name}: ${t.error}`);
   }
+
   const prefs = cacheAtoms.seedPreferences.get();
+
   for (const t of findJustFinished(prev, next, prefs)) {
     torrentApi
       .pauseTorrent(t.id)
@@ -52,8 +58,8 @@ function applyTorrentEvent(queryClient: QueryClient, event: Event<TorrentUpdateP
 
 export function useTorrentRealtime(query: TorrentRealtimeQuery): void {
   const queryClient = useQueryClient();
-  const initialErrorNotified = useRef(false);
-  const primedSeedPause = useRef(false);
+  const initialErrorNotified = useRef<boolean>(false);
+  const primedSeedPause = useRef<boolean>(false);
 
   useEffect(() => {
     if (initialErrorNotified.current || !query.error) return;
@@ -66,6 +72,7 @@ export function useTorrentRealtime(query: TorrentRealtimeQuery): void {
     if (!query.data || primedSeedPause.current) return;
     primedSeedPause.current = true;
     const prefs = cacheAtoms.seedPreferences.get();
+
     for (const t of findJustFinished([], query.data, prefs)) {
       torrentApi
         .pauseTorrent(t.id)
@@ -81,23 +88,30 @@ export function useTorrentRealtime(query: TorrentRealtimeQuery): void {
     let lastHealAt = 0;
     const watchStartedAt = Date.now();
 
-    const onEvent = (event: Event<TorrentUpdatePayload>) => {
+    const onEvent = (event: Event<unknown>) => {
       if (disposed) return;
+      const update = TorrentUpdateSchema.safeParse(event.payload);
+
+      if (!update.success) return;
       lastEventAt = Date.now();
-      applyTorrentEvent(queryClient, event);
+      applyTorrentEvent(queryClient, { ...event, payload: update.data });
     };
 
     const startListening = () => {
       if (disposed || stopListening || listenPending) return;
       listenPending = true;
       (async () => {
-        const [stop] = await attempt(listen<TorrentUpdatePayload>("torrents-update", onEvent));
+        const [stop] = await attempt(listen<unknown>("torrents-update", onEvent));
         listenPending = false;
+
         if (!stop) return;
+
         if (disposed) {
           stop();
+
           return;
         }
+
         stopListening = stop;
       })();
     };
@@ -106,8 +120,10 @@ export function useTorrentRealtime(query: TorrentRealtimeQuery): void {
 
     const { cancel } = createInterval(() => {
       startListening();
+
       if (document.hidden) return;
       const now = Date.now();
+
       if (!shouldHealTorrentChannel({ lastEventAt, watchStartedAt, lastHealAt }, now)) return;
       lastHealAt = now;
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });

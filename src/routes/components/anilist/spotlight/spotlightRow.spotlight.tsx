@@ -17,6 +17,7 @@ export function SpotlightRow({
   const meta = [media.season_year, media.score, ...media.genres.slice(0, 2)]
     .filter((part) => part !== null && part !== undefined && part !== "")
     .join(" - ");
+
   return (
     <section className="windows95-border bg-field flex flex-row gap-2 p-1">
       {cover ? (

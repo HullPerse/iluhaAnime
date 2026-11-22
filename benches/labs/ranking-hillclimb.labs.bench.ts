@@ -193,9 +193,11 @@ const EVAL: Array<{
   candidates: FixtureCandidate[];
   counters: FixtureCounters;
 }> = [];
+
 for (let i = 0; i < TITLES.length; i++) {
   const title = TITLES[i];
   const query = title.slice(0, 5);
+
   if (i % 2 === 0) EVAL.push(easyCase(query, title));
   else EVAL.push(hardCase(query, title));
 }
@@ -222,6 +224,7 @@ function rankWith(
       const stat = maps.suggestionStats[normalizeSearchText(candidate.value)];
       const counters = stat ? countersOf(stat) : null;
       let bonus = 0;
+
       if (counters) {
         const capped = (value: number, weight: number, cap: number) =>
           Math.min(cap, Math.max(0, value) * weight);
@@ -232,6 +235,7 @@ function rankWith(
         const ageHours = Math.max(0, (NOW - counters.lastUsedAt) / 3_600_000);
         bonus = (positive - negative) * 0.5 ** (ageHours / params.halflifeHours);
       }
+
       return { ...candidate, score: (candidate.score ?? 0) + bonus };
     })
     .sort(
@@ -260,18 +264,22 @@ function measure(params: Params): Metric {
     }))
   );
   const maps = buildLearningMaps(rows, NOW);
+
   for (const { expected, candidates } of EVAL) {
     const ranked = rankWith(params, candidates, maps);
     const rank =
       ranked.findIndex(
         (entry) => normalizeSearchText(entry.value) === normalizeSearchText(expected)
       ) + 1;
+
     if (rank > 0) {
       found += 1;
       mrr += 1 / rank;
+
       if (rank === 1) top1 += 1;
     }
   }
+
   return { top1: top1 / EVAL.length, mrr: mrr / EVAL.length, found: found / EVAL.length };
 }
 
@@ -299,8 +307,10 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
   let steps = 0;
   let improved = true;
   const startMs = performance.now();
+
   while (improved && steps < 60) {
     improved = false;
+
     for (const key of Object.keys(current) as (keyof Params)[]) {
       for (const delta of [-step[key], step[key]]) {
         const next = { ...current };
@@ -309,6 +319,7 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
         const better =
           metric.mrr > currentMetric.mrr + 1e-9 ||
           (Math.abs(metric.mrr - currentMetric.mrr) <= 1e-9 && metric.top1 > currentMetric.top1);
+
         if (better) {
           current = next;
           currentMetric = metric;
@@ -318,17 +329,20 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
       }
     }
   }
+
   return { params: current, metric: currentMetric, steps, ms: performance.now() - startMs };
 }
 
 group("ranking-hillclimb @ranking @quick", () => {
   bench("baseline metric current params", () => {
     const m = measure(BASE_PARAMS);
+
     return Math.round((m.top1 * 1000 + m.mrr * 1000 + m.found * 100) * 1000);
   });
 
   bench("hill climbing pass maximize metric", () => {
     const result = hillClimb(BASE_PARAMS);
+
     return (
       Math.round(
         (result.metric.top1 * 1000 +

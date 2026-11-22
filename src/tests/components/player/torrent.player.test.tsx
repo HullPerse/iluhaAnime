@@ -83,6 +83,7 @@ const renderSection = (
       />
     </QueryClientProvider>
   );
+
   return { onToggleExpand };
 };
 

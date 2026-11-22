@@ -20,6 +20,7 @@ describe("useCell", () => {
     let renders = 0;
     const { result, unmount } = renderHook(() => {
       renders++;
+
       return useCell(cell);
     });
     const before = renders;
@@ -36,6 +37,7 @@ describe("useCell", () => {
     let renders = 0;
     const { result } = renderHook(() => {
       renders++;
+
       return useCell(listed);
     });
     const before = renders;

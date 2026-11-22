@@ -72,6 +72,7 @@ function TorrentItem({
     isDragging,
   } = useDraggable({ id: item.id, disabled: !draggable });
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: item.id, disabled: !draggable });
+
   return (
     <div
       ref={(node) => {

@@ -19,6 +19,7 @@ export default function SpeedLimitForm({
   const invalid =
     (downloadInput !== "" && !(Number(downloadInput) > 0)) ||
     (uploadInput !== "" && !(Number(uploadInput) > 0));
+
   return (
     <section className="windows95-active-border bg-primary flex items-center gap-2 p-1">
       <span className="windows95-text">

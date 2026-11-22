@@ -35,6 +35,7 @@ const FranNode = memo(
     const { t } = useI18n();
     const isAggregator = node.id < 0;
     const label = aggregateLabel(node, t);
+
     return (
       <div
         id={elementId}

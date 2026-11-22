@@ -10,17 +10,22 @@ export function useCardArt(path: string, visible: boolean): CardArt | null {
   useEffect(() => {
     if (!visible || !path) return;
     const cached = getCachedCard(path);
+
     if (cached) {
       setArt(cached);
+
       return;
     }
+
     let disposed = false;
     ignore(
       fetchVideoCard(path).then((card) => {
         if (!disposed && card) setArt(card);
+
         return null;
       })
     );
+
     return () => {
       disposed = true;
     };

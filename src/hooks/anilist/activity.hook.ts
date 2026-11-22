@@ -30,6 +30,7 @@ export function useToggleActivityLike() {
     );
     const [state, error] = await attempt(anilistApi.toggleActivityLike(activity.id));
     pendingRef.current.delete(activity.id);
+
     if (error) {
       queryClient.setQueriesData<AniActivity[]>({ queryKey: queryKeys.activityScope() }, (old) =>
         old?.map((item) =>

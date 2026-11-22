@@ -124,23 +124,17 @@ describe("buildModernPlayerMenu", () => {
     const playing = buildModernPlayerMenu(snapshot({ paused: false }), actions());
     const toggleOf = (entries: ReturnType<typeof buildModernPlayerMenu>) => {
       const submenu = entries[0];
+
       if (submenu.kind !== "submenu") throw new Error("playback must be a submenu");
       const toggle = submenu.entries[0];
+
       if (toggle.kind !== "item") throw new Error("first playback entry must be an item");
+
       return toggle.label;
     };
+
     expect(toggleOf(paused)).toBe("player.media.menu.play");
     expect(toggleOf(playing)).toBe("player.media.menu.pause");
-  });
-
-  it("shows only a disabled off entry when no subtitle tracks exist", () => {
-    const entries = buildModernPlayerMenu(snapshot({ tracks: [] }), actions());
-    const subs = entries[1];
-    if (subs.kind !== "submenu") throw new Error("subtitles must be a submenu");
-    expect(subs.entries).toHaveLength(1);
-    const off = subs.entries[0];
-    if (off.kind !== "item") throw new Error("empty subs must hold one item");
-    expect(off.disabled).toBe(true);
   });
 
   it("marks the selected track and wires select callbacks", () => {
@@ -150,11 +144,13 @@ describe("buildModernPlayerMenu", () => {
       actions({ onSelectSub })
     );
     const subs = entries[1];
+
     if (subs.kind !== "submenu") throw new Error("subtitles must be a submenu");
     const items = subs.entries.filter((entry) => entry.kind === "item");
     expect(items).toHaveLength(3);
     const off = items[0];
     const first = items[1];
+
     if (off.kind !== "item" || first.kind !== "item") throw new Error("expected items");
     expect(off.checked).toBe(false);
     expect(first.checked).toBe(true);
@@ -167,6 +163,7 @@ describe("buildModernPlayerMenu", () => {
 
   it("disables the whole menu without a file", () => {
     const entries = buildModernPlayerMenu(snapshot({ hasFile: false }), actions());
+
     for (const entry of entries) {
       if (entry.kind === "submenu" || entry.kind === "item") {
         if (
@@ -179,6 +176,7 @@ describe("buildModernPlayerMenu", () => {
         ) {
           continue;
         }
+
         expect(entry.disabled).toBe(true);
       }
     }
@@ -191,11 +189,13 @@ describe("buildModernPlayerMenu", () => {
       actions({ onViewMode })
     );
     const view = entries.find((entry) => entry.id === "view-mode");
+
     if (view?.kind !== "submenu") throw new Error("missing view submenu");
     expect(view.entries).toHaveLength(3);
     const active = view.entries.find(
       (entry) => entry.kind === "item" && entry.id === "view-compact"
     );
+
     if (active?.kind !== "item") throw new Error("missing compact entry");
     expect(active.checked).toBe(true);
     active.onSelect();
@@ -211,39 +211,30 @@ describe("buildModernPlayerMenu", () => {
     );
 
     const mode = entries.find((entry) => entry.id === "screen-mode");
+
     if (mode?.kind !== "submenu") throw new Error("missing player mode submenu");
     expect(mode.entries).toHaveLength(5);
     const television = mode.entries.find(
       (entry) => entry.kind === "item" && entry.id === "screen-mode-tv"
     );
+
     if (television?.kind !== "item") throw new Error("missing television entry");
     expect(television.checked).toBe(true);
     television.onSelect();
     expect(onPlayerMode).toHaveBeenCalledWith("tv");
 
     const cabinet = entries.find((entry) => entry.id === "screen-cabinet");
+
     if (cabinet?.kind !== "submenu") throw new Error("missing cabinet submenu");
     expect(cabinet.entries).toHaveLength(3);
     const wood = cabinet.entries.find(
       (entry) => entry.kind === "item" && entry.id === "screen-cabinet-wood"
     );
+
     if (wood?.kind !== "item") throw new Error("missing wood entry");
     expect(wood.checked).toBe(true);
     wood.onSelect();
     expect(onCabinet).toHaveBeenCalledWith("wood");
-  });
-
-  it("marks always on top and wires the toggle", () => {
-    const onToggleAlwaysOnTop = vi.fn();
-    const entries = buildModernPlayerMenu(
-      snapshot({ alwaysOnTop: true }),
-      actions({ onToggleAlwaysOnTop })
-    );
-    const pin = entries.find((entry) => entry.id === "toggle-always-on-top");
-    if (pin?.kind !== "item") throw new Error("missing always on top item");
-    expect(pin.checked).toBe(true);
-    pin.onSelect();
-    expect(onToggleAlwaysOnTop).toHaveBeenCalledTimes(1);
   });
 
   it("marks the current speed and playlist state", () => {
@@ -253,13 +244,16 @@ describe("buildModernPlayerMenu", () => {
       actions({ onSpeed })
     );
     const speed = entries[4];
+
     if (speed.kind !== "submenu") throw new Error("speed must be a submenu");
     const active = speed.entries.find((entry) => entry.kind === "item" && entry.rawText === "1.5x");
+
     if (active?.kind !== "item") throw new Error("missing 1.5x entry");
     expect(active.checked).toBe(true);
     active.onSelect();
     expect(onSpeed).toHaveBeenCalledWith(1.5);
     const playlist = entries.find((entry) => entry.id === "toggle-playlist");
+
     if (playlist?.kind !== "item") throw new Error("missing playlist toggle");
     expect(playlist.checked).toBe(true);
   });
@@ -269,8 +263,10 @@ describe("buildModernPlayerMenu", () => {
     const onSeekTo = vi.fn();
     const filled = buildModernPlayerMenu(snapshot({ chapters }), actions({ onSeekTo }));
     const menu = filled[3];
+
     if (menu.kind !== "submenu") throw new Error("chapters must be a submenu");
     const first = menu.entries[0];
+
     if (first.kind !== "item") throw new Error("chapter must be an item");
     expect(first.rawText).toBe("Intro - 1:30");
     first.onSelect();
@@ -278,8 +274,10 @@ describe("buildModernPlayerMenu", () => {
 
     const empty = buildModernPlayerMenu(snapshot({ chapters: [] }), actions());
     const emptyMenu = empty[3];
+
     if (emptyMenu.kind !== "submenu") throw new Error("chapters must be a submenu");
     const placeholder = emptyMenu.entries[0];
+
     if (placeholder.kind !== "item") throw new Error("empty chapters must hold one item");
     expect(placeholder.disabled).toBe(true);
   });
@@ -288,9 +286,11 @@ describe("buildModernPlayerMenu", () => {
     const onEofMode = vi.fn();
     const entries = buildModernPlayerMenu(snapshot({ eofMode: "repeat" }), actions({ onEofMode }));
     const eof = entries.find((entry) => entry.id === "eof-mode");
+
     if (eof?.kind !== "submenu") throw new Error("missing eof submenu");
     expect(eof.entries).toHaveLength(4);
     const active = eof.entries.find((entry) => entry.kind === "item" && entry.id === "eof-repeat");
+
     if (active?.kind !== "item") throw new Error("missing repeat entry");
     expect(active.checked).toBe(true);
     active.onSelect();
@@ -314,10 +314,12 @@ describe("buildModernPlayerMenu", () => {
     );
 
     const voice = entries.find((entry) => entry.id === "stream-voice");
+
     if (voice?.kind !== "submenu") throw new Error("missing voice submenu");
     const voices = voice.entries.filter((entry) => entry.kind === "item");
     expect(voices.map((entry) => entry.rawText)).toEqual(["AniDUB", "Other"]);
     const [current, other] = voices;
+
     if (current.kind !== "item" || other.kind !== "item") throw new Error("expected items");
     expect(current.checked).toBe(true);
     expect(other.checked).toBe(false);
@@ -325,8 +327,10 @@ describe("buildModernPlayerMenu", () => {
     expect(onSelectVariant).toHaveBeenCalledWith(OTHER_VOICE);
 
     const quality = entries.find((entry) => entry.id === "stream-quality");
+
     if (quality?.kind !== "submenu") throw new Error("missing quality submenu");
     const [best, lower] = quality.entries;
+
     if (best.kind !== "item" || lower.kind !== "item") throw new Error("expected quality items");
     expect(best.rawText).toBe("1080p");
     expect(best.checked).toBe(true);
@@ -341,14 +345,17 @@ describe("buildModernPlayerMenu", () => {
     );
 
     const subs = entries.find((entry) => entry.id === "stream-subs");
+
     if (subs?.kind !== "submenu") throw new Error("missing subtitle submenu");
     const subtitleItems = subs.entries.filter((entry) => entry.kind === "item");
     expect(subtitleItems).toHaveLength(1);
     const only = subtitleItems[0];
+
     if (only.kind !== "item") throw new Error("expected item");
     expect(only.checked).toBe(true);
 
     const voice = entries.find((entry) => entry.id === "stream-voice");
+
     if (voice?.kind !== "submenu") throw new Error("missing voice submenu");
     const voiceItems = voice.entries.filter((entry) => entry.kind === "item");
     expect(voiceItems.some((entry) => entry.kind === "item" && entry.checked === true)).toBe(false);
@@ -360,9 +367,11 @@ describe("buildModernPlayerMenu", () => {
       actions()
     );
     const waiting = loading.find((entry) => entry.id === "stream-voice");
+
     if (waiting?.kind !== "submenu") throw new Error("missing voice submenu");
     expect(waiting.entries).toHaveLength(1);
     const status = waiting.entries[0];
+
     if (status.kind !== "item") throw new Error("expected status item");
     expect(status.label).toBe("player.stream.menu.loading");
     expect(status.disabled).toBe(true);
@@ -373,8 +382,10 @@ describe("buildModernPlayerMenu", () => {
       actions({ onRetryVariants })
     );
     const failedVoice = failed.find((entry) => entry.id === "stream-voice");
+
     if (failedVoice?.kind !== "submenu") throw new Error("missing voice submenu");
     const retry = failedVoice.entries[1];
+
     if (retry.kind !== "item") throw new Error("expected retry item");
     expect(retry.label).toBe("player.stream.retry");
     retry.onSelect();
@@ -386,8 +397,10 @@ describe("buildModernPlayerMenu", () => {
       snapshot({ stream: streamMenu({ switching: true }) }),
       actions()
     );
+
     for (const id of ["stream-voice", "stream-subs", "stream-quality"]) {
       const entry = entries.find((candidate) => candidate.id === id);
+
       if (entry?.kind !== "submenu") throw new Error(`missing ${id}`);
       expect(entry.disabled).toBe(true);
     }

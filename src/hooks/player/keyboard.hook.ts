@@ -113,6 +113,7 @@ export function usePlayerKeyboardActions(
             invokeValidated<{ path: string }>("player_save_frame", SavedFrameSchema)
               .then((saved) => {
                 addNotification(translate("player.media.frame.saved"), "success", saved.path);
+
                 return null;
               })
               .catch((error: unknown) => {

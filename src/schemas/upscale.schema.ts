@@ -1,5 +1,9 @@
 import * as z from "zod/mini";
 
+export const UpscaleProgressSchema = z.compile(
+  z.object({ current: z.number(), total: z.number(), stage: z.string(), speed: z.number() })
+);
+
 export const GpuEncodersSchema = z.compile(z.array(z.string()));
 export const Anime4kShadersSchema = z.compile(z.array(z.string()));
 export const UpscalePresetSuggestionSchema = z.compile(

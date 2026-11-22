@@ -14,8 +14,11 @@ function replacePerson(
   person: FavouritePerson | undefined
 ): FavouritePerson[] {
   const index = people.findIndex((item) => item.id === id);
+
   if (index === -1) return person ? [...people, person] : people;
+
   if (!person) return people.filter((item) => item.id !== id);
+
   return people.map((item) => (item.id === id ? person : item));
 }
 
@@ -28,6 +31,7 @@ export function useFavouritePeopleToggles() {
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     const person = previous?.people.staff.find((p) => p.id === staffId);
     const wasFavourite = person !== undefined;
+
     if (wasFavourite) {
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old
@@ -41,8 +45,10 @@ export function useFavouritePeopleToggles() {
           : old
       );
     }
+
     const [updated, error] = await attempt(anilistApi.toggleFavouriteStaff(staffId));
     staffPendingRef.current.delete(staffId);
+
     if (error) {
       if (person)
         queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
@@ -72,6 +78,7 @@ export function useFavouritePeopleToggles() {
       );
     }
   };
+
   const characterPendingRef = useRef<Set<number>>(new Set());
   const toggleCharacter = async (characterId: number) => {
     if (characterPendingRef.current.has(characterId)) return;
@@ -79,6 +86,7 @@ export function useFavouritePeopleToggles() {
     const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
     const person = previous?.people.characters.find((p) => p.id === characterId);
     const wasFavourite = person !== undefined;
+
     if (wasFavourite) {
       queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
         old
@@ -92,8 +100,10 @@ export function useFavouritePeopleToggles() {
           : old
       );
     }
+
     const [updated, error] = await attempt(anilistApi.toggleFavouriteCharacter(characterId));
     characterPendingRef.current.delete(characterId);
+
     if (error) {
       if (person)
         queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) =>
@@ -126,6 +136,7 @@ export function useFavouritePeopleToggles() {
       );
     }
   };
+
   return { toggleStaff, toggleCharacter };
 }
 
@@ -133,5 +144,6 @@ export function useFavPeopleCharacterSet(): Set<number> {
   const queryClient = useQueryClient();
   const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
   const ids = useMemo(() => new Set((data?.people.characters ?? []).map((p) => p.id)), [data]);
+
   return ids;
 }

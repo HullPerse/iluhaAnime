@@ -8,6 +8,7 @@ import { StatsCard } from "@/routes/components/anilist/stats/card.stats";
 
 export function CompletionCard({ model }: { model: StatsOverviewModel }) {
   const { t, locale } = useI18n();
+
   return (
     <StatsCard title={t("anilist.stats.completion")}>
       <BarChart
@@ -20,6 +21,7 @@ export function CompletionCard({ model }: { model: StatsOverviewModel }) {
         formatValue={(value) => formatPercent(value, locale)}
         tooltip={(datum, index) => {
           const row = model.completion[index];
+
           return {
             title: datum.label,
             rows: [

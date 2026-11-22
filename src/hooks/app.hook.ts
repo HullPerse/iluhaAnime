@@ -158,8 +158,10 @@ export function useApp() {
     const save = () => {
       saveWindowState().catch((error) => reportBackgroundError("window-state.save", error));
     };
+
     window.addEventListener("beforeunload", save);
     document.addEventListener("visibilitychange", save);
+
     return () => {
       window.removeEventListener("beforeunload", save);
       document.removeEventListener("visibilitychange", save);
@@ -168,8 +170,10 @@ export function useApp() {
 
   useEffect(() => {
     const isUsable = tabs.some((tab) => tab.id === activeTab && !tab.disabled);
+
     if (isUsable || tabs.length === 0) return;
     const fallback = (tabs.find((tab) => !tab.disabled) ?? tabs[0]).id;
+
     if (fallback !== activeTab) goToTab(fallback);
   }, [activeTab, tabs, goToTab]);
 
@@ -177,6 +181,7 @@ export function useApp() {
   useEffect(() => {
     if (!rememberLastTab && isInitial.current) {
       isInitial.current = false;
+
       if (urlTab !== "search") {
         goToTab("search");
       }
@@ -204,8 +209,10 @@ export function useApp() {
     onAction: (tab) => {
       if (!isOnline && isOfflineDisabledTab(tab)) {
         showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
         return;
       }
+
       goToTab(tab);
     },
   });
@@ -213,10 +220,13 @@ export function useApp() {
   useEffect(() => {
     if (!isOnline) return;
     const current = searchAtoms.crossSearchQuery.get();
+
     if (current) goToTab("search");
     let previousCross = current;
+
     return subscribeSearch(() => {
       const next = searchAtoms.crossSearchQuery.get();
+
       if (next && next !== previousCross) goToTab("search");
       previousCross = next;
     });
@@ -225,14 +235,18 @@ export function useApp() {
   useEffect(() => {
     if (!isOnline) return;
     const current = searchAtoms.anilistSearchQuery.get();
+
     if (current && settingsAtoms.anilistTabEnabled.get()) goToTab("anilist");
     let previousAnilist = current;
+
     return subscribeSearch(() => {
       const next = searchAtoms.anilistSearchQuery.get();
+
       if (next && next !== previousAnilist) {
         if (!settingsAtoms.anilistTabEnabled.get()) return;
         goToTab("anilist");
       }
+
       previousAnilist = next;
     });
   }, [isOnline, goToTab]);
@@ -250,10 +264,13 @@ export function useApp() {
 
   const openTarget = async (target: NotificationTarget) => {
     const result = await openNotificationTarget(target);
+
     if (result === "tab-disabled") {
       showError(t("common.error"), t("anilist.details.link.invalid"));
+
       return;
     }
+
     if (result !== "opened") return;
     const appWindow = getCurrentWindow();
     const error = await attemptSequence([
@@ -261,6 +278,7 @@ export function useApp() {
       () => appWindow.unminimize(),
       () => appWindow.setFocus(),
     ]);
+
     if (error) reportBackgroundError("notification.activation.focus", error);
   };
 
@@ -276,12 +294,16 @@ export function useApp() {
     (link: MangaDeepLink) => {
       if (!settingsAtoms.mangaTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
+
         return;
       }
+
       if (!isOnline) {
         showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
         return;
       }
+
       mangaDetail.set({ ...link, title: t("app.manga") });
       goToTab("manga");
     },
@@ -295,16 +317,20 @@ export function useApp() {
         (link) => {
           if (!isOnline) {
             showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
             return;
           }
+
           openAnimeDeepLink(link);
         },
         () => showError(t("common.error"), t("anilist.details.link.invalid")),
         (link) => {
           if (!settingsAtoms.torrentTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
+
             return;
           }
+
           openTorrentDeepLink(link);
           goToTab("torrent");
         },
@@ -314,40 +340,52 @@ export function useApp() {
         (link) => {
           if (!settingsAtoms.streamTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
+
             return;
           }
+
           if (!isOnline) {
             showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
             return;
           }
+
           openStreamDeepLink(link);
           goToTab("stream");
         },
         (link) => {
           if (!settingsAtoms.newsTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
+
             return;
           }
+
           if (!isOnline) {
             showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
             return;
           }
+
           openNewsDeepLink(link);
           goToTab("news");
         },
         (link) => {
           if (!settingsAtoms.collectionTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
+
             return;
           }
+
           openGiftDeepLink(link);
           goToTab("collection");
         },
         (link) => {
           if (!settingsAtoms.collectionTabEnabled.get()) {
             showError(t("common.error"), t("anilist.details.link.invalid"));
+
             return;
           }
+
           openGiftReceiptDeepLink(link);
           goToTab("collection");
         },
@@ -363,9 +401,11 @@ export function useApp() {
       .takePendingDeepLinks()
       .then((urls) => {
         if (!disposed) ingest(urls);
+
         return null;
       })
       .catch((error) => reportBackgroundError("deeplink.take-pending", error));
+
     return () => {
       disposed = true;
     };
@@ -383,58 +423,81 @@ export function useApp() {
     const ensureTab = (enabled: boolean): boolean => {
       if (!enabled) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
+
         return false;
       }
+
       if (!isOnline) {
         showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
         return false;
       }
+
       return true;
     };
+
     const ensureTorrentTab = (): boolean => {
       if (!settingsAtoms.torrentTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
+
         return false;
       }
+
       goToTab("torrent");
+
       return true;
     };
+
     const openGift = (link: Parameters<typeof openGiftDeepLink>[0]): void => {
       if (!settingsAtoms.collectionTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
+
         return;
       }
+
       goToTab("collection");
       openGiftDeepLink(link);
     };
+
     const openGiftReceipt = (link: Parameters<typeof openGiftReceiptDeepLink>[0]): void => {
       if (!settingsAtoms.collectionTabEnabled.get()) {
         showError(t("common.error"), t("anilist.details.link.invalid"));
+
         return;
       }
+
       openGiftReceiptDeepLink(link);
       goToTab("collection");
     };
+
     const openGiftPasted = (link: Extract<PastedLink, { kind: "gift" | "gift-receipt" }>): void => {
       if (link.kind === "gift") openGift(link.link);
       else openGiftReceipt(link.link);
     };
+
     const rejectInvalidPaste = (event: ClipboardEvent): void => {
       if (activeTab !== "anilist" && activeTab !== "torrent") return;
       event.preventDefault();
       showError(t("common.error"), t("anilist.details.link.invalid"));
     };
+
     const handler = (event: ClipboardEvent) => {
       if (event.defaultPrevented) return;
+
       if (isEditablePasteTarget(event.target)) return;
       const text = event.clipboardData?.getData("text") ?? "";
       const parsed = parsePastedLink(text);
+
       if (!parsed) return;
+
       if (parsed === "invalid") {
         rejectInvalidPaste(event);
+
         return;
       }
+
       event.preventDefault();
+
       if (parsed.kind === "anime") {
         if (!ensureTab(settingsAtoms.anilistTabEnabled.get())) return;
         openAnimeDeepLink(parsed.link);
@@ -458,19 +521,25 @@ export function useApp() {
         openMagnetDeepLink(parsed.magnet);
       }
     };
+
     window.addEventListener("paste", handler);
+
     return () => window.removeEventListener("paste", handler);
   }, [isOnline, t, activeTab, goToTab, openManga]);
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
+
       if (!settingsAtoms.anilistTabEnabled.get()) return;
       goToTab("anilist");
     };
+
     if (deeplinkAtoms.target.get()) switchToAnilist();
     let previousTarget = deeplinkAtoms.target.get();
+
     return subscribeDeepLink(() => {
       const next = deeplinkAtoms.target.get();
+
       if (next && next !== previousTarget) switchToAnilist();
       previousTarget = next;
     });
@@ -481,10 +550,13 @@ export function useApp() {
       if (!settingsAtoms.streamTabEnabled.get()) return;
       goToTab("stream");
     };
+
     if (deeplinkAtoms.streamTarget.get()) switchToStream();
     let previousStream = deeplinkAtoms.streamTarget.get();
+
     return subscribeDeepLink(() => {
       const next = deeplinkAtoms.streamTarget.get();
+
       if (next && next !== previousStream) switchToStream();
       previousStream = next;
     });
@@ -495,10 +567,13 @@ export function useApp() {
       if (!settingsAtoms.collectionTabEnabled.get()) return;
       goToTab("collection");
     };
+
     if (deeplinkAtoms.giftTarget.get()) switchToCollection();
     let previousGift = deeplinkAtoms.giftTarget.get();
+
     return subscribeDeepLink(() => {
       const next = deeplinkAtoms.giftTarget.get();
+
       if (next && next !== previousGift) switchToCollection();
       previousGift = next;
     });
@@ -509,10 +584,13 @@ export function useApp() {
       if (!settingsAtoms.newsTabEnabled.get()) return;
       goToTab("news");
     };
+
     if (deeplinkAtoms.newsTarget.get()) switchToNews();
     let previousNews = deeplinkAtoms.newsTarget.get();
+
     return subscribeDeepLink(() => {
       const next = deeplinkAtoms.newsTarget.get();
+
       if (next && next !== previousNews) switchToNews();
       previousNews = next;
     });
@@ -521,13 +599,17 @@ export function useApp() {
   useEffect(() => {
     const switchToAnilist = () => {
       if (!isOnline) return;
+
       if (!settingsAtoms.anilistTabEnabled.get()) return;
       goToTab("anilist");
     };
+
     if (deeplinkAtoms.authTarget.get()) switchToAnilist();
     let previousAuth = deeplinkAtoms.authTarget.get();
+
     return subscribeDeepLink(() => {
       const next = deeplinkAtoms.authTarget.get();
+
       if (next && next !== previousAuth) switchToAnilist();
       previousAuth = next;
     });
@@ -557,6 +639,7 @@ export function useApp() {
         }),
       ]);
       notifyAniListSummary(releases.added + site.added, t, true);
+
       return releases.ok;
     },
   });
@@ -576,9 +659,12 @@ export function useApp() {
           notifyTorrentHealth
         )
         .catch((error) => reportBackgroundError("notification-settings.sync", error));
+
       return { popupMode, notifyOnComplete, notifyOnError, notifyTorrentHealth };
     };
+
     let previous = sync();
+
     return subscribeSettings(() => {
       const current = {
         popupMode: settingsAtoms.notificationPopups.get(),
@@ -586,6 +672,7 @@ export function useApp() {
         notifyOnError: settingsAtoms.notifyOnError.get(),
         notifyTorrentHealth: settingsAtoms.notifyTorrentHealth.get(),
       };
+
       if (
         current.popupMode !== previous.popupMode ||
         current.notifyOnComplete !== previous.notifyOnComplete ||

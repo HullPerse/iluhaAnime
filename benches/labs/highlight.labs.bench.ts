@@ -22,35 +22,45 @@ const ACCENTED = "Pokémon Café Résumé naïve Zoë ".repeat(20);
 function checksumTokens(text: string, query: string): number {
   const tokens = splitByRanges(text, findSubsequenceRanges(text, query));
   let sum = tokens.length;
+
   for (const token of tokens) sum += token.text.length + (token.highlighted ? 1 : 0);
+
   return sum;
 }
 
 group("highlight @highlight @quick", () => {
   bench("normalize long-string x10k", () => {
     let sum = 0;
+
     for (let i = 0; i < 10_000; i++) sum += normalizeText(LONG).length;
+
     return sum;
   });
 
   bench("find+split short corpus", () => {
     let sum = 0;
+
     for (let i = 0; i < 20_000; i++) {
       for (let k = 0; k < SHORT.length; k++)
         sum += checksumTokens(SHORT[k], QUERIES[k % QUERIES.length]);
     }
+
     return sum;
   });
 
   bench("find+split long string x500", () => {
     let sum = 0;
+
     for (let i = 0; i < 500; i++) sum += checksumTokens(LONG, "frieren");
+
     return sum;
   });
 
   bench("find+split accented x500", () => {
     let sum = 0;
+
     for (let i = 0; i < 500; i++) sum += checksumTokens(ACCENTED, "resume");
+
     return sum;
   });
 
@@ -63,10 +73,12 @@ group("highlight @highlight @quick", () => {
     ];
     const value = "x".repeat(100);
     let sum = 0;
+
     for (let i = 0; i < 10_000; i++) {
       const tokens = splitByRanges(value, mergeRanges(ranges, value.length));
       sum += tokens.length;
     }
+
     return sum;
   });
 
@@ -77,9 +89,11 @@ group("highlight @highlight @quick", () => {
       ["One Piece", "one peace"],
     ];
     let sum = 0;
+
     for (let i = 0; i < 20_000; i++) {
       for (const [correction, query] of pairs) sum += checksumTokens(correction, query);
     }
+
     return sum;
   });
 });

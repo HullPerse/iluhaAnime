@@ -114,6 +114,7 @@ export default function AniListSecondaryModals({
   detail: ActivityDetailBundle;
 }) {
   const watchedIds = new Set<number>();
+
   for (const collection of lists) {
     for (const entry of collection.entries) {
       if (entry.list_status === "COMPLETED") watchedIds.add(entry.media.id);

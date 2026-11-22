@@ -23,6 +23,7 @@ describe("collection shop", () => {
           unread: { packs: 0, cards: 0 },
           seen: { packsReadAt: 0, albumReadAt: 0 },
         });
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<ShopCards />);
@@ -44,7 +45,9 @@ describe("collection shop", () => {
           unread: { packs: 0, cards: 0 },
           seen: { packsReadAt: 0, albumReadAt: 0 },
         });
+
       if (command === "cards_buy_pack") return Promise.resolve(makePurchase());
+
       return Promise.resolve(null);
     });
     renderWithCardsClient(<ShopCards />);

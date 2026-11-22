@@ -53,23 +53,29 @@ function sameSpellDeps(left: SpellCacheDeps, right: SpellCacheDeps): boolean {
 
 function readQueryCache(trimmed: string, deps: SpellCacheDeps): SpellCheck | null | undefined {
   const entry = spellQueryCache.get(trimmed);
+
   if (!entry || !sameSpellDeps(entry.deps, deps)) return undefined;
+
   return entry.result;
 }
 
 function writeQueryCache(trimmed: string, deps: SpellCacheDeps, result: SpellCheck | null): void {
   if (spellQueryCache.size >= QUERY_CACHE_MAX) {
     const oldest = spellQueryCache.keys().next();
+
     if (!oldest.done) spellQueryCache.delete(oldest.value);
   }
+
   spellQueryCache.set(trimmed, { deps, result });
 }
 
 function dictionarySetOf(dictionary: string[]): Set<string> {
   const cached = dictionarySetCache.get(dictionary);
+
   if (cached) return cached;
   const set = new Set(dictionary);
   dictionarySetCache.set(dictionary, set);
+
   return set;
 }
 
@@ -77,9 +83,11 @@ function wordSpans(value: string): Array<{ word: string; start: number; end: num
   const spans: Array<{ word: string; start: number; end: number }> = [];
   const wordRe = /\S+/g;
   let match: RegExpExecArray | null;
+
   while ((match = wordRe.exec(value)) !== null) {
     spans.push({ word: match[0], start: match.index, end: match.index + match[0].length });
   }
+
   return spans;
 }
 
@@ -91,9 +99,11 @@ function diffWordSpans(
   const correctedWords = wordSpans(correction);
   const count = Math.min(queryWords.length, correctedWords.length);
   const out: Array<{ start: number; end: number; word: string; corrected: string }> = [];
+
   for (let i = 0; i < count; i++) {
     const left = normalizeSearchText(queryWords[i].word);
     const right = normalizeSearchText(correctedWords[i].word);
+
     if (left && left !== right) {
       out.push({
         start: queryWords[i].start,
@@ -103,6 +113,7 @@ function diffWordSpans(
       });
     }
   }
+
   return out;
 }
 
@@ -115,7 +126,9 @@ function diffWordSpan(
 
 function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
   if (!check) return [];
+
   if (check.spans && check.spans.length > 0) return check.spans;
+
   return [
     {
       start: check.start,
@@ -129,7 +142,9 @@ function spellSpansOf(check: SpellCheck | null): SpellWordSpan[] {
 
 function sameSpellCheck(left: SpellCheck | null, right: SpellCheck | null): boolean {
   if (left === right) return true;
+
   if (!left || !right) return false;
+
   if (
     left.correction !== right.correction ||
     left.reason !== right.reason ||
@@ -140,9 +155,12 @@ function sameSpellCheck(left: SpellCheck | null, right: SpellCheck | null): bool
   ) {
     return false;
   }
+
   const leftSpans = spellSpansOf(left);
   const rightSpans = spellSpansOf(right);
+
   if (leftSpans.length !== rightSpans.length) return false;
+
   return leftSpans.every(
     (span, index) =>
       span.start === rightSpans[index].start &&
@@ -160,14 +178,18 @@ function sameStringArray(left: readonly string[], right: readonly string[]): boo
 function commonPrefixLength(a: string, b: string): number {
   const max = Math.min(a.length, b.length);
   let index = 0;
+
   while (index < max && a[index] === b[index]) index++;
+
   return index;
 }
 
 function commonSuffixLength(a: string, b: string, prefix: number): number {
   const max = Math.min(a.length, b.length) - prefix;
   let index = 0;
+
   while (index < max && a[a.length - 1 - index] === b[b.length - 1 - index]) index++;
+
   return index;
 }
 
@@ -176,7 +198,9 @@ function reanchorSpellCheck(
   query: string
 ): SpellCheck | null {
   const { result } = previous;
+
   if (!result) return null;
+
   if (previous.query === query) return result;
   const prefix = commonPrefixLength(previous.query, query);
   const suffix = commonSuffixLength(previous.query, query, prefix);
@@ -184,19 +208,25 @@ function reanchorSpellCheck(
   const editEnd = previous.query.length - suffix;
   const delta = query.length - previous.query.length;
   const kept: SpellWordSpan[] = [];
+
   for (const span of spellSpansOf(result)) {
     if (editStart < span.end && editEnd > span.start) continue;
     const shift = span.start >= editEnd ? delta : 0;
     const start = span.start + shift;
     const end = span.end + shift;
+
     if (start < 0 || end > query.length) continue;
+
     if (query.slice(start, end) !== span.word) continue;
     const before = start === 0 || /\s/.test(query[start - 1]);
     const after = end === query.length || /\s/.test(query[end]);
+
     if (!before || !after) continue;
     kept.push({ ...span, start, end });
   }
+
   const first = kept[0];
+
   if (!first) return null;
   const original = spellSpansOf(result);
   const unchanged =
@@ -209,7 +239,9 @@ function reanchorSpellCheck(
         span.word === original[index].word &&
         span.corrected === original[index].corrected
     );
+
   if (unchanged) return result;
+
   return {
     ...result,
     spans: kept,
@@ -229,9 +261,11 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
   const fresh = useMemo(() => {
     if (!settled) return null;
     const trimmed = query.trim();
+
     if (trimmed.length < 3) return null;
     const deps: SpellCacheDeps = { history, animeIndex, extraValues, symSpell, dictionary };
     const cached = readQueryCache(trimmed, deps);
+
     if (cached !== undefined) return cached;
     const withReason = suggestSpellingWithReason(trimmed, {
       animeIndex,
@@ -239,12 +273,16 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
       history,
       symSpell,
     });
+
     if (!withReason || (withReason.reason !== "typo" && withReason.reason !== "transliteration")) {
       writeQueryCache(trimmed, deps, null);
+
       return null;
     }
+
     const correction = withReason.correction;
     let result: SpellCheck | null = null;
+
     if (correction) {
       const dict = dictionarySetOf(dictionary);
       const leading = query.length - query.trimStart().length;
@@ -259,6 +297,7 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
         }))
       ).filter((span) => !dict.has(normalizeSearchText(span.word)));
       const first = spans[0];
+
       if (first) {
         result = {
           correction,
@@ -271,7 +310,9 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
         };
       }
     }
+
     writeQueryCache(trimmed, deps, result);
+
     return result;
   }, [settled, query, history, animeIndex, extraValues, symSpell, dictionary]);
 
@@ -283,8 +324,10 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
   useEffect(() => {
     if (!settled) {
       armedRef.current = true;
+
       return;
     }
+
     if (armedRef.current) setCarry({ query, result: fresh });
   }, [settled, query, fresh]);
 
@@ -294,6 +337,7 @@ export function useSpellCheck(query: string, options: SpellCheckOptions): SpellC
   useEffect(() => {
     setShown(value);
   }, [value]);
+
   return value;
 }
 
@@ -310,12 +354,16 @@ export function useSpellCorrections(
   const fresh = useMemo(() => {
     if (!settled) return [];
     const trimmed = query.trim();
+
     if (trimmed.length < 3) return [];
     const words = dictionarySetOf(dictionary);
+
     return suggestSpellings(trimmed, { history, animeIndex, extraValues, symSpell }, limit).filter(
       (correction) => {
         const span = diffWordSpan(trimmed, correction);
+
         if (!span) return false;
+
         return !words.has(normalizeSearchText(span.word));
       }
     );
@@ -326,8 +374,10 @@ export function useSpellCorrections(
   useEffect(() => {
     if (!settled) {
       armedRef.current = true;
+
       return;
     }
+
     if (armedRef.current) setCarry(fresh);
   }, [settled, fresh]);
 
@@ -337,5 +387,6 @@ export function useSpellCorrections(
   useEffect(() => {
     setShown(value);
   }, [value]);
+
   return value;
 }

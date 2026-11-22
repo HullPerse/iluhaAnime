@@ -12,8 +12,10 @@ export function FranchiseProgress({
   episodesShort: string;
 }) {
   if (progress == null) return null;
+
   if (aired > 0) {
     const done = Math.min(progress, aired);
+
     return (
       <span className="flex items-center gap-1">
         <ProgressBar
@@ -29,7 +31,9 @@ export function FranchiseProgress({
       </span>
     );
   }
+
   if (progress <= 0) return null;
+
   return (
     <span className="text-hint">
       {progress} {episodesShort}

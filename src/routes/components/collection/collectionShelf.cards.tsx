@@ -21,6 +21,7 @@ export default function CollectionShelf({
   if (collections.isPending) {
     return <p className="windows95-text text-hint p-2">{t("collection.loading")}</p>;
   }
+
   if (collections.isError) {
     return (
       <div className="flex flex-col items-center gap-2 p-6">
@@ -31,7 +32,9 @@ export default function CollectionShelf({
       </div>
     );
   }
+
   const items = collections.data ?? [];
+
   if (items.length === 0) return null;
 
   return (

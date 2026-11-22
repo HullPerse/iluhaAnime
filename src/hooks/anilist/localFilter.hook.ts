@@ -33,6 +33,7 @@ export function useAnilistLocalFilter({
 
   const searchGlobally = useCallback(() => {
     if (!filter) return;
+
     if (filter.kind === "tag") onTag(filter.value);
     else onStudio(filter.id ?? 0, filter.value);
     setFilter(null);

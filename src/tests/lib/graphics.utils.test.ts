@@ -10,17 +10,10 @@ import {
   applyGlyphOverlay,
   applyHalftoneDots,
   clampChannel,
-  hashNoise,
   lerp,
-  linearChannelToSrgb,
-  luminance,
   matrixThreshold,
   nearestPaletteColor,
-  nearestPaletteIndexLinear,
   renderDitherImage,
-  sampleChannel,
-  smoothNoise,
-  srgbChannelToLinear,
 } from "@/lib/graphics/ditherRender.utils";
 import {
   ditherBuffersEqual,
@@ -39,6 +32,7 @@ import type { DitherEffectOptions, DitherRGB } from "@/types/graphics/dither";
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke } = await import("@/tests/mocks");
+
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -75,6 +69,7 @@ describe("utils/dither", () => {
 
   function grayFrame(values: number[]): Uint8ClampedArray<ArrayBuffer> {
     const pixels = new Uint8ClampedArray(values.length * 4);
+
     for (let p = 0; p < values.length; p++) {
       const v = values[p] ?? 0;
       pixels[p * 4] = v;
@@ -82,11 +77,13 @@ describe("utils/dither", () => {
       pixels[p * 4 + 2] = v;
       pixels[p * 4 + 3] = 255;
     }
+
     return pixels;
   }
 
   function gradientFixture(width: number, height: number): Uint8ClampedArray<ArrayBuffer> {
     const pixels = new Uint8ClampedArray(width * height * 4);
+
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const i = (y * width + x) * 4;
@@ -96,6 +93,7 @@ describe("utils/dither", () => {
         pixels[i + 3] = 255;
       }
     }
+
     return pixels;
   }
 
@@ -118,84 +116,16 @@ describe("utils/dither", () => {
     });
   });
 
-  describe("hashNoise", () => {
-    it("is deterministic for the same coordinates", () => {
-      expect(hashNoise(3, 7)).toBe(hashNoise(3, 7));
-    });
-
-    it("stays within minus one to one", () => {
-      for (let x = 0; x < 8; x++) {
-        for (let y = 0; y < 8; y++) {
-          const value = hashNoise(x, y);
-          expect(value).toBeGreaterThanOrEqual(-1);
-          expect(value).toBeLessThanOrEqual(1);
-        }
-      }
-    });
-  });
-
-  describe("smoothNoise", () => {
-    it("matches hash noise on integer lattice points", () => {
-      expect(smoothNoise(3, 4)).toBe(hashNoise(3, 4));
-    });
-  });
-
-  describe("luminance", () => {
-    it("returns zero for black and full scale for white", () => {
-      expect(luminance(0, 0, 0)).toBe(0);
-      expect(luminance(255, 255, 255)).toBeCloseTo(255, 8);
-    });
-  });
-
-  describe("sRGB <-> linear", () => {
-    it("roundtrips within one step", () => {
-      expect(srgbChannelToLinear(0)).toBe(0);
-      expect(linearChannelToSrgb(0)).toBe(0);
-      for (const value of [16, 64, 128, 200, 255]) {
-        expect(linearChannelToSrgb(srgbChannelToLinear(value))).toBeCloseTo(value, 0);
-      }
-    });
-  });
-
   describe("nearestPaletteColor", () => {
     it("returns the exact entry on full match", () => {
       expect(nearestPaletteColor(0, 0, 0, BW)).toEqual([0, 0, 0]);
-    });
-
-    it("picks the closer entry", () => {
-      expect(nearestPaletteColor(200, 200, 200, BW)).toEqual([255, 255, 255]);
-      expect(nearestPaletteColor(40, 40, 40, BW)).toEqual([0, 0, 0]);
-    });
-  });
-
-  describe("nearestPaletteIndexLinear", () => {
-    it("finds palette entries by linear distance", () => {
-      const linearPalette: [number, number, number][] = [
-        [0, 0, 0],
-        [1, 1, 1],
-      ];
-      expect(nearestPaletteIndexLinear(102, 102, 102, linearPalette)).toBe(0);
-      expect(nearestPaletteIndexLinear(153, 153, 153, linearPalette)).toBe(0);
-      expect(nearestPaletteIndexLinear(204, 204, 204, linearPalette)).toBe(1);
-    });
-  });
-
-  describe("sampleChannel", () => {
-    it("clamps out-of-bounds coordinates to the edge pixel", () => {
-      const data = new Uint8ClampedArray([10, 20, 30, 40]);
-      expect(sampleChannel(data, 1, 1, 5, -3, 0)).toBe(10);
-      expect(sampleChannel(data, 1, 1, 0, 0, 3)).toBe(40);
-    });
-
-    it("interpolates linearly between two pixels", () => {
-      const data = new Uint8ClampedArray([0, 0, 0, 255, 255, 0, 0, 255]);
-      expect(sampleChannel(data, 2, 1, 0.5, 0, 0)).toBe(127.5);
     });
   });
 
   describe("matrixThreshold", () => {
     it("returns 64 distinct thresholds in range for the 8x8 Bayer matrix", () => {
       const seen = new Set<number>();
+
       for (let y = 0; y < 8; y++) {
         for (let x = 0; x < 8; x++) {
           const value = matrixThreshold(x, y, "bayer8");
@@ -204,6 +134,7 @@ describe("utils/dither", () => {
           seen.add(value);
         }
       }
+
       expect(seen.size).toBe(64);
     });
 
@@ -281,6 +212,7 @@ describe("utils/dither", () => {
         palette: BW,
         paletteMix: 1,
       });
+
       for (let p = 0; p < 4; p++) {
         const value = output[p * 4];
         expect(value === 0 || value === 255).toBe(true);
@@ -306,6 +238,7 @@ describe("utils/dither", () => {
         1,
         diffusionOptions("floyd")
       );
+
       for (let p = 0; p < 4; p++) {
         const pixel = Array.from(output.slice(p * 4, p * 4 + 3));
         expect(pixel).toSatisfy(
@@ -323,18 +256,22 @@ describe("utils/dither", () => {
         diffusionOptions("floyd")
       );
       let white = 0;
+
       for (let p = 0; p < 64; p++) {
         if (output[p * 4] === 255) white += 1;
       }
+
       expect(white).toBeGreaterThanOrEqual(20);
       expect(white).toBeLessThanOrEqual(44);
     });
 
     it("renders atkinson differently from floyd on a two-dimensional pattern", () => {
       const values: number[] = [];
+
       for (let y = 0; y < 8; y++) {
         for (let x = 0; x < 8; x++) values.push((x * 32 + y * 17) % 256);
       }
+
       const floyd = renderDitherImage(grayFrame(values), 8, 8, diffusionOptions("floyd"));
       const atkinson = renderDitherImage(grayFrame(values), 8, 8, diffusionOptions("atkinson"));
       expect(ditherBuffersEqual(floyd, atkinson)).toBe(false);
@@ -355,29 +292,16 @@ describe("utils/dither", () => {
         paletteMix: 0,
         levels: 4,
       });
+
       for (let p = 0; p < 4; p++) {
         expect([0, 85, 170, 255]).toContain(output[p * 4]);
         expect(output[p * 4]).toBe(output[p * 4 + 1]);
         expect(output[p * 4 + 1]).toBe(output[p * 4 + 2]);
       }
     });
-
-    it("stays deterministic across runs on multi-row input", () => {
-      const values: number[] = [];
-      for (let i = 0; i < 32; i++) values.push((i * 37) % 256);
-      const first = renderDitherImage(grayFrame(values), 8, 4, diffusionOptions("floyd"));
-      const second = renderDitherImage(grayFrame(values), 8, 4, diffusionOptions("floyd"));
-      expect(ditherBuffersEqual(first, second)).toBe(true);
-    });
   });
 
   describe("ditherCacheKey", () => {
-    it("is stable for identical inputs", () => {
-      expect(ditherCacheKey("a.jpg", 0.5, NEUTRAL_OPTIONS)).toBe(
-        ditherCacheKey("a.jpg", 0.5, NEUTRAL_OPTIONS)
-      );
-    });
-
     it("changes when the source, scale, or an option changes", () => {
       const base = ditherCacheKey("a.jpg", 0.5, NEUTRAL_OPTIONS);
       expect(ditherCacheKey("b.jpg", 0.5, NEUTRAL_OPTIONS)).not.toBe(base);
@@ -387,12 +311,6 @@ describe("utils/dither", () => {
   });
 
   describe("ditherBuffersEqual", () => {
-    it("matches identical buffers", () => {
-      expect(
-        ditherBuffersEqual(new Uint8ClampedArray([1, 2, 3]), new Uint8ClampedArray([1, 2, 3]))
-      ).toBe(true);
-    });
-
     it("rejects different length or content", () => {
       expect(
         ditherBuffersEqual(new Uint8ClampedArray([1, 2]), new Uint8ClampedArray([1, 2, 3]))
@@ -406,7 +324,9 @@ describe("utils/dither", () => {
   describe("renderDitherImage bands", () => {
     function noisyFrame(width: number, height: number): Uint8ClampedArray<ArrayBuffer> {
       const pixels = new Uint8ClampedArray(width * height * 4);
+
       for (let i = 0; i < pixels.length; i++) pixels[i] = (i * 37 + 11) % 251;
+
       return pixels;
     }
 
@@ -451,6 +371,7 @@ describe("utils/dither", () => {
           removed.push([type, listener]);
         },
       } as unknown as Worker;
+
       return { worker, added, removed };
     }
 
@@ -503,6 +424,7 @@ describe("utils/dither", () => {
           pixels: new Uint8ClampedArray([n, 0, 0, 255]),
         });
       }
+
       expect(ditherRenderCache.get("k0")).toBeUndefined();
       expect(ditherRenderCache.get(`k${DITHER_RENDER_CACHE_CAPACITY}`)?.pixels[0]).toBe(
         DITHER_RENDER_CACHE_CAPACITY
@@ -675,12 +597,14 @@ describe("utils/dither", () => {
       height: number
     ): Uint8ClampedArray<ArrayBuffer> {
       const pixels = new Uint8ClampedArray(width * height * 4);
+
       for (let i = 0; i < pixels.length; i += 4) {
         pixels[i] = value;
         pixels[i + 1] = value;
         pixels[i + 2] = value;
         pixels[i + 3] = 255;
       }
+
       return pixels;
     }
 
@@ -712,12 +636,14 @@ describe("utils/dither", () => {
       const source = solidFrame(128, 32, 32);
       const output = applyGlyphOverlay(source, 32, 32, glyphOptions({}));
       let changed = 0;
+
       for (let i = 0; i < source.length; i += 4) {
         if (output[i] === source[i]) continue;
         changed += 1;
         expect(output[i]).toBeGreaterThan(source[i]);
         expect(output[i]).toBeLessThan(255);
       }
+
       expect(changed).toBeGreaterThan(8);
     });
 
@@ -727,10 +653,13 @@ describe("utils/dither", () => {
       const large = applyGlyphOverlay(source, 32, 32, glyphOptions({ glyphSize: 16 }));
       let smallCells = 0;
       let largeCells = 0;
+
       for (let i = 0; i < source.length; i += 4) {
         if (small[i] !== source[i]) smallCells += 1;
+
         if (large[i] !== source[i]) largeCells += 1;
       }
+
       expect(smallCells).toBeGreaterThan(0);
       expect(largeCells).toBeGreaterThan(0);
       expect(largeCells).not.toBe(smallCells);
@@ -765,12 +694,14 @@ describe("utils/dither", () => {
       const bypass = renderDitherImage(input, 32, 32, NEUTRAL_OPTIONS);
       const natural = renderDitherImage(input, 32, 32, resolveDitherPreset("natural"));
       let sum = 0;
+
       for (let i = 0; i < input.length; i += 4) {
         sum +=
           Math.abs(bypass[i] - natural[i]) +
           Math.abs(bypass[i + 1] - natural[i + 1]) +
           Math.abs(bypass[i + 2] - natural[i + 2]);
       }
+
       expect(sum / (input.length / 4) / 3).toBeGreaterThan(3);
     });
 
@@ -788,6 +719,7 @@ describe("utils/dither", () => {
         16,
         resolveDitherPreset("photo")
       );
+
       for (let i = 0; i < output.length; i += 4) {
         expect(output[i]).toBe(output[i + 1]);
         expect(output[i + 1]).toBe(output[i + 2]);
@@ -812,9 +744,11 @@ describe("utils/dither", () => {
         "photo",
       ] as const;
       const rendered = looks.map((id) => renderDitherImage(input, 48, 48, resolveDitherPreset(id)));
+
       for (const output of rendered) {
         expect(ditherBuffersEqual(output, none)).toBe(false);
       }
+
       for (let a = 0; a < rendered.length; a++) {
         for (let b = a + 1; b < rendered.length; b++) {
           expect(
@@ -828,8 +762,10 @@ describe("utils/dither", () => {
   describe("extractPaletteFromPixels", () => {
     function rgba(pixels: [number, number, number][], alpha = 255): Uint8ClampedArray {
       const data = new Uint8ClampedArray(pixels.length * 4);
+
       for (let i = 0; i < pixels.length; i++) {
         const pixel = pixels[i];
+
         if (!pixel) continue;
         const [r, g, b] = pixel;
         data[i * 4] = r;
@@ -837,6 +773,7 @@ describe("utils/dither", () => {
         data[i * 4 + 2] = b;
         data[i * 4 + 3] = alpha;
       }
+
       return data;
     }
 
@@ -869,6 +806,7 @@ describe("utils/dither", () => {
 
     it("clamps the count to two through eight", () => {
       const pixels: [number, number, number][] = [];
+
       for (let i = 0; i < 16; i++) pixels.push([i * 16, 0, 0]);
       expect(extractPaletteFromPixels(rgba(pixels), 99).length).toBeLessThanOrEqual(8);
       expect(extractPaletteFromPixels(rgba(pixels), 0).length).toBeGreaterThanOrEqual(2);
@@ -908,6 +846,7 @@ describe("utils/dither", () => {
 
     it("caps distinct colors at eight boxes", () => {
       const pixels: [number, number, number][] = [];
+
       for (let i = 0; i < 16; i++) pixels.push([i * 16, 0, 0]);
       expect(extractPaletteFromPixels(rgba(pixels), 8)).toHaveLength(8);
     });

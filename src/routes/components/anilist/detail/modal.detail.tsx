@@ -8,6 +8,7 @@ import { AnimeDetailShell } from "./shell.detail";
 
 function AniListDetailModal(props: DetailProps) {
   const detailWidth = useCell(settingsAtoms.animeDetailWidth);
+
   return (
     <AnimeDetailShell
       {...props}

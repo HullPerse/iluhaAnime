@@ -36,6 +36,7 @@ const STALE: RankingCounters = {
 function oldTsBoost(stat: SearchQueryStat, now: number): number {
   const ageHours = Math.max(0, (now - stat.lastUsedAt) / HOUR);
   const recency = ageHours <= 24 ? 60 : ageHours <= 168 ? 30 : ageHours <= 720 ? 15 : 6;
+
   return (
     Math.min(120, stat.count * 2) +
     recency +
@@ -47,6 +48,7 @@ function oldTsBoost(stat: SearchQueryStat, now: number): number {
 function oldSqlBoost(stat: SearchQueryStat, now: number): number {
   const ageHours = Math.max(0, (now - stat.lastUsedAt) / HOUR);
   const multiplier = ageHours <= 24 ? 1 : ageHours <= 168 ? 0.5 : ageHours <= 720 ? 0.25 : 0.1;
+
   return (stat.selectedCount * 20 + stat.count * 4 - (stat.ignoredCount ?? 0) * 8) * multiplier;
 }
 
@@ -61,6 +63,7 @@ function toStat(counters: RankingCounters): SearchQueryStat {
 
 function makeRows(count: number): LearningStatRow[] {
   const rows: LearningStatRow[] = [];
+
   for (let index = 0; index < count; index++) {
     rows.push({
       id: `history:anilist:query ${index}`,
@@ -73,6 +76,7 @@ function makeRows(count: number): LearningStatRow[] {
       value: `query ${index}`,
     });
   }
+
   return rows;
 }
 
@@ -82,6 +86,7 @@ const ROWS_50K = makeRows(50_000);
 
 function makeProjection(count: number): Record<string, SearchQueryStat> {
   const stats: Record<string, SearchQueryStat> = {};
+
   for (let index = 0; index < count; index++) {
     stats[`query ${index}`] = {
       count: (index % 4) + 1,
@@ -90,6 +95,7 @@ function makeProjection(count: number): Record<string, SearchQueryStat> {
       selectedCount: index % 3,
     };
   }
+
   return stats;
 }
 
@@ -99,33 +105,43 @@ const PROJECTION_10K = makeProjection(10_000);
 group("ranking @ranking @quick", () => {
   bench("feedbackScore x50k (new, idle)", () => {
     let checksum = 0;
+
     for (let index = 0; index < 50_000; index++) checksum += feedbackScore(IDLE, NOW);
+
     return checksum;
   });
 
   bench("feedbackScore x50k (new, learned)", () => {
     let checksum = 0;
+
     for (let index = 0; index < 50_000; index++) checksum += feedbackScore(LEARNED, NOW);
+
     return checksum;
   });
 
   bench("feedbackScore x50k (new, stale + ignores)", () => {
     let checksum = 0;
+
     for (let index = 0; index < 50_000; index++) checksum += feedbackScore(STALE, NOW);
+
     return checksum;
   });
 
   bench("old TS boost x50k (replaced)", () => {
     const stat = toStat(STALE);
     let checksum = 0;
+
     for (let index = 0; index < 50_000; index++) checksum += oldTsBoost(stat, NOW);
+
     return checksum;
   });
 
   bench("old SQL boost x50k (replaced)", () => {
     const stat = toStat(STALE);
     let checksum = 0;
+
     for (let index = 0; index < 50_000; index++) checksum += oldSqlBoost(stat, NOW);
+
     return checksum;
   });
 
@@ -139,17 +155,21 @@ group("ranking @ranking @quick", () => {
   bench("applyLearningAction x100 on 500-entry projection", () => {
     let stats = PROJECTION_500;
     let checksum = 0;
+
     for (let index = 0; index < 100; index++) {
       stats = applyLearningAction(stats, `query ${index}`, "select", NOW + index);
       checksum += stats[`query ${index}`]?.selectedCount ?? 0;
     }
+
     return checksum;
   });
 
   bench("countersOf x10k", () => {
     const stat = toStat(LEARNED);
     let checksum = 0;
+
     for (let index = 0; index < 10_000; index++) checksum += countersOf(stat).useCount;
+
     return checksum;
   });
 

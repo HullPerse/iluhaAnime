@@ -12,6 +12,7 @@ export function TitlesSection({
   onSearchTorrents: (query?: string) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <Section header={t("anilist.details.all.titles")} className="bg-field flex flex-wrap gap-1">
       <Button

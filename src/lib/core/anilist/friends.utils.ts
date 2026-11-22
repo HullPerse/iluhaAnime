@@ -14,10 +14,13 @@ export async function loadFriendScores(
     friends.map((friend) => friend.id)
   );
   const friendById = new Map(friends.map((friend) => [friend.id, friend]));
+
   return rows.flatMap((row) => {
     const friend = friendById.get(row.userId);
+
     if (!friend) return [];
     const comment = row.notes?.trim();
+
     return [
       {
         ...friend,

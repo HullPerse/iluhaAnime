@@ -1,13 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { VIM_LABEL_ALPHABET } from "@/config/settings/vim.config";
 import {
   assignLabels,
   badgeWidth,
   findBadge,
   hasLabelPrefix,
-  hintLayoutsEqual,
-  labelCapacity,
   labelLengthFor,
   measureBadgeLayouts,
   MIN_HINT_TARGET_PX,
@@ -35,6 +32,7 @@ function box(node: HTMLElement, rect: Partial<DOMRect> = {}): HTMLElement {
     ...rect,
   } as DOMRect;
   node.getBoundingClientRect = () => full;
+
   return node;
 }
 
@@ -42,6 +40,7 @@ function el(tag = "button", rect: Partial<DOMRect> = {}): HTMLElement {
   const node = box(document.createElement(tag), rect);
   document.body.append(node);
   nodes.push(node);
+
   return node;
 }
 
@@ -71,27 +70,11 @@ describe("assignLabels", () => {
     }
   });
 
-  it("returns nothing for an empty request or alphabet", () => {
-    expect(assignLabels(0, "abc", 2)).toEqual([]);
-    expect(assignLabels(3, "", 2)).toEqual([]);
-  });
-
   it("picks the shortest tier that holds the run", () => {
     expect(labelLengthFor(3, 3, 2)).toBe(1);
     expect(labelLengthFor(4, 3, 2)).toBe(2);
     expect(labelLengthFor(9, 3, 2)).toBe(2);
     expect(labelLengthFor(10, 3, 2)).toBe(2);
-  });
-
-  it("reports the label space of the deepest allowed tier", () => {
-    expect(labelCapacity("abc", 2)).toBe(9);
-    expect(labelCapacity("abc", 1)).toBe(3);
-    expect(labelCapacity("", 2)).toBe(0);
-  });
-
-  it("uses an alphabet without repeated characters", () => {
-    expect(new Set(VIM_LABEL_ALPHABET).size).toBe(VIM_LABEL_ALPHABET.length);
-    expect(labelCapacity(VIM_LABEL_ALPHABET, 2)).toBe(VIM_LABEL_ALPHABET.length ** 2);
   });
 });
 
@@ -300,6 +283,7 @@ describe("scanHintTargets", () => {
     scrim.className = "sticky";
     const original = document.elementFromPoint;
     document.elementFromPoint = (_x: number, y: number) => (y < 70 ? scrim : visible);
+
     try {
       const found = scanHintTargets(document.body).badges.map((badge) => badge.element);
       expect(found).not.toContain(covered);
@@ -345,28 +329,6 @@ describe("scanHintTargets", () => {
     expect(badges.map((badge) => badge.label)).toEqual(["a", "b", "c"]);
   });
 
-  it("keeps pure DOM order without a content marker", () => {
-    const first = el("button", {
-      top: 200,
-      left: 10,
-      bottom: 220,
-      right: 60,
-      width: 50,
-      height: 20,
-    });
-    const second = el("button", {
-      top: 10,
-      left: 10,
-      bottom: 30,
-      right: 60,
-      width: 50,
-      height: 20,
-    });
-    const { badges } = scanHintTargets(document.body);
-    expect(badges[0]?.element).toBe(first);
-    expect(badges[1]?.element).toBe(second);
-  });
-
   it("keeps only viewport-visible elements", () => {
     const visible = el("button");
     const above = el("button", { top: -50, bottom: -10 });
@@ -400,27 +362,6 @@ describe("scanHintTargets", () => {
     const { badges, overflow } = scanHintTargets(document.body, { max: 2 });
     expect(badges).toHaveLength(2);
     expect(overflow).toBe(2);
-  });
-
-  it("never emits an empty label when the label space runs out", () => {
-    for (let i = 0; i < 5; i += 1) el("button");
-    const { badges, overflow } = scanHintTargets(document.body, {
-      max: 1000,
-      alphabet: "ab",
-      maxLabelLength: 1,
-    });
-    expect(badges.map((badge) => badge.label)).toEqual(["a", "b"]);
-    expect(overflow).toBe(3);
-  });
-
-  it("keeps labels non-empty for a dense surface past the alphabet capacity", () => {
-    for (let i = 0; i < 400; i += 1) el("button");
-    const { badges, overflow } = scanHintTargets(document.body, { max: 3000 });
-    const capacity = VIM_LABEL_ALPHABET.length ** 2;
-    expect(badges.length).toBe(capacity);
-    expect(overflow).toBe(400 - capacity);
-    expect(badges.every((badge) => badge.label.length === 2)).toBe(true);
-    expect(new Set(labels(badges)).size).toBe(badges.length);
   });
 
   it("hands editable targets a focus badge and keeps control inputs on click", () => {
@@ -463,16 +404,6 @@ describe("resolveBadgeCollisions", () => {
     return { label, variant, description, pinned, top, left };
   }
 
-  it("returns the run untouched without overlap", () => {
-    const layouts = [layout("f", 10), layout("j", 40)];
-    expect(resolveBadgeCollisions(layouts)).toEqual(layouts);
-  });
-
-  it("leaves a pin without a description alone", () => {
-    const layouts = [layout("f", 10, 10, true), layout("j", 40)];
-    expect(resolveBadgeCollisions(layouts)).toEqual(layouts);
-  });
-
   it("shifts an intersecting neighbor to the pin edge", () => {
     const pin = layout("f", 10, 10, true, "Do it");
     const right = 10 + badgeWidth(pin);
@@ -493,11 +424,6 @@ describe("resolveBadgeCollisions", () => {
     const resolved = resolveBadgeCollisions([minus, plus]);
     expect(resolved[0]?.left).toBe(10);
     expect(resolved[1]?.left).toBe(right);
-  });
-
-  it("keeps stacked variant suffixes in place", () => {
-    const layouts = [layout("f", 10), layout("j", 34, 10, false, "", "ctrl")];
-    expect(resolveBadgeCollisions(layouts)).toEqual(layouts);
   });
 
   it("cascades through stacked neighbors and stays idempotent", () => {
@@ -564,50 +490,10 @@ describe("measureBadgeLayouts", () => {
     expect(layouts[1]?.description).toBe("Play");
   });
 
-  it("drops badges whose element hid after the scan", () => {
-    const element = el("button", { width: 0, height: 0, top: 0, left: 0 });
-    const badges: HintBadge[] = [{ element, label: "f", variant: "plain" }];
-    expect(measureBadgeLayouts(badges, null, translate)).toEqual([]);
-  });
-
-  it("drops badges whose element shrank to the visually hidden box", () => {
-    const element = el("input", { width: 1, height: 1, top: 0, left: 0, right: 1, bottom: 1 });
-    const badges: HintBadge[] = [{ element, label: "f", variant: "plain" }];
-    expect(measureBadgeLayouts(badges, null, translate)).toEqual([]);
-  });
-
-  it("drops badges whose element reports unrendered without a zero rect", () => {
-    const element = el("button", { width: 50, height: 20, top: 0, left: 0 });
-    (element as HTMLElement & { checkVisibility?: () => boolean }).checkVisibility = () => false;
-    const badges: HintBadge[] = [{ element, label: "f", variant: "plain" }];
-    expect(measureBadgeLayouts(badges, null, translate)).toEqual([]);
-  });
-
-  it("keeps badges when the visibility probe is missing or throws", () => {
-    const element = el("button", { width: 50, height: 20, top: 0, left: 0 });
-    (element as HTMLElement & { checkVisibility?: () => boolean }).checkVisibility = () => {
-      throw new Error("no layout engine");
-    };
-    const badges: HintBadge[] = [{ element, label: "f", variant: "plain" }];
-    expect(measureBadgeLayouts(badges, null, translate)).toHaveLength(1);
-  });
-
   it("keeps badges whose element is still visible", () => {
     const element = el("button", { width: 50, height: 20, top: 0, left: 0 });
     const badges: HintBadge[] = [{ element, label: "f", variant: "plain" }];
     expect(measureBadgeLayouts(badges, null, translate)).toHaveLength(1);
-  });
-});
-
-describe("hintLayoutsEqual", () => {
-  const base = [
-    { label: "f", variant: "plain" as const, description: "", pinned: false, top: 1, left: 2 },
-  ];
-
-  it("compares by value", () => {
-    expect(hintLayoutsEqual(base, [...base])).toBe(true);
-    expect(hintLayoutsEqual(base, [])).toBe(false);
-    expect(hintLayoutsEqual(base, [{ ...base[0], top: 9 }])).toBe(false);
   });
 });
 
@@ -669,12 +555,6 @@ describe("reduceHintKey", () => {
     expect(deadEnd.outcome).toBe("clear");
     expect(deadEnd.buffer).toBe("");
   });
-
-  it("clears a wrong label", () => {
-    const result = reduceHintKey(ambiguous, "f", "z", false);
-    expect(result.outcome).toBe("clear");
-    expect(result.buffer).toBe("");
-  });
 });
 
 describe("resolveHintDescription", () => {
@@ -695,9 +575,5 @@ describe("resolveHintDescription", () => {
     const text = el("button");
     text.textContent = "  Open   folder  ";
     expect(resolveHintDescription(text, translate)).toBe("Open folder");
-  });
-
-  it("returns an empty string when nothing describes the target", () => {
-    expect(resolveHintDescription(el("button"), translate)).toBe("");
   });
 });

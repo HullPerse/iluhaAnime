@@ -11,6 +11,7 @@ export default function StudioCollage({
   ditherPreset?: DitherPreset;
 }) {
   const covers = Array.from({ length: 4 }, (_, index) => collage[index] ?? "");
+
   return (
     <div className="cards-studio-grid" aria-label={title}>
       {covers.map((cover, index) => (

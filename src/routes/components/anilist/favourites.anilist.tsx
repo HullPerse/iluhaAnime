@@ -48,11 +48,13 @@ export default function AniListFavouritesModal({
     if (personStack && personStack.length > 1) setPersonStack((prev) => prev?.slice(0, -1) ?? null);
     else setPersonStack(null);
   };
+
   const openPersonAnime = (id: number) => {
     setPersonStack(null);
     onClose();
     onAnimeClick(id);
   };
+
   const personContext: AniListOverlayContext = {
     isLoggedIn,
     favouriteCharacterIds,

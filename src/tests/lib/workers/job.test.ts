@@ -4,7 +4,9 @@ import { createJobRunner } from "@/lib/workers/job.utils";
 
 class FakeWorker {
   listeners = new Map<string, Set<(event: { data?: unknown }) => void>>();
+
   posted: unknown[] = [];
+
   terminated = false;
 
   postMessage(data: unknown): void {
@@ -42,12 +44,14 @@ function setup() {
     createWorker: () => {
       const worker = new FakeWorker();
       workers.push(worker);
+
       return worker as unknown as Worker;
     },
     onResult,
     onError,
     runSync: (payload) => payload.length,
   });
+
   return { workers, onResult, onError, runner };
 }
 

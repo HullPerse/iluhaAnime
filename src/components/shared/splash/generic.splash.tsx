@@ -9,6 +9,7 @@ export function GenericSplash({
   onToggleFastLaunch,
 }: SplashVariantProps) {
   const progress = splashProgress(stages);
+
   return (
     <div
       role="status"

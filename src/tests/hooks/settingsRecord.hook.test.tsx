@@ -13,6 +13,7 @@ describe("useRecordValue", () => {
     let renders = 0;
     const { result } = renderHook(() => {
       renders++;
+
       return useRecordValue(cell, "anime");
     });
 

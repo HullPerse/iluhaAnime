@@ -15,6 +15,7 @@ export async function readAppCache<T>(
       record = raw === null ? null : { ...raw, payload: JSON.parse(raw.payload) as T };
     },
   ]);
+
   return error === null ? record : null;
 }
 
@@ -27,10 +28,12 @@ export async function writeAppCache<T>(
   const error = await attemptSequence([
     () => systemApi.putAppCache(namespace, key, JSON.stringify(payload), ttlSeconds ?? null),
   ]);
+
   return error === null;
 }
 
 export async function deleteAppCache(namespace: string, key: string): Promise<boolean> {
   const error = await attemptSequence([() => systemApi.deleteAppCache(namespace, key)]);
+
   return error === null;
 }

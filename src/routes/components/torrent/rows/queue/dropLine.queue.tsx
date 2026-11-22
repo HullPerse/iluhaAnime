@@ -4,6 +4,7 @@ import type { QueuePlace } from "@/types/torrent/torrentQueue";
 
 export default function DropLine({ place }: { place: QueuePlace | null }) {
   if (!place) return null;
+
   return (
     <span
       aria-hidden="true"

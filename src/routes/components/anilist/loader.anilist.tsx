@@ -11,8 +11,10 @@ export default function AniListLoader({ className }: { className?: string }) {
   const [elapsed, setElapsed] = useState<number>(0);
   useEffect(() => {
     const { cancel } = createInterval(() => setElapsed((prev) => prev + 1), ANILIST_LOADER_TICK_MS);
+
     return cancel;
   }, []);
+
   return (
     <TabLoader className={className}>
       <span className="windows95-text text-hint text-xs">{formatElapsed(elapsed, t)}</span>

@@ -1,4 +1,3 @@
-
 import type { Browser, Page } from "playwright-core";
 
 import { connectCdp, invoke, sleep, waitForReady } from "./cdp";
@@ -12,20 +11,25 @@ const STREAM_QUERY = process.env.BENCH_STREAM_QUERY ?? "Frieren";
 
 async function mainWindow(browser: Browser): Promise<Page> {
   const started = now();
+
   while (now() - started < 120_000) {
     for (const context of browser.contexts()) {
       for (const page of context.pages()) {
         const url = page.url();
+
         if (url.includes("localhost:1420") && !url.includes("/player-window")) return page;
       }
     }
+
     await sleep(200);
   }
+
   throw new Error("the main window did not appear");
 }
 
 function qualityRank(label: string): number {
   const digits = label.replace(/\D/g, "");
+
   return digits.length > 0 ? Number(digits) : 0;
 }
 
@@ -33,6 +37,7 @@ function samePath(observed: string | null, expected: string): boolean {
   if (!observed) return false;
   const normalize = (value: string) =>
     value.replace(/^\\\\\?\\/, "").replaceAll("\\", "/").toLowerCase();
+
   return normalize(observed) === normalize(expected);
 }
 
@@ -62,6 +67,7 @@ function fmt(ms: number): string {
 
 function percentile(values: number[], q: number): number {
   const sorted = [...values].sort((a, b) => a - b);
+
   return sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] ?? 0;
 }
 
@@ -77,8 +83,10 @@ const failures: string[] = [];
 function record(scenario: string, metric: string, ms: number): void {
   if (ms < 0) {
     failures.push(`${scenario}: ${metric} timed out`);
+
     return;
   }
+
   samples.push({ scenario, metric, ms });
   console.log(`  ${metric.padEnd(38)} ${fmt(ms).padStart(8)} ms`);
 }
@@ -86,6 +94,7 @@ function record(scenario: string, metric: string, ms: number): void {
 async function timed<T>(run: () => Promise<T>): Promise<{ value: T; ms: number }> {
   const started = now();
   const value = await run();
+
   return { value, ms: now() - started };
 }
 
@@ -96,21 +105,26 @@ async function until(
   interval = 10
 ): Promise<number> {
   const deadline = now() + timeoutMs;
+
   while (now() < deadline) {
     const hit = await probe().catch(() => false);
+
     if (hit) return now() - started;
     await sleep(interval);
   }
+
   return -1;
 }
 
 function playerPages(browser: Browser): Page[] {
   const pages: Page[] = [];
+
   for (const context of browser.contexts()) {
     for (const page of context.pages()) {
       if (page.url().includes("/player-window")) pages.push(page);
     }
   }
+
   return pages;
 }
 
@@ -119,23 +133,29 @@ async function waitForPlayer(
   timeoutMs = TIMEOUT_MS
 ): Promise<{ page: Page; ms: number }> {
   const started = now();
+
   while (now() - started < timeoutMs) {
     const [page] = playerPages(browser);
+
     if (page) return { page, ms: now() - started };
     await sleep(15);
   }
+
   throw new Error(`the player window did not appear within ${timeoutMs}ms`);
 }
 
 async function closePlayer(browser: Browser): Promise<void> {
   const [page] = playerPages(browser);
+
   if (!page) return;
   await invoke(page, "player_close_window").catch(() => undefined);
   const started = now();
+
   while (now() - started < 15000) {
     if (playerPages(browser).length === 0) return;
     await sleep(50);
   }
+
   throw new Error("the player window did not close");
 }
 
@@ -153,22 +173,27 @@ async function prop<T>(
 
 async function videoWidth(page: Page): Promise<number | null> {
   const width = await prop<number>(page, "width", "int64");
+
   if (typeof width === "number") return width;
+
   return prop<number>(page, "video-params/w", "int64");
 }
 
 async function hasDuration(page: Page): Promise<boolean> {
   const duration = await prop<number>(page, "duration", "double");
+
   return typeof duration === "number" && duration > 0;
 }
 
 async function hasVideo(page: Page): Promise<boolean> {
   const width = await videoWidth(page);
+
   return typeof width === "number" && width > 0;
 }
 
 async function timePos(page: Page): Promise<number> {
   const value = await prop<number>(page, "time-pos", "double");
+
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
@@ -188,6 +213,7 @@ async function mounted(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const root = document.querySelector("#root");
     const count = root ? root.childElementCount : document.body.childElementCount;
+
     return count > 0;
   });
 }
@@ -202,20 +228,25 @@ async function trackLabels(page: Page): Promise<DropdownLabels> {
 
 async function labelsChanged(page: Page, before: DropdownLabels): Promise<boolean> {
   const after = await dropdownLabels(page).catch(() => before.labels);
+
   return after.some((label, index) => label !== before.labels[index]);
 }
 
 async function trackIds(player: Page, property: "aid" | "sid", max = 16): Promise<number[]> {
   const ids: number[] = [];
+
   for (let id = 1; id <= max; id++) {
     try {
       await invoke(player, "player_set_property", { name: property, value: String(id) });
     } catch {
       continue;
     }
+
     const applied = await prop<string>(player, property, "string");
+
     if (applied === String(id)) ids.push(id);
   }
+
   return ids;
 }
 
@@ -262,6 +293,7 @@ async function openLocalCold(
     await until(started, async () => (await prop<boolean>(player, "vo-configured", "flag")) === true)
   );
   record(label, "дорожки в UI", await until(started, () => tracksInUi(player), 30000, 15));
+
   return { page: player };
 }
 
@@ -372,6 +404,7 @@ async function catalogChain(main: Page, slug: string | undefined, label: string)
   );
   steps.push(["поиск каталога", search.ms]);
   const hit = slug ? search.value.items.find((item) => item.slugUrl === slug) : search.value.items[0];
+
   if (!hit) throw new Error(`no catalog title matched ${slug ?? "the first page"}`);
 
   const title = await timed(() =>
@@ -381,23 +414,27 @@ async function catalogChain(main: Page, slug: string | undefined, label: string)
   );
   steps.push(["карточка + эпизоды", title.ms]);
   const episode = title.value.episodes[0];
+
   if (!episode) throw new Error(`${hit.title} returned no episodes`);
 
   const players = await timed(() =>
     invoke<AnimeLibVariant[]>(main, "anime_lib_players", { input: { episodeId: episode.id } })
   );
   steps.push(["озвучки (players)", players.ms]);
+
   if (players.value.length === 0) throw new Error(`${hit.title} has no voice-overs`);
 
   let variant: AnimeLibVariant | null = null;
   let sources: StreamSource[] = [];
   let resolveMs = 0;
+
   for (const candidate of nativeFirst(players.value).slice(0, 4)) {
     const resolve = await timed(() =>
       invoke<StreamSource[]>(main, "anime_lib_stream_sources", {
         input: { episodeId: episode.id, variantId: variantKey(candidate) },
       })
     );
+
     if (resolve.value.length > 0) {
       variant = candidate;
       sources = resolve.value;
@@ -405,12 +442,14 @@ async function catalogChain(main: Page, slug: string | undefined, label: string)
       break;
     }
   }
+
   if (!variant) throw new Error(`${hit.title} resolved no playable sources`);
   steps.push([`источники (${variant.player})`, resolveMs]);
 
   for (const [name, ms] of steps) record(label, name, ms);
   const total = steps.reduce((sum, [, ms]) => sum + ms, 0);
   record(label, "итого каталог", total);
+
   return { anime: title.value.anime, episode, variants: players.value, variant, sources };
 }
 
@@ -421,6 +460,7 @@ function buildStream(
   extra: { url: string; quality: string; resume?: number }
 ): Record<string, unknown> {
   const source = sources.find((row) => row.url === extra.url) ?? sources[0];
+
   return {
     sourceId: "animelib",
     sourceName: "AnimeLib",
@@ -476,6 +516,7 @@ async function openStreamCold(main: Page, browser: Browser, stream: unknown, url
     "первый кадр (vo-configured)",
     await until(started, async () => (await prop<boolean>(player, "vo-configured", "flag")) === true)
   );
+
   return player;
 }
 
@@ -507,6 +548,7 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
     const label = `локальный: холодный старт (Kaiba 720p, ${run}/${RUNS})`;
     console.log(`\n[local] ${label}`);
     let player: Page;
+
     try {
       const cold = await openLocalCold(browser, main, LOCAL_PLAYLIST, label);
       player = cold.page;
@@ -536,13 +578,17 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
     try {
       const audioIds = await trackIds(player, "aid");
       const subIds = await trackIds(player, "sid");
+
       if (audioIds.length < 2) failures.push(`remux run ${run}: fewer than two audio tracks`);
+
       for (const id of audioIds.slice(0, 3)) {
         await trackSwitch(player, "aid", id, `локальный: аудиодорожка ${id} (${run})`);
       }
+
       for (const id of subIds.slice(0, 2)) {
         await trackSwitch(player, "sid", id, `локальный: субдорожка ${id} (${run})`);
       }
+
       if (subIds.length > 0) {
         await trackSwitch(player, "sid", 0, `локальный: субтитры выкл (${run})`);
       }
@@ -557,19 +603,23 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
 
 async function collectStreamChains(main: Page): Promise<Chain[]> {
   const chains: Chain[] = [];
+
   for (let attempt = 0; attempt < 8 && chains.length < 2; attempt++) {
     try {
       const search = await invoke<{ items: AnimeLibAnime[] }>(main, "anime_lib_search", {
         input: { query: attempt === 0 ? STREAM_QUERY : "", page: 1 },
       });
       const candidate = search.items[attempt === 0 ? 0 : attempt] ?? search.items[0];
+
       if (!candidate) break;
+
       if (chains.some((chain) => chain.anime.id === candidate.id)) continue;
       chains.push(await catalogChain(main, candidate.slugUrl, `каталог: ${candidate.title}`));
     } catch (error) {
       console.log(`  skip title: ${String(error)}`);
     }
   }
+
   return chains;
 }
 
@@ -577,20 +627,25 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
   const started = now();
   const chains = await collectStreamChains(main);
   record("каталог: два тайтла подряд", "итого на поиск двух тайтлов", now() - started);
+
   if (chains.length === 0) {
     failures.push("stream: no playable AnimeLib title resolved");
+
     return;
   }
 
   const chain = chains[0];
+
   if (!chain) return;
   const primary = bestSource(chain.sources);
+
   if (!primary) return;
 
   for (let run = 1; run <= RUNS; run++) {
     const label = `стрим: холодный старт ${chain.anime.title} (${run}/${RUNS})`;
     console.log(`\n[stream] ${label}`);
     let player: Page;
+
     try {
       player = await openStreamCold(
         main,
@@ -611,6 +666,7 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
     const other =
       chain.sources.find((row) => row.label === "1080p" && row.label !== primary.label) ??
       chain.sources.find((row) => row.label !== primary.label);
+
     if (other) {
       try {
         await switchStream(
@@ -633,6 +689,7 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
       const otherVariant = nativeFirst(chain.variants).find(
         (row) => variantKey(row) !== variantKey(chain.variant)
       );
+
       if (otherVariant) {
         try {
           const resolved = await timed(() =>
@@ -645,6 +702,7 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
           );
           record(`стрим: смена озвучки (${run})`, "резолв источников", resolved.ms);
           const source = resolved.value[0];
+
           if (source) {
             await switchStream(
               main,
@@ -674,12 +732,14 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
       );
       record(`стрим: следующий эпизод (${run})`, "список эпизодов", episodes.ms);
       const next = episodes.value.find((row) => row.number > chain.episode.number);
+
       if (next) {
         const players = await timed(() =>
           invoke<AnimeLibVariant[]>(main, "anime_lib_players", { input: { episodeId: next.id } })
         );
         record(`стрим: следующий эпизод (${run})`, "озвучки эпизода", players.ms);
         const variant = nativeFirst(players.value)[0];
+
         if (variant) {
           const resolved = await timed(() =>
             invoke<StreamSource[]>(main, "anime_lib_stream_sources", {
@@ -688,6 +748,7 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
           );
           record(`стрим: следующий эпизод (${run})`, "резолв источников", resolved.ms);
           const source = resolved.value[0];
+
           if (source) {
             await switchStream(
               main,
@@ -723,6 +784,7 @@ async function warmRuns(browser: Browser, main: Page): Promise<void> {
     await closePlayer(browser);
     await sleep(250);
     const started = now();
+
     try {
       const prewarm = await timed(() => invoke(main, "player_prewarm"));
       record(label, "IPC player_prewarm", prewarm.ms);
@@ -757,12 +819,15 @@ async function warmRuns(browser: Browser, main: Page): Promise<void> {
 function printTable(): void {
   const groups = new Map<string, Map<string, number[]>>();
   const order: string[] = [];
+
   for (const sample of samples) {
     if (!groups.has(sample.scenario)) {
       groups.set(sample.scenario, new Map());
       order.push(sample.scenario);
     }
+
     const metrics = groups.get(sample.scenario);
+
     if (!metrics) continue;
     const values = metrics.get(sample.metric) ?? [];
     values.push(sample.ms);
@@ -772,9 +837,12 @@ function printTable(): void {
   console.log("\n\n## Результаты\n");
   console.log("| Сценарий | Шаг | n | min | p50 | max |");
   console.log("| --- | --- | --- | --- | --- | --- |");
+
   for (const scenario of order) {
     const metrics = groups.get(scenario);
+
     if (!metrics) continue;
+
     for (const [metric, values] of metrics) {
       console.log(
         `| ${scenario} | ${metric} | ${values.length} | ${fmt(Math.min(...values))} | ${fmt(
@@ -786,21 +854,27 @@ function printTable(): void {
 
   if (failures.length > 0) {
     console.log("\n## Не измерилось\n");
+
     for (const failure of failures) console.log(`- ${failure}`);
   }
 }
 
 async function main(): Promise<void> {
   const browser = await connectCdp(120_000);
+
   try {
     const main = await mainWindow(browser);
     await waitForReady(main);
+
     if (WARM) await warmRuns(browser, main);
+
     if (!SKIP_LOCAL && !WARM) await localRuns(browser, main);
+
     if (!SKIP_STREAM && !WARM) await streamRuns(browser, main);
   } finally {
     await browser.close();
   }
+
   printTable();
 }
 

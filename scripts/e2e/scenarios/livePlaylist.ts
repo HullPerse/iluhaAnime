@@ -42,6 +42,7 @@ function makeVideo(target: string): void {
     ],
     { stdio: "ignore" }
   );
+
   if (result.status !== 0) throw new Error(`ffmpeg failed for ${target}`);
 }
 
@@ -51,6 +52,7 @@ function baseName(path: string): string {
 
 async function playlistNames(playerPage: Page): Promise<string> {
   const entries = await invoke<PlaylistEntry[]>(playerPage, "player_playlist_entries", {});
+
   return entries.map((entry) => baseName(entry.filename)).join(",");
 }
 
@@ -62,14 +64,18 @@ async function waitPlaylist(
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   let names = "";
+
   for (;;) {
     names = await playlistNames(playerPage);
+
     if (names === expected) return;
+
     if (Date.now() > deadline) {
       throw new Error(
         `${context}; playlist shows: ${names}; window shows: ${await visibleText(playerPage)}`
       );
     }
+
     await sleep(1000);
   }
 }
@@ -79,13 +85,16 @@ export const livePlaylist: Scenario = {
   async run({ browser, page, step }) {
     await step("fixture videos ready", async () => {
       rmSync(EP02, { force: true });
+
       for (const target of [EP01, EP03]) {
         let exists = true;
+
         try {
           statSync(target);
         } catch {
           exists = false;
         }
+
         if (!exists) makeVideo(target);
       }
     });
@@ -101,7 +110,9 @@ export const livePlaylist: Scenario = {
         watch: { kind: "folder", root: LIVE_DIR, anchor: EP01 },
       });
       const playerPage = await findPlayerPage(browser);
-      await playerPage.locator("body").waitFor({ timeout: 15_000 });
+      await playerPage
+        .locator('[data-player-video][data-player-ready="true"]')
+        .waitFor({ timeout: 120_000 });
       await waitPlaylist(playerPage, "ep01.mp4,ep03.mp4", 30_000, "initial playlist never loaded");
       await invoke(playerPage, "player_set_property", { name: "pause", value: true });
     });
@@ -127,19 +138,24 @@ export const livePlaylist: Scenario = {
         name: "path",
         format: "string",
       });
+
       if (pos !== 0) throw new Error(`playlist-pos moved to ${pos}, expected 0`);
+
       if (baseName(path) !== "ep01.mp4") throw new Error(`current path is ${path}, expected ep01`);
     });
 
     await step("playlist panel shows three cards", async () => {
       const playerPage = await findPlayerPage(browser, 10_000);
       const toggle = playerPage.getByTitle("Плейлист").first();
+
       if ((await toggle.count()) === 0) {
         throw new Error(`no playlist toggle; window shows: ${await visibleText(playerPage)}`);
       }
+
       await toggle.click({ timeout: 10_000 });
       await playerPage.locator('[data-testid="playlist-card"]').nth(2).waitFor({ timeout: 15_000 });
       const count = await playerPage.locator('[data-testid="playlist-card"]').count();
+
       if (count !== 3) throw new Error(`panel shows ${count} cards, expected 3`);
     });
   },

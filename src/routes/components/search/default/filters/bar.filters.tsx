@@ -15,6 +15,7 @@ export default function SearchFiltersBar({
   onOpenFilters,
 }: Props) {
   const { t } = useI18n();
+
   return (
     <section className="flex w-full flex-row items-center gap-2">
       <div className="flex items-center gap-1">

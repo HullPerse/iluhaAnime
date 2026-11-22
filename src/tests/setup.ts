@@ -59,28 +59,35 @@ Object.defineProperty(window, "__TAURI_INTERNALS__", {
   value: {
     invoke: (command: string, args?: Record<string, unknown>) => {
       if (command === "plugin:dialog|open") return mockDialogOpen(args?.options);
+
       if (command === "plugin:dialog|save") return mockDialogSave(args?.options);
+
       if (command === "plugin:dialog|message") {
         return Promise.resolve(mockDialogConfirm(args?.message, args)).then((ok) =>
           ok ? "Ok" : "Cancel"
         );
       }
+
       if (command === "plugin:event|listen") {
         const event = args?.event;
         const handlerId = args?.handler;
-        const handler =
-          typeof handlerId === "number" ? tauriCallbacks.get(handlerId) : undefined;
+        const handler = typeof handlerId === "number" ? tauriCallbacks.get(handlerId) : undefined;
+
         if (typeof event === "string" && handler) mockListen(event, handler);
+
         return 1;
       }
+
       if (command === "plugin:event|unlisten") return null;
       const normalized = args && Object.keys(args).length > 0 ? args : undefined;
+
       return mockInvoke(command, normalized);
     },
     convertFileSrc: mockConvertFileSrc,
     transformCallback: vi.fn((callback: (event: unknown) => void) => {
       const id = tauriCallbackId++;
       tauriCallbacks.set(id, callback);
+
       return id;
     }),
     unregisterCallback: vi.fn(),

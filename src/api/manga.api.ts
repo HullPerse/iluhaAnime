@@ -1,92 +1,39 @@
-import * as z from "zod/mini";
 import { Channel } from "@tauri-apps/api/core";
 
 import { invokeTyped, invokeValidated } from "@/lib/core/system/invoke.utils";
+import { recordIpcCacheHit } from "@/lib/core/system/ipcStats.utils";
 import { effectiveProxyUrl } from "@/lib/core/system/proxy.utils";
+import { enqueueMangaPage } from "@/lib/manga/pageQueue.utils";
+import {
+  searchPageSchema,
+  searchMetaSchema,
+  detailsSchema,
+  cachedDetailsSchema,
+  manifestSchema,
+  pageCacheStatsSchema,
+  sourceSettingsSchema,
+  librarySchema,
+  historySchema,
+  saveSchema,
+  readerStateSchema,
+  mangaReadKeysSchema,
+} from "@/schemas/manga.schema";
+import type {
+  MangaHit,
+  MangaReaderInput,
+  LoadProgress,
+  MangaStatusChange,
+} from "@/types/manga/api";
 import { settingsAtoms } from "@/store/settings.store";
+import type { MangaPersonSearch, MangaServer, MangaSource } from "@/types/manga/source";
 
-const searchHitSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  cover: z.nullable(z.string()),
-  status: z.optional(z.nullable(z.string())),
-  chapters: z.optional(z.nullable(z.number())),
-  suggestive: z.boolean(),
-  rating: z.string(),
-  aliases: z.array(z.string()),
-  externalIds: z.object({ anilist: z.nullable(z.number()), mal: z.nullable(z.number()) }),
-});
-
-const searchPageSchema = z.compile(
-  z.object({
-    items: z.array(searchHitSchema),
-    hasNext: z.boolean(),
-  })
-);
-
-const searchMetaSchema = z.compile(z.array(z.object({ id: z.string(), chapters: z.number() })));
-
-const chapterSchema = z.object({
-  id: z.string(),
-  number: z.string(),
-  volume: z.nullable(z.string()),
-  key: z.string(),
-  title: z.nullable(z.string()),
-  language: z.enum(["ru", "en"]),
-  group: z.nullable(z.string()),
-  locked: z.boolean(),
-  lockReason: z.nullable(z.enum(["paid", "closed", "external"])),
-  availableAt: z.nullable(z.string()),
-  branch: z.nullable(z.number()),
-});
-
-const detailsShape = z.object({
-  title: searchHitSchema,
-  description: z.nullable(z.string()),
-  authors: z.array(z.string()),
-  artists: z.array(z.string()),
-  authorKeys: z.optional(z.array(z.string())),
-  artistKeys: z.optional(z.array(z.string())),
-  genres: z.array(z.string()),
-  release: z.nullable(z.string()),
-  chapters: z.array(chapterSchema),
-  notification: z.optional(
-    z.object({
-      newChapters: z.number(),
-      statusChange: z.nullable(z.tuple([z.string(), z.string()])),
-    })
-  ),
-});
-const detailsSchema = z.compile(detailsShape);
-const cachedDetailsSchema = z.compile(z.nullable(detailsShape));
-
-export const mangaSources = [
-  { id: "mangalib", name: "MangaLib", language: "RU" },
-  { id: "mangadex", name: "MangaDex", language: "RU / EN" },
-  { id: "readmanga", name: "ReadManga", language: "RU" },
-  { id: "asurascans", name: "AsuraScans", language: "EN" },
-] as const;
-
-export type MangaSource = (typeof mangaSources)[number]["id"];
-export type MangaPersonRole = "author" | "artist";
-export interface MangaPersonSearch {
-  name: string;
-  role: MangaPersonRole;
-  key?: string;
-  source?: MangaSource;
-}
-export type MangaServer = "first" | "second" | "compressed";
-export type MangaChapter = z.infer<typeof chapterSchema>;
-export type MangaHit = z.infer<typeof searchHitSchema>;
-export type MangaReaderInput = Pick<MangaChapter, "number" | "volume" | "branch"> & {
-  source: MangaSource;
-  mangaId: string;
-  chapterId: string;
-};
-
-type LoadProgress = { loaded: number; total: number | null };
-const manifestSchema = z.object({ key: z.string(), count: z.number() });
-const pageCacheStatsSchema = z.compile(z.object({ bytes: z.number(), count: z.number() }));
+export { mangaSources } from "@/config/manga/sources.config";
+export type {
+  MangaPersonRole,
+  MangaPersonSearch,
+  MangaServer,
+  MangaSource,
+} from "@/types/manga/source";
 
 function mangaTransport(source: MangaSource) {
   return {
@@ -108,47 +55,6 @@ export function openMangaChapter(chapter: MangaReaderInput, server?: MangaServer
   });
 }
 
-interface PageTask {
-  page: number;
-  run: () => Promise<void>;
-}
-
-const pageQueues = new Map<string, { tasks: PageTask[]; running: boolean }>();
-
-async function drainPageQueue(key: string, queue: { tasks: PageTask[]; running: boolean }) {
-  while (queue.tasks.length > 0) {
-    const task = queue.tasks.shift();
-    if (!task) break;
-    try {
-      await task.run();
-    } catch {}
-  }
-  queue.running = false;
-  if (queue.tasks.length === 0 && pageQueues.get(key) === queue) pageQueues.delete(key);
-}
-
-function enqueueMangaPage<T>(key: string, page: number, run: () => Promise<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let queue = pageQueues.get(key);
-    if (!queue) {
-      queue = { tasks: [], running: false };
-      pageQueues.set(key, queue);
-    }
-    const active = queue;
-    active.tasks.push({
-      page,
-      run: () => Promise.resolve().then(run).then(resolve).catch(reject),
-    });
-    active.tasks.sort((left, right) => left.page - right.page);
-    if (!active.running) {
-      active.running = true;
-      queueMicrotask(() => {
-        drainPageQueue(key, active).catch(() => undefined);
-      });
-    }
-  });
-}
-
 export function fetchMangaPage(
   key: string,
   page: number,
@@ -156,9 +62,16 @@ export function fetchMangaPage(
 ): Promise<Blob> {
   return enqueueMangaPage(key, page, async () => {
     const progress = new Channel<LoadProgress>();
-    if (onProgress) progress.onmessage = onProgress;
+
+    progress.onmessage = (message) => {
+      if (message.cached) recordIpcCacheHit("manga_page_fetch");
+      onProgress?.(message);
+    };
+
     const bytes = await invokeTyped<unknown>("manga_page_fetch", { key, page, progress });
+
     if (!(bytes instanceof ArrayBuffer) || bytes.byteLength === 0) throw new Error("Invalid page");
+
     return new Blob([bytes]);
   });
 }
@@ -176,7 +89,9 @@ export async function fetchMangaCover(url: string) {
     url,
     ...mangaTransport("mangalib"),
   });
+
   if (!(bytes instanceof ArrayBuffer) || bytes.byteLength === 0) throw new Error("Invalid cover");
+
   return new Blob([bytes]);
 }
 
@@ -223,53 +138,6 @@ export function refreshMangaChapters(
     ...mangaTransport(source),
   });
 }
-
-const sourceSchema = z.enum(["mangalib", "mangadex", "readmanga", "asurascans"]);
-const sourceSettingsSchema = z.array(z.object({ id: sourceSchema, enabled: z.boolean() }));
-const itemSchema = z.object({
-  id: z.string(),
-  source: sourceSchema,
-  mangaId: z.string(),
-  title: z.string(),
-  cover: z.nullable(z.string()),
-  rating: z.string(),
-  status: z.string(),
-  unread: z.number(),
-  read: z.number(),
-  updatedAt: z.number(),
-  lastReadAt: z.nullable(z.number()),
-  favourite: z.optional(z.boolean()),
-});
-const statusSchema = z.object({ id: z.string(), label: z.string(), color: z.string() });
-const librarySchema = z.object({
-  items: z.array(itemSchema),
-  statuses: z.array(statusSchema),
-});
-const historySchema = z.array(
-  z.object({
-    itemId: z.string(),
-    source: sourceSchema,
-    mangaId: z.string(),
-    title: z.string(),
-    cover: z.optional(z.nullable(z.string())),
-    rating: z.optional(z.string()),
-    chapterKey: z.string(),
-    chapterId: z.string(),
-    openedAt: z.number(),
-  })
-);
-const saveSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("saved") }),
-  z.object({ kind: z.literal("duplicate"), item: itemSchema }),
-]);
-const readerStateSchema = z.object({
-  id: z.string(),
-  page: z.number(),
-  scrollOffset: z.number(),
-  readKeys: z.array(z.string()),
-});
-export type LibraryCopy = z.infer<typeof itemSchema>;
-export type MangaStatus = z.infer<typeof statusSchema>;
 
 export const MANGA_UNASSIGNED_STATUS = "internal:unassigned";
 export const mangaLibraryKey = ["manga", "library"] as const;
@@ -322,12 +190,6 @@ export function createMangaStatus({ label, color }: { label: string; color: stri
   return invokeTyped<unknown>("manga_status_create", { label, color, id: crypto.randomUUID() });
 }
 
-export type MangaStatusChange =
-  | { kind: "edit"; label: string; color: string | null }
-  | { kind: "move"; up: boolean }
-  | { kind: "moveTo"; target: string }
-  | { kind: "delete" };
-
 export function manageMangaStatus(id: string, change: MangaStatusChange) {
   return invokeTyped<unknown>("manga_status_manage", { id, change });
 }
@@ -341,7 +203,7 @@ export function clearMangaHistory() {
 }
 
 export function getMangaReads(source: MangaSource, mangaId: string) {
-  return invokeValidated("manga_read_keys", z.array(z.string()), { source, mangaId });
+  return invokeValidated("manga_read_keys", mangaReadKeysSchema, { source, mangaId });
 }
 
 export function setMangaChaptersRead(
@@ -350,7 +212,7 @@ export function setMangaChaptersRead(
   keys: string[],
   read: boolean
 ) {
-  return invokeValidated("manga_set_chapters_read", z.array(z.string()), {
+  return invokeValidated("manga_set_chapters_read", mangaReadKeysSchema, {
     input: { source, hit, keys, read, id: crypto.randomUUID() },
   });
 }
@@ -379,3 +241,12 @@ export function trackMangaPosition(input: {
 }) {
   return invokeTyped<unknown>("manga_track_position", { input });
 }
+
+export type {
+  MangaChapter,
+  MangaHit,
+  MangaReaderInput,
+  LibraryCopy,
+  MangaStatus,
+  MangaStatusChange,
+} from "@/types/manga/api";

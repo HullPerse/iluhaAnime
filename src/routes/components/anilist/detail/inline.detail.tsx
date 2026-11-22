@@ -22,6 +22,7 @@ export function InlineDetail({
     if (stack.length > 1) setStack((prev) => prev.slice(0, -1));
     else onBack();
   };
+
   const handleFavourite = (animeId: number) => detail.onFavouriteToggle(animeId);
   const handleStaffFavourite = (staffId: number) => detail.onStaffFavouriteToggle?.(staffId);
   const handleCharacterFavourite = (characterId: number) =>

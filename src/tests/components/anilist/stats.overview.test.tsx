@@ -149,6 +149,7 @@ beforeEach(() => {
   patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anilist_statistics") return Promise.resolve(statisticsFixture());
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 });
@@ -173,6 +174,7 @@ describe("StatsModal overview", () => {
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_anilist_statistics")
         return Promise.resolve({ ...statisticsFixture(), count: 0, statuses: [] });
+
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
     renderModal("POINT_10");

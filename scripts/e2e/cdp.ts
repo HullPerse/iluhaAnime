@@ -4,11 +4,14 @@ const DEFAULT_CDP_PORT = 9222;
 
 export function cdpPort(): number {
   const raw = process.env.E2E_CDP_PORT;
+
   if (!raw) return DEFAULT_CDP_PORT;
   const parsed = Number.parseInt(raw, 10);
+
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
     throw new Error(`E2E_CDP_PORT must be a TCP port, got "${raw}"`);
   }
+
   return parsed;
 }
 
@@ -26,6 +29,7 @@ export interface ConsoleCollector {
 
 export function createConsoleCollector(): ConsoleCollector {
   const errors: string[] = [];
+
   return {
     errors,
     attach(page: Page): void {
@@ -47,23 +51,29 @@ export async function connectCdp(
   const started = Date.now();
   let lastError: unknown;
   let announced = 0;
+
   while (Date.now() - started < waitMs) {
     const exitCode = appExitCode?.();
+
     if (exitCode !== undefined && exitCode !== null) {
       throw new Error(`Tauri exited before CDP became available (code ${exitCode})`);
     }
+
     try {
       return await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
     } catch (error) {
       lastError = error;
       const elapsed = Date.now() - started;
+
       if (elapsed - announced >= 30_000) {
         announced = elapsed;
         console.log(`[e2e] waiting for the app on port ${port} (${Math.round(elapsed / 1000)}s)`);
       }
+
       await sleep(1000);
     }
   }
+
   throw new Error(`CDP connect failed on port ${port} after ${waitMs}ms: ${String(lastError)}`);
 }
 
@@ -73,14 +83,17 @@ async function findPage(
   timeoutMs = 30_000
 ): Promise<Page> {
   const started = Date.now();
+
   while (Date.now() - started < timeoutMs) {
     for (const context of browser.contexts()) {
       for (const page of context.pages()) {
         if (predicate(page.url())) return page;
       }
     }
+
     await sleep(300);
   }
+
   const seen = browser
     .contexts()
     .flatMap((context) => context.pages())
@@ -104,24 +117,29 @@ export async function invokeRetryOnBusy<T>(
   attempts = 12
 ): Promise<T> {
   let lastError: unknown;
+
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       return await invoke<T>(page, command, args);
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
+
       if (!/busy|locked/i.test(message)) throw error;
       await sleep(1000);
     }
   }
+
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
+
 export async function visibleText(page: Page, maxLength = 400): Promise<string> {
   const text =
     (await page
       .locator("body")
       .textContent()
       .catch(() => "")) ?? "";
+
   return text.replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
@@ -137,7 +155,9 @@ export async function invoke<T>(
           __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: unknown) => Promise<unknown> };
         }
       ).__TAURI_INTERNALS__;
+
       if (!internals) throw new Error("Tauri runtime not present in page");
+
       return (await internals.invoke(input.command, input.args)) as unknown;
     },
     { command, args }
@@ -146,10 +166,12 @@ export async function invoke<T>(
 
 export async function waitForReady(page: Page, timeoutMs = 120_000): Promise<void> {
   const started = Date.now();
+
   while (Date.now() - started < timeoutMs) {
     if ((await page.locator(READY_SELECTOR).count()) > 0) return;
     await sleep(300);
   }
+
   const where = page.url();
   const showing = await visibleText(page, 200).catch(() => "");
   throw new Error(
@@ -165,15 +187,19 @@ export async function tabLabels(page: Page): Promise<string[]> {
 
 export async function clickTabByAnyOf(page: Page, labels: readonly string[]): Promise<void> {
   const errors: string[] = [];
+
   for (const label of labels) {
     const tab = page.locator('[role="tab"]', { hasText: label }).first();
+
     try {
       await tab.click({ timeout: 5000 });
+
       return;
     } catch (error) {
       errors.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+
   throw new Error(`no tab matched [${labels.join(", ")}]; ${errors.join(" | ")}`);
 }
 

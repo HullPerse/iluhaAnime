@@ -128,9 +128,11 @@ function FolderView({
 
   const queueMap = useMemo(() => {
     const m = new Map<string, string>();
+
     for (const item of items) {
       m.set(item.filePath, item.status);
     }
+
     return m;
   }, [items]);
 
@@ -157,6 +159,7 @@ function FolderView({
 
   useEffect(() => {
     const path = pendingFocus.current;
+
     if (!path) return;
     pendingFocus.current = null;
     findRow(treeRef.current, path)?.focus();
@@ -192,40 +195,53 @@ function FolderView({
   useResolvedHotkeys<TreeKeyAction>(TREE_KEYBINDS, {
     ignore: (event) => {
       const row = rowElement(event.target);
+
       if (!row) return true;
+
       if (row.dataset.treePath !== node.path && !treeRef.current?.contains(row)) return true;
+
       return Boolean(row.closest("[data-hotkeys-disabled]"));
     },
     onAction: (action, event) => {
       const row = rowElement(event.target);
       const path = row?.dataset.treePath;
+
       if (!path) return;
 
       if (action === "treeActivate") {
         setVimCount("");
         clickRowActionButton(row, "external");
+
         return;
       }
 
       if (action === "treeUp" || action === "treeDown") {
         moveRingFocus(treeRows, treeRef, node.path, path, action === "treeUp" ? -1 : 1);
+
         return;
       }
 
       const fileAction = FILE_ACTION_BY_KEY[action];
+
       if (fileAction !== undefined) {
         setVimCount("");
+
         if (row.dataset.vimTarget !== "file") return;
         runRowAction(row, fileAction);
+
         return;
       }
 
       const result = resolveTreeArrow(treeRows, path, action === "treeCollapse" ? "left" : "right");
+
       if (!result) return;
+
       if (result.kind === "focus") {
         findRow(treeRef.current, result.path)?.focus();
+
         return;
       }
+
       pendingFocus.current = result.path;
       toggle(result.path);
     },
@@ -233,7 +249,9 @@ function FolderView({
 
   const isDisabled = (name: string) => {
     const ext = mediaFileExtension(name);
+
     if (!ext) return false;
+
     return (
       disabledExtensions?.has(ext) === true ||
       audioExtensions.includes(ext) ||
@@ -265,6 +283,7 @@ function FolderView({
       onFocus={(event) => {
         const row = rowElement(event.target);
         const path = row?.dataset.treePath;
+
         if (path) setAnchorPath(path);
       }}
     >
@@ -376,10 +395,12 @@ function FolderView({
           <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((vItem, index) => {
               const item = flatItems[vItem.index];
+
               if (!item) return null;
 
               if (item.kind === "folder") {
                 const isFolderOpen = open.has(item.node.path);
+
                 return (
                   <div
                     key={index}
@@ -451,6 +472,7 @@ function FolderView({
                 if (!file.path) return;
                 clickRowActionButton(findRow(treeRef.current, file.path), name);
               };
+
               const fileMenuEntries: ContextMenuEntry[] = [
                 {
                   kind: "item",
@@ -528,14 +550,17 @@ function FolderView({
                         if (!(e.ctrlKey || e.metaKey)) return;
                         e.preventDefault();
                         e.stopPropagation();
+
                         if (disabled || busy || !file.path) return;
                         ignore(openInAppPlayer(file.path));
                       }}
                       onClick={(e) => {
                         if (!(e.ctrlKey || e.metaKey)) {
                           e.currentTarget.closest<HTMLElement>("[data-tree-row]")?.focus();
+
                           return;
                         }
+
                         if (disabled || busy || !file.path) return;
                         setAnilistSearchQuery(parseMediaPath(file.path || file.name).searchTitle);
                       }}
@@ -563,6 +588,7 @@ function FolderView({
                     data-file-action="builtin"
                     onClick={(e) => {
                       e.stopPropagation();
+
                       if (file.path) openInAppPlayer(file.path);
                     }}
                     title={builtinTitle}
@@ -576,6 +602,7 @@ function FolderView({
                     disabled={disabled || busy}
                     onClick={(e) => {
                       e.stopPropagation();
+
                       if (file.path) openFileInPlayer(file.path);
                     }}
                     title={disabled ? t("player.folder.track.disabled") : externalTitle}

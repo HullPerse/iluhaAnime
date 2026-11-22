@@ -71,12 +71,14 @@ export function BarChart({
         const activeCenter = cursor.active == null ? 0 : centers[cursor.active];
         const activeLength =
           activeDatum == null ? 0 : barLength(activeDatum.value, max, plot.width);
+
         return (
           <>
             {data.map((datum, index) => {
               const center = centers[index];
               const length = barLength(datum.value, max, plot.width);
               const isActive = cursor.active === index;
+
               return (
                 <g key={datum.key}>
                   {isActive && (

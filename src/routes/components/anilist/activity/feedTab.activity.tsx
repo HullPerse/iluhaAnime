@@ -31,6 +31,7 @@ export function FeedTab({
   const [includeFriends, setIncludeFriends] = useState<boolean>(false);
   const activityUserIds = useMemo(() => {
     const ids = includeFriends ? [userId, ...friendIds] : [userId];
+
     return [...new Set(ids.filter((id) => Number.isInteger(id) && id > 0))].sort((a, b) => a - b);
   }, [friendIds, includeFriends, userId]);
 
@@ -76,12 +77,15 @@ export function FeedTab({
           );
 
     const groups = new Map<string, AniActivity[]>();
+
     for (const activity of filtered) {
       if (activity.created_at <= 0) continue;
       const label = groupLabel(activity.created_at, t, locale);
+
       if (!groups.has(label)) groups.set(label, []);
       groups.get(label)?.push(activity);
     }
+
     return groups;
   }, [data, includeFriends, lists, locale, statusFilter, userId, t]);
 

@@ -9,22 +9,30 @@ export function useTweenedValue(target: number, durationMs: number): number {
   useEffect(() => {
     if (instant) {
       fromRef.current = target;
+
       return;
     }
+
     const from = fromRef.current;
+
     if (from === target) {
       setTweened(from);
+
       return;
     }
+
     const startedAt = performance.now();
     const loop = createAnimationLoop((now) => {
       const progress = Math.min(1, (now - startedAt) / durationMs);
       const next = from + (target - from) * progress;
       fromRef.current = next;
       setTweened(next);
+
       if (progress >= 1) loop.cancel();
     });
+
     return () => loop.cancel();
   }, [target, durationMs, instant]);
+
   return instant ? target : tweened;
 }

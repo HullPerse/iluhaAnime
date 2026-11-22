@@ -16,7 +16,7 @@ use tokio::sync::Mutex as AsyncMutex;
 use super::sources::public_sources;
 use super::sources::{
     allowed_cover, allowed_lib_cover, dex_client, lib_client, lib_cover_client, lib_request,
-    MangaLibDomain, MangaLibServer, MangaSource, SourceError, USER_AGENT,
+    MangaLibDomain, MangaLibServer, MangaSource, SourceError, MANGALIB_COVER_HOSTS, USER_AGENT,
 };
 
 const MAX_PAGE_BYTES: usize = 24 * 1024 * 1024;
@@ -64,6 +64,7 @@ pub struct ReaderManifest {
 pub struct LoadProgress {
     loaded: usize,
     total: Option<u64>,
+    cached: bool,
 }
 
 fn safe_segment(value: &str, max_length: usize) -> bool {
@@ -420,10 +421,9 @@ async fn download_image(
 ) -> Result<Vec<u8>, SourceError> {
     let client = match source {
         MangaSource::MangaLib
-            if matches!(
-                url.host_str(),
-                Some("cover.lib.social" | "cover.cdnrulib.link")
-            ) =>
+            if url
+                .host_str()
+                .is_some_and(|host| MANGALIB_COVER_HOSTS.contains(&host)) =>
         {
             lib_cover_client(proxy)?
         }
@@ -448,7 +448,11 @@ async fn download_image(
     let mut bytes = Vec::new();
     let mut last_update = Instant::now();
     if let Some(progress) = progress {
-        let _ = progress.send(LoadProgress { loaded: 0, total });
+        let _ = progress.send(LoadProgress {
+            loaded: 0,
+            total,
+            cached: false,
+        });
     }
     while let Some(chunk) = response.chunk().await.map_err(|_| SourceError::Network)? {
         if bytes.len().saturating_add(chunk.len()) > MAX_PAGE_BYTES {
@@ -461,6 +465,7 @@ async fn download_image(
             let _ = progress.send(LoadProgress {
                 loaded: bytes.len(),
                 total,
+                cached: false,
             });
             last_update = Instant::now();
         }
@@ -583,6 +588,11 @@ pub async fn manga_page_fetch(
         if let Ok(Some(bytes)) =
             tauri::async_runtime::spawn_blocking(move || read_cache(path)).await
         {
+            let _ = progress.send(LoadProgress {
+                loaded: bytes.len(),
+                total: Some(bytes.len() as u64),
+                cached: true,
+            });
             return Ok(ipc::Response::new(bytes));
         }
     }

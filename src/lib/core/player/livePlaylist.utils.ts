@@ -14,12 +14,16 @@ function findInsertionIndex(
 ): number {
   for (let p = index - 1; p >= 0; p--) {
     const predecessor = workingKeys.indexOf(desiredKeys[p] ?? "");
+
     if (predecessor !== -1) return predecessor + 1;
   }
+
   for (let s = index + 1; s < desiredKeys.length; s++) {
     const successor = workingKeys.indexOf(desiredKeys[s] ?? "");
+
     if (successor !== -1) return successor;
   }
+
   return -1;
 }
 
@@ -30,19 +34,24 @@ export function planLiveInserts(
 ): PlannedInsert[] {
   const working = [...live];
   const workingKeys = live.map(normalizePath);
+
   if (!workingKeys.includes(normalizePath(anchor))) return [];
   const desiredKeys = desired.map(normalizePath);
   const ops: PlannedInsert[] = [];
+
   for (let d = 0; d < desired.length; d++) {
     const path = desired[d];
     const key = desiredKeys[d];
+
     if (workingKeys.includes(key)) continue;
     let at = findInsertionIndex(desiredKeys, workingKeys, d);
+
     if (at === -1) at = working.length;
     working.splice(at, 0, path);
     workingKeys.splice(at, 0, key);
     ops.push({ path, index: at });
   }
+
   return ops;
 }
 
@@ -52,8 +61,10 @@ export function planLiveRemovals(previous: string[], desired: string[], live: st
   const removals: number[] = [];
   live.forEach((path, index) => {
     const key = normalizePath(path);
+
     if (previousKeys.has(key) && !desiredKeys.has(key)) removals.push(index);
   });
+
   return removals.sort((a, b) => b - a);
 }
 
@@ -63,6 +74,8 @@ export function desiredFolderPlaylist(
   anchor: string
 ): string[] | null {
   const folder = findFolderContainingFile(buildTree(entries, root), anchor);
+
   if (!folder) return null;
+
   return folderFilePaths(folder);
 }

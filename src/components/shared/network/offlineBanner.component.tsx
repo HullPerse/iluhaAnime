@@ -30,10 +30,7 @@ export default function OfflineBanner() {
   const check = useCallback(() => {
     ignore(
       probeNetwork(() =>
-        systemApi.probeNetwork(
-          settingsAtoms.anilistProxyUrl.get(),
-          getAnimelibProxyUrl()
-        )
+        systemApi.probeNetwork(settingsAtoms.anilistProxyUrl.get(), getAnimelibProxyUrl())
       )
     );
   }, []);

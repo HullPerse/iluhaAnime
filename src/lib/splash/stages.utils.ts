@@ -6,6 +6,7 @@ export const splashProgress = (stages: SplashStage[]): number => {
   const finished = stages.filter(
     (stage) => stage.status === "done" || stage.status === "degraded"
   ).length;
+
   return finished / stages.length;
 };
 
@@ -28,5 +29,6 @@ export const stageMarker = (status: string): string => STAGE_MARKERS[status] ?? 
 
 export const splashStageLabel = (texts: SplashTexts, id: string): string => {
   const key = STAGE_TEXT_KEYS[id];
+
   return key ? texts[key] : texts.tabs;
 };

@@ -8,6 +8,7 @@ export function toProfileProps(
   fallback: string
 ): { avatar: string; title: string; subtitle: string } {
   const mean = formatMeanScore(user?.mean_score, parseScoreFormat(user?.score_format));
+
   return {
     avatar: user?.avatar || FALLBACK_AVATAR,
     title: user?.name ?? fallback,

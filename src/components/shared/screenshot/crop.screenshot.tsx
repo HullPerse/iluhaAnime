@@ -68,6 +68,7 @@ export default function CropFrame({
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     const step = KEY_STEP[event.key];
+
     if (!step) return;
     event.preventDefault();
     event.stopPropagation();

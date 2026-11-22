@@ -8,13 +8,16 @@ const entrySnapshots = new WeakMap<MediaEntry[], Map<string, MediaEntry | undefi
 function selectMediaEntry(path: string): MediaEntry | undefined {
   const entries = mediaEntries.get();
   let byPath = entrySnapshots.get(entries);
+
   if (!byPath) {
     byPath = new Map();
     entrySnapshots.set(entries, byPath);
   }
+
   if (byPath.has(path)) return byPath.get(path);
   const found = entries.find((entry) => entry.path === path);
   byPath.set(path, found);
+
   return found;
 }
 

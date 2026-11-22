@@ -16,6 +16,7 @@ export default function AniListLocalFilterBar({
   onSearchGlobally: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="windows95-border bg-field flex min-w-0 items-center gap-1 p-1 text-xs">
       <span className="text-hint shrink-0">{t("anilist.local.filter")}</span>

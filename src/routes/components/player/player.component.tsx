@@ -12,7 +12,6 @@ import { SmallLoader } from "@/components/shared/loader/small.loader";
 import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
 import { VOLUME_STEP } from "@/config/player/video.config";
 import { useI18n } from "@/hooks/i18n.hook";
-import { usePlayerDiscordPresence } from "@/hooks/player/discordPresence.hook";
 import { usePlayerFileDrop } from "@/hooks/player/fileDrop.hook";
 import { usePlayerEvents } from "@/hooks/player/events.hook";
 import { usePlayerKeyboardActions } from "@/hooks/player/keyboard.hook";
@@ -32,7 +31,6 @@ import { usePlayerMargins } from "@/hooks/player/margins.hook";
 import { usePlayerOffsets } from "@/hooks/player/offsets.hook";
 import { usePlayerSession } from "@/hooks/player/session.hook";
 import { usePlayerSettingsSync } from "@/hooks/player/settingsSync.hook";
-import { useStreamPin } from "@/hooks/player/streamPin.hook";
 import { useStreamRouteGuard } from "@/hooks/player/streamRoute.hook";
 import { useStreamTrackPrefs } from "@/hooks/player/streamTrackPrefs.hook";
 import { usePlayerTracks } from "@/hooks/player/tracks.hook";
@@ -73,8 +71,9 @@ import {
 } from "@/store/player.store";
 import { settingsAtoms } from "@/store/settings.store";
 import type { HwdecReload } from "@/types/player/resume";
-import type { PlayerSettings, StreamOpen, WatchState } from "@/types/player/videoPlayer";
+import type { PlayerSettings, WatchState } from "@/types/player/videoPlayer";
 
+import { PlayerRuntime } from "@/routes/components/player/runtime.player";
 import PlayerBezel from "@/routes/components/player/bezel.player";
 import BufferingOverlay from "@/routes/components/player/media/buffering.player";
 import DiagnosticsOverlay from "@/routes/components/player/media/diagnostics.player";
@@ -90,18 +89,6 @@ import { PlayerPanel } from "@/routes/components/player/media/panel.player";
 import PlayerSidePanel from "@/routes/components/player/side.player";
 
 const STREAM_TRACK_RESTORE_TIMEOUT_MS = 3000;
-
-function PlayerRuntime({
-  stream,
-  loadingFile,
-}: {
-  stream: StreamOpen | null;
-  loadingFile: boolean;
-}) {
-  usePlayerDiscordPresence();
-  useStreamPin(stream, loadingFile);
-  return null;
-}
 
 function PlayerComponent() {
   const { t } = useI18n();
@@ -217,6 +204,7 @@ function PlayerComponent() {
     (ready: boolean) => {
       fileReadyRef.current = ready;
       setFileReady(ready);
+
       if (ready && frameReadyRef.current) setLoadingFile(false);
     },
     [setLoadingFile]
@@ -286,10 +274,13 @@ function PlayerComponent() {
       setLoadingFile(true);
       initialWatchRef.current = request.initialWatch;
       setStreamTracksPending(false);
+
       if (request.stream) {
         streamSession.set(request.stream);
+
         return;
       }
+
       streamSession.set(null);
       resumeRef.current = request.resume;
       setLiveWatch(request.watch ?? null);
@@ -298,6 +289,7 @@ function PlayerComponent() {
           (error: unknown) => {
             setLoadingFile(false);
             setFailed(true);
+
             return error;
           }
         )
@@ -317,12 +309,16 @@ function PlayerComponent() {
     },
     onEndFile: (reason, eventPath) => {
       setFinished(false);
+
       if (reason === "error") {
         streamRoute.failNow();
+
         return;
       }
+
       const activeStream = streamSession.get();
       const belongsToStream = eventPath === undefined || eventPath === activeStream?.mediaUrl;
+
       if (
         reason === "eof" &&
         belongsToStream &&
@@ -342,6 +338,7 @@ function PlayerComponent() {
       streamRoute.markPlaying();
       frameReadyRef.current = true;
       setHasShownFrame(true);
+
       if (fileReadyRef.current) setLoadingFile(false);
       syncMargins(true);
     },
@@ -361,12 +358,14 @@ function PlayerComponent() {
     const task = scheduleTask("timeout", LOADING_TIMEOUT_MS, () => {
       if (fileReadyRef.current) setLoadingFile(false);
     });
+
     return () => task.cancel();
   }, [loadingFile, setLoadingFile]);
 
   useEffect(() => {
     if (!streamTracksPending) return;
     const task = scheduleTask("timeout", STREAM_TRACK_RESTORE_TIMEOUT_MS, restoreStreamTracks);
+
     return () => task.cancel();
   }, [restoreStreamTracks, streamTracksPending]);
 
@@ -375,8 +374,11 @@ function PlayerComponent() {
   const onVideoClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (consumeVideoDrag()) return;
+
       if (startsOnPlayerControl(event.target)) return;
+
       if (!playbackAtoms.hasFile.get()) return;
+
       if (loadingFile) return;
       onPlayPause();
     },
@@ -534,6 +536,7 @@ function PlayerComponent() {
               onMouseUp={onVideoMouseUp}
               onContextMenu={(event) => {
                 event.preventDefault();
+
                 if (showModernMenu) setMenuOpen(true);
               }}
             >

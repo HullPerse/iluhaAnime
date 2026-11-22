@@ -431,10 +431,12 @@ export function createDailyClient(
 
 if (CHECK_ONLY) {
   const existing = await readFile(OUTPUT, "utf-8").catch(() => null);
+
   if (existing !== body) {
     console.error(`[ipc] ${OUTPUT} is stale; run bun run codegen:ipc`);
     process.exit(1);
   }
+
   process.stdout.write(`[ipc] ${OUTPUT} is up to date\\n`);
 } else {
   await mkdir(dirname(OUTPUT), { recursive: true });

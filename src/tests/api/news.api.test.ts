@@ -8,9 +8,11 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
   const transport: ApiTransport = {
     call: async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       calls.push({ command, args });
+
       return resolve(command, args) as T;
     },
   };
+
   return { calls, transport };
 }
 

@@ -15,6 +15,7 @@ export function ThemePreview({
   gradient: ThemeDefinition["titlebarGradient"];
 }) {
   const { t } = useI18n();
+
   return (
     <div
       className={cn(

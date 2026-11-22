@@ -6,8 +6,12 @@ export function animelibAccountLabel(
   t: (key: TranslationKey, variables?: TranslationVariables) => string
 ): string {
   if (account === null) return t("settings.animelib.account.loading");
+
   if (account.login !== null) return t("settings.animelib.account.login", { login: account.login });
+
   if (account.authorized) return t("settings.animelib.account.signedIn");
+
   if (account.tokenSaved) return t("settings.animelib.account.invalid");
+
   return t("settings.animelib.account.none");
 }

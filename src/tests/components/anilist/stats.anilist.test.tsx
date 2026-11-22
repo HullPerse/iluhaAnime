@@ -27,6 +27,7 @@ const DETAIL: ActivityDetailBundle = {
 const listsWithAiring = (): AniListCollection[] => {
   const now = new Date();
   const airingAt = Math.floor(new Date(now.getFullYear(), now.getMonth(), 15, 12).getTime() / 1000);
+
   return [
     {
       name: "Watching",
@@ -63,6 +64,7 @@ const listsAiringToday = (): AniListCollection[] => {
   const airingAt = Math.floor(
     new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20).getTime() / 1000
   );
+
   return [
     {
       name: "Watching",
@@ -103,6 +105,7 @@ beforeEach(() => {
   patchSettings({ language: "ru", modalAnimation: false, anilistProxyUrl: null });
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anime_full") return new Promise(() => undefined);
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 });

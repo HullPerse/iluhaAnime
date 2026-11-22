@@ -51,6 +51,7 @@ export function useBottomResize({
     const onMove = (e: MouseEvent) => {
       setPreviewHeight(clamp(dragStart.current.startHeight + (e.clientY - dragStart.current.y)));
     };
+
     const onUp = (e: MouseEvent) => {
       setDragging(false);
       setPreviewHeight(null);
@@ -58,8 +59,10 @@ export function useBottomResize({
         clamp(dragStart.current.startHeight + (e.clientY - dragStart.current.y))
       );
     };
+
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -80,5 +83,6 @@ export function useBottomResize({
 export function resolveResizeMultiplier(count: string): number {
   if (count === "") return 1;
   const parsed = Number.parseInt(count, 10);
+
   return Number.isNaN(parsed) ? 1 : Math.max(parsed, 1);
 }

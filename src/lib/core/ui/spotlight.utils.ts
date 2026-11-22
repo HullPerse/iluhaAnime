@@ -21,6 +21,7 @@ function isoWeekKey(date: Date): string {
   const firstDay = (firstThursday.getDay() + 6) % 7;
   firstThursday.setDate(firstThursday.getDate() - firstDay + 3);
   const week = 1 + Math.round((anchor.getTime() - firstThursday.getTime()) / 604800000);
+
   return `${anchor.getFullYear()}-W${pad2(week)}`;
 }
 
@@ -34,6 +35,7 @@ const PERIOD_BOUNDARIES: Record<SpotlightKind, (now: Date) => number> = {
   day: (now) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime(),
   week: (now) => {
     const day = (now.getDay() + 6) % 7;
+
     return new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - day)).getTime();
   },
   month: (now) => new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime(),
@@ -55,6 +57,7 @@ export function spotlightPageIndex(
 ): { page: number; index: number } {
   const rng = mulberry32(hashStringToUint32(`spotlight:${kind}:${periodKey}`));
   const lastPage = Math.max(1, Math.ceil(Math.max(0, total) / Math.max(1, perPage)));
+
   return {
     page: 1 + Math.floor(rng() * lastPage),
     index: Math.floor(rng() * Math.max(1, perPage)),
@@ -75,6 +78,8 @@ export async function resolveSpotlightPick(
   const { page, index } = spotlightPageIndex(kind, periodKey, total, SPOTLIGHT_PER_PAGE);
   const pageData = first && page === 1 ? first : await fetchSpotlightPage(page);
   const pick = pageData.media[index % Math.max(1, pageData.media.length)];
+
   if (!pick) throw new Error("empty spotlight pool");
+
   return pick;
 }

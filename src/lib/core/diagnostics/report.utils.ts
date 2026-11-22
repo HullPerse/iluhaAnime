@@ -1,16 +1,20 @@
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 import { probeStatus } from "@/lib/core/diagnostics/analyze.utils";
 import type { DiagnosticReport, DiagnosticRunResult } from "@/types/core/diagnostics";
 
 export function redactProxyUrl(value: string | null): string | null {
   if (value === null) return null;
-  try {
+  const [redacted] = attemptSync(() => {
     const url = new URL(value);
+
     if (url.username !== "") url.username = "***";
+
     if (url.password !== "") url.password = "***";
+
     return url.toString();
-  } catch {
-    return value.replace(/\/\/[^@/]*@/u, "//***@");
-  }
+  });
+
+  return redacted ?? value.replace(/\/\/[^@/]*@/u, "//***@");
 }
 
 export function formatDiagnosticReport(
@@ -36,6 +40,7 @@ export function formatDiagnosticReport(
   }
 
   lines.push("", "## probes");
+
   for (const result of results) {
     if (result.diagnosis === null) {
       lines.push(
@@ -43,6 +48,7 @@ export function formatDiagnosticReport(
       );
       continue;
     }
+
     const diagnosis = result.diagnosis;
     const status = diagnosis.https.status === null ? "-" : String(diagnosis.https.status);
     lines.push(

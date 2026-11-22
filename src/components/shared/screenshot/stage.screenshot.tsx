@@ -143,8 +143,10 @@ export default function ScreenshotStage({
 
   const containerBox = useCallback((): CropBounds => {
     const element = containerRef.current;
+
     if (!element) return { width: 0, height: 0 };
     const rect = element.getBoundingClientRect();
+
     return {
       width: rect.width || element.clientWidth,
       height: rect.height || element.clientHeight,
@@ -153,6 +155,7 @@ export default function ScreenshotStage({
 
   const measure = useCallback(() => {
     const next = containerBox();
+
     if (!next.width || !next.height) return;
     setBox((previous) =>
       previous.width === next.width && previous.height === next.height ? previous : next
@@ -163,11 +166,14 @@ export default function ScreenshotStage({
     measure();
     const task = scheduleTask("raf", 0, measure);
     const element = containerRef.current;
+
     if (!element || typeof ResizeObserver === "undefined") {
       return () => task.cancel();
     }
+
     const observer = new ResizeObserver(measure);
     observer.observe(element);
+
     return () => {
       task.cancel();
       observer.disconnect();
@@ -176,6 +182,7 @@ export default function ScreenshotStage({
 
   useEffect(() => {
     const element = containerRef.current;
+
     if (!element) return;
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -192,7 +199,9 @@ export default function ScreenshotStage({
         })
       );
     };
+
     element.addEventListener("wheel", handleWheel, { passive: false });
+
     return () => element.removeEventListener("wheel", handleWheel);
   }, [bounds, onScaleChange, scale.pan, scale.zoom]);
 
@@ -214,12 +223,16 @@ export default function ScreenshotStage({
 
   useEffect(() => {
     const mask = maskRef.current;
+
     if (!mask) return;
     paintBlurMask(mask.getContext("2d") ?? null, items);
+
     if (!hasBlur(items)) {
       setMaskUrl(null);
+
       return;
     }
+
     const [url] = attemptSync(() => mask.toDataURL("image/png"));
     setMaskUrl(url);
   }, [items]);
@@ -233,15 +246,19 @@ export default function ScreenshotStage({
     handleRef.current = {
       layers: () => {
         const payload: ScreenshotLayersPayload = {};
+
         if (hasInk(items)) {
           payload.drawing = paintOffscreen(bounds, (context) =>
             paintAnnotations(context, items, family)
           );
         }
+
         if (hasBlur(items)) {
           const mask = paintOffscreen(bounds, (context) => paintBlurMask(context, items));
+
           if (mask) payload.blur = { mask, sigma: blurSigma };
         }
+
         return payload.drawing || payload.blur ? payload : null;
       },
     };
@@ -259,6 +276,7 @@ export default function ScreenshotStage({
   const toSource = (clientX: number, clientY: number): CropPoint => {
     const rect = containerRef.current?.getBoundingClientRect();
     const current = view.scale > 0 ? view.scale : 1;
+
     return {
       x: (clientX - (rect?.left ?? 0) - view.left) / current,
       y: (clientY - (rect?.top ?? 0) - view.top) / current,
@@ -270,6 +288,7 @@ export default function ScreenshotStage({
     editorRef.current = null;
     setEditor(null);
     const text = current?.value.trim() ?? "";
+
     if (!current || text.length === 0) return;
     const measured = measureText(
       inkRef.current?.getContext("2d") ?? null,
@@ -277,6 +296,7 @@ export default function ScreenshotStage({
       current.size,
       text
     );
+
     if (current.editingId) {
       onCommit(
         items.map((item) =>
@@ -285,8 +305,10 @@ export default function ScreenshotStage({
             : item
         )
       );
+
       return;
     }
+
     onCommit([
       ...items,
       {
@@ -305,10 +327,12 @@ export default function ScreenshotStage({
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.target instanceof HTMLElement && event.target.dataset.textEditor === "true") return;
     const button = event.button ?? LEFT_BUTTON;
+
     if (button !== LEFT_BUTTON && button !== RIGHT_BUTTON) return;
     event.preventDefault();
     event.stopPropagation();
     measure();
+
     if (button === RIGHT_BUTTON) {
       panRef.current = {
         panStart: scale.pan,
@@ -316,6 +340,7 @@ export default function ScreenshotStage({
         pointerY: event.clientY,
       };
       grabPointer(event.pointerId);
+
       return;
     }
 
@@ -330,28 +355,39 @@ export default function ScreenshotStage({
       itemId: "",
       moved: false,
     };
+
     if (!isInsidePicture(anchor, bounds)) return;
+
     if (tool === "text") {
       const editing = editorRef.current?.editingId ?? null;
       commitEditor();
+
       if (editing) return;
       editorRef.current = { point: anchor, value: "", editingId: null, size };
       setEditor(editorRef.current);
+
       return;
     }
+
     grabPointer(event.pointerId);
     const handleValue =
       event.target instanceof HTMLElement ? event.target.dataset.handle : undefined;
     const handle = CROP_HANDLES.find((candidate) => candidate === handleValue);
+
     if (tool === "select") {
       const hit = hitTestText(items, anchor, TEXT_HIT_PADDING);
+
       if (hit) {
         dragRef.current = { ...base, mode: "text-move", itemId: hit.id, start: null };
+
         return;
       }
+
       dragRef.current = { ...base, mode: handle ?? "start" };
+
       return;
     }
+
     const id = nextAnnotationId();
     dragRef.current = { ...base, mode: "draw", itemId: id };
     setCurrentDraft({ id, kind: "stroke", tool, color, size, points: [anchor] });
@@ -366,6 +402,7 @@ export default function ScreenshotStage({
   const toSourceWithPan = (clientX: number, clientY: number, pan: CropPan): CropPoint => {
     const rect = containerRef.current?.getBoundingClientRect();
     const current = view.scale > 0 ? view.scale : 1;
+
     return {
       x: (clientX - (rect?.left ?? 0) - view.left - (pan.x - scale.pan.x)) / current,
       y: (clientY - (rect?.top ?? 0) - view.top - (pan.y - scale.pan.y)) / current,
@@ -379,6 +416,7 @@ export default function ScreenshotStage({
   ) => {
     drag.moved = true;
     const previous = draftRef.current;
+
     if (!previous || previous.kind !== "stroke") return;
     const point = toSourceWithPan(event.clientX, event.clientY, pan);
     setCurrentDraft({ ...previous, points: appendPoint(previous.points, point) });
@@ -386,6 +424,7 @@ export default function ScreenshotStage({
 
   const dragText = (drag: DragState, event: ReactPointerEvent<HTMLDivElement>, pan: CropPan) => {
     const target = items.find((item) => item.id === drag.itemId);
+
     if (!target || target.kind !== "text") return;
     drag.moved = true;
     const scaleValue = view.scale > 0 ? view.scale : 1;
@@ -420,8 +459,10 @@ export default function ScreenshotStage({
       const usable = snap.rect.width >= CROP_MIN_SIZE && snap.rect.height >= CROP_MIN_SIZE;
       setGuides(usable ? snap.guides : []);
       onCropChange(usable ? snap.rect : null);
+
       return;
     }
+
     if (!drag.start) return;
     const scaleValue = view.scale > 0 ? view.scale : 1;
     const dx = (event.clientX - drag.pointerX - (pan.x - drag.panStart.x)) / scaleValue;
@@ -439,14 +480,18 @@ export default function ScreenshotStage({
     const pan = panRef.current;
     const drag = dragRef.current;
     let effectivePan = scale.pan;
+
     if (pan) {
       effectivePan = nextPanFor(pan, event.clientX, event.clientY);
+
       if (effectivePan.x !== scale.pan.x || effectivePan.y !== scale.pan.y) {
         onScaleChange({ zoom: scale.zoom, pan: effectivePan });
       }
     }
+
     if (!drag) {
       if (pan) return;
+
       if (tool === "select") {
         const point = toSource(event.clientX, event.clientY);
         const hit =
@@ -455,32 +500,43 @@ export default function ScreenshotStage({
       } else if (hoverText) {
         setHoverText(false);
       }
+
       return;
     }
+
     if (drag.mode === "draw") {
       extendStroke(drag, event, effectivePan);
+
       return;
     }
+
     if (drag.mode === "text-move") {
       dragText(drag, event, effectivePan);
+
       return;
     }
+
     const snapThreshold = event.ctrlKey ? 0 : snapThresholdForScale(view.scale);
     dragCrop(drag, drag.mode, event, snapThreshold, effectivePan);
   };
 
   const finishDrag = (drag: DragState) => {
     const finished = draftRef.current;
+
     if (drag.mode === "draw" && finished) {
       onCommit([...items, finished]);
       setCurrentDraft(null);
+
       return;
     }
+
     if (drag.mode === "text-move" && finished && drag.moved) {
       onCommit(withDraft(items, finished));
       setCurrentDraft(null);
+
       return;
     }
+
     if (finished) setCurrentDraft(null);
   };
 
@@ -492,40 +548,53 @@ export default function ScreenshotStage({
       setHoverText(false);
       surfaceRef.current?.releasePointerCapture?.(event.pointerId);
       const cancelled = draftRef.current;
+
       if (cancelled) setCurrentDraft(null);
+
       return;
     }
+
     const button = event.button ?? LEFT_BUTTON;
+
     if (button === RIGHT_BUTTON) {
       if (!panRef.current) return;
       panRef.current = null;
+
       if (!dragRef.current) {
         setHoverText(false);
         surfaceRef.current?.releasePointerCapture?.(event.pointerId);
       }
+
       return;
     }
+
     if (button !== LEFT_BUTTON) return;
     const drag = dragRef.current;
+
     if (!drag) return;
     dragRef.current = null;
     setGuides([]);
     setHoverText(false);
+
     if (!panRef.current) {
       surfaceRef.current?.releasePointerCapture?.(event.pointerId);
     }
+
     finishDrag(drag);
   };
 
   const handleEditorKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing) return;
+
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
       editorRef.current = null;
       setEditor(null);
+
       return;
     }
+
     if (event.key === "Enter") {
       event.preventDefault();
       event.stopPropagation();
@@ -535,8 +604,10 @@ export default function ScreenshotStage({
 
   const handleDoubleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (tool !== "select") return;
+
     if (event.target instanceof HTMLElement && event.target.dataset.textEditor === "true") return;
     const hit = hitTestText(items, toSource(event.clientX, event.clientY), TEXT_HIT_PADDING);
+
     if (!hit) return;
     event.preventDefault();
     editorRef.current = { point: hit.point, value: hit.text, editingId: hit.id, size: hit.size };

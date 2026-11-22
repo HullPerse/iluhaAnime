@@ -90,6 +90,7 @@ export function ColumnChart({
           .filter((entry) => entry.index % tickStep === 0 || entry.index === data.length - 1);
         const activeCenter = cursor.active == null ? 0 : centers[cursor.active];
         const activeTop = activeDatum == null ? 0 : valueY(activeDatum.value);
+
         return (
           <>
             <ChartGrid
@@ -116,6 +117,7 @@ export function ColumnChart({
               const barWidth = Math.max(1, bands.bandwidth);
               const barHeight = (plot.height * datum.value) / top;
               const isActive = cursor.active === index;
+
               return (
                 <rect
                   key={datum.key}

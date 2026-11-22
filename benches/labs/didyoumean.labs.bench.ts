@@ -45,13 +45,17 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
   let seed = 7;
   const rnd = () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+
     return seed / 0x7fffffff;
   };
+
   for (let i = 0; i < n; i++) {
     const w = 1 + Math.floor(rnd() * 3);
     const parts: string[] = [];
+
     for (let k = 0; k < w; k++) parts.push(WORDS[Math.floor(rnd() * WORDS.length)]);
     const alias: string[] = [];
+
     for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]);
     out.push({
       id: i,
@@ -64,6 +68,7 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
       favourite: i % 50 === 0,
     });
   }
+
   return out;
 }
 
@@ -101,42 +106,50 @@ group("did-you-mean @didyoumean @slow", () => {
   bench("cold: build symspell from titles N=1k", function* buildSymspell1k() {
     const titles = TITLES_1K;
     const built = yield () => buildSymSpellFromTitles(titles);
+
     return built.size();
   });
 
   bench("cold: build symspell from titles N=4k", function* buildSymspell4k() {
     const titles = TITLES_4K;
     const built = yield () => buildSymSpellFromTitles(titles);
+
     return built.size();
   });
 
   bench("cold: build symspell from titles N=8k", function* buildSymspell8k() {
     const titles = TITLES_8K;
     const built = yield () => buildSymSpellFromTitles(titles);
+
     return built.size();
   });
 
   bench("cold: build symspell from titles N=16k", function* buildSymspell16k() {
     const titles = TITLES_16K;
     const built = yield () => buildSymSpellFromTitles(titles);
+
     return built.size();
   });
 
   bench("cold: build symspell from titles N=32k", function* buildSymspell32k() {
     const titles = TITLES_32K;
     const built = yield () => buildSymSpellFromTitles(titles);
+
     return built.size();
   });
 
   bench("cold: build plain normalized word set N=8k (cheaper dict)", function* buildPlainWordSet8k() {
     const titles = TITLES_8K;
+
     return yield () => {
       const set = new Set<string>();
+
       for (const title of titles) {
         for (const word of normalizeSearchText(title).split(" ")) {
           if (word.length >= 3) set.add(word);
         }
       }
+
       return set.size;
     };
   });
@@ -144,16 +157,19 @@ group("did-you-mean @didyoumean @slow", () => {
   bench("warm: suggestSpelling N=8k (index already cached)", function* warmSuggestSpelling8k() {
     const index = INDEX_8K;
     suggestSpelling(QUERY, { history: HISTORY, animeIndex: index });
+
     return yield () => suggestSpelling(QUERY, { history: HISTORY, animeIndex: index })?.length ?? 0;
   });
 
   bench("cold: fresh index copy N=8k only (control)", function* copyFreshIndex8k() {
     const base = INDEX_8K;
     let counter = 0;
+
     return yield () => {
       const fresh = base.map((anime, i) =>
         i === 0 ? { ...anime, title: `${anime.title} ${counter++}` } : anime
       );
+
       return fresh.length;
     };
   });
@@ -161,10 +177,12 @@ group("did-you-mean @didyoumean @slow", () => {
   bench("cold: suggestSpelling N=8k (fresh index, real first call)", function* coldSuggestSpelling8k() {
     const base = INDEX_8K;
     let counter = 0;
+
     return yield () => {
       const fresh = base.map((anime, i) =>
         i === 0 ? { ...anime, title: `${anime.title} ${counter++}` } : anime
       );
+
       return suggestSpelling(QUERY, { history: HISTORY, animeIndex: fresh })?.length ?? 0;
     };
   });
@@ -172,10 +190,12 @@ group("did-you-mean @didyoumean @slow", () => {
   bench("cold: suggestSpelling N=16k (fresh index, real first call)", function* coldSuggestSpelling16k() {
     const base = INDEX_16K;
     let counter = 0;
+
     return yield () => {
       const fresh = base.map((anime, i) =>
         i === 0 ? { ...anime, title: `${anime.title} ${counter++}` } : anime
       );
+
       return suggestSpelling(QUERY, { history: HISTORY, animeIndex: fresh })?.length ?? 0;
     };
   });
@@ -185,10 +205,12 @@ group("did-you-mean @didyoumean @slow", () => {
       const index = new LazySpellIndex(WORDS_8K);
       let slices = 0;
       let done = false;
+
       while (!done) {
         done = index.pump(500);
         slices++;
       }
+
       return slices;
     };
   });
@@ -196,12 +218,14 @@ group("did-you-mean @didyoumean @slow", () => {
   bench("after: warm first query N=8k (prewarm finished)", function* warmFirstQuery8k() {
     const index = new LazySpellIndex(WORDS_8K);
     index.pump(Number.MAX_SAFE_INTEGER);
+
     return yield () => index.suggestMany(QUERY, 1).length;
   });
 
   bench("after: warm first query N=32k (prewarm finished)", function* warmFirstQuery32k() {
     const index = new LazySpellIndex(WORDS_32K);
     index.pump(Number.MAX_SAFE_INTEGER);
+
     return yield () => index.suggestMany(QUERY, 1).length;
   });
 
@@ -214,11 +238,14 @@ group("did-you-mean @didyoumean @slow", () => {
       "attackontitan",
       "friren s5",
     ];
+
     return yield () => {
       let hits = 0;
+
       for (const query of queries) {
         if (suggestSpellingWithReason(query, { history: HISTORY, animeIndex: index })) hits++;
       }
+
       return hits;
     };
   });

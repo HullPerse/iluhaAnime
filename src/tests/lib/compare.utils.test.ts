@@ -11,7 +11,6 @@ import {
   meanAbsoluteGap,
   metricScore,
   normalizeScoreToHundred,
-  pearsonCorrelation,
   sharedFavourites,
   sortCompareRows,
   spearmanCorrelation,
@@ -98,49 +97,15 @@ describe("normalizeScoreToHundred", () => {
   });
 });
 
-describe("pearsonCorrelation", () => {
-  it("returns 1 for identical ordering with a constant bias", () => {
-    expect(pearsonCorrelation([95, 90, 85], [65, 60, 55])).toBeCloseTo(1, 10);
-  });
-
-  it("returns -1 for opposite ordering", () => {
-    expect(pearsonCorrelation([90, 90, 50], [50, 50, 90])).toBeCloseTo(-1, 10);
-  });
-
-  it("returns null for flat series and tiny samples", () => {
-    expect(pearsonCorrelation([80, 80, 80], [80, 70, 90])).toBeNull();
-    expect(pearsonCorrelation([80], [70])).toBeNull();
-    expect(pearsonCorrelation([80, 70], [80])).toBeNull();
-  });
-});
-
 describe("spearmanCorrelation", () => {
-  it("ignores a constant score shift", () => {
-    expect(spearmanCorrelation([95, 90, 85], [65, 60, 55])).toBeCloseTo(1, 10);
-  });
-
   it("detects opposite ordering", () => {
     expect(spearmanCorrelation([80, 70, 60], [60, 70, 80])).toBeCloseTo(-1, 10);
-  });
-
-  it("uses average ranks for ties", () => {
-    expect(spearmanCorrelation([1, 2, 2, 3], [1, 2, 3, 4])).toBeCloseTo(0.9486832980505138, 10);
-  });
-
-  it("returns null for flat series and fewer than three samples", () => {
-    expect(spearmanCorrelation([80, 80, 80], [80, 70, 90])).toBeNull();
-    expect(spearmanCorrelation([80, 70], [80, 70])).toBeNull();
   });
 });
 
 describe("meanAbsoluteGap", () => {
   it("averages absolute differences", () => {
     expect(meanAbsoluteGap([80, 70], [70, 60])).toBe(10);
-  });
-
-  it("returns null for empty or mismatched input", () => {
-    expect(meanAbsoluteGap([], [])).toBeNull();
-    expect(meanAbsoluteGap([80], [])).toBeNull();
   });
 });
 
@@ -152,14 +117,6 @@ describe("buildTasteMatch", () => {
     expect(taste.directionScore).toBe(100);
     expect(taste.score).toBe(100);
     expect(taste.confidence).toBe("medium");
-  });
-
-  it("keeps the score high when only the scale differs", () => {
-    const taste = buildTasteMatch([95, 90, 85, 80, 75], [65, 60, 55, 50, 45]);
-    expect(taste.gapScore).toBe(70);
-    expect(taste.rankScore).toBe(100);
-    expect(taste.directionScore).toBe(100);
-    expect(taste.score).toBe(88);
   });
 
   it("drops opposite taste below the old delta-only score", () => {

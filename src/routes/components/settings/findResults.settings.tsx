@@ -51,7 +51,9 @@ export function FindResults({
       >
         {SETTINGS_FIND_TAB_ORDER.map((tab) => {
           const tabHits = hits.filter((hit) => hit.entry.tab === tab);
+
           if (tabHits.length === 0) return null;
+
           return (
             <section key={tab} className="ui-panel">
               <div className="ui-titlebar">
@@ -66,6 +68,7 @@ export function FindResults({
                   const index = rowIndex;
                   const active = index === activeIndex;
                   const sectionTitleKey = findSectionTitleKey(hit.entry.sectionId);
+
                   return (
                     <button
                       key={`${hit.entry.kind}:${hit.entry.key}`}
@@ -110,7 +113,6 @@ export function FindResults({
           );
         })}
       </div>
-      <p className="text-hint windows95-text px-1 text-xs">{t("settings.find.footer.hint")}</p>
     </div>
   );
 }

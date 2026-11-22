@@ -7,9 +7,11 @@ const cells = new Map<number, Cell<AnilistProgressOverride | null>>();
 
 function cellFor(mediaId: number): Cell<AnilistProgressOverride | null> {
   const existing = cells.get(mediaId);
+
   if (existing) return existing;
   const created = store.cell<AnilistProgressOverride | null>(null);
   cells.set(mediaId, created);
+
   return created;
 }
 

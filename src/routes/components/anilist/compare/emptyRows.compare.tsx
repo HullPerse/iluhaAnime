@@ -14,6 +14,7 @@ export function EmptyRows({
   onClear: () => void;
 }) {
   const { t } = useI18n();
+
   if (query.trim()) {
     return (
       <div className="flex flex-col items-center gap-1 p-3">
@@ -26,11 +27,13 @@ export function EmptyRows({
       </div>
     );
   }
+
   const labelsByTab = {
     shared: t("anilist.compare.no.shared"),
     mine: t("anilist.compare.no.mine.titles"),
     friend: t("anilist.compare.no.friend.titles", { name: friendName }),
   };
   const label = labelsByTab[tab];
+
   return <p className="windows95-text text-hint p-3 text-center text-xs">{label}</p>;
 }

@@ -23,6 +23,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     migrate: (state) => {
       if (state.mangaReaderFrame === "bevel") state.mangaReaderFrame = "win95";
       const legacyMode = state.mangaReaderMode;
+
       if (legacyMode === "stripGaps") state.mangaReaderDisplay = "strip";
       else if (legacyMode === "strip" || legacyMode === "book") {
         state.mangaReaderDisplay = legacyMode;
@@ -30,6 +31,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
         state.mangaReaderDisplay = "paged";
         state.mangaReaderDirection = legacyMode;
       }
+
       if (state.mangaReaderDisplay === "stripGaps") state.mangaReaderDisplay = "strip";
       delete state.mangaReaderMode;
       delete state.mangaReaderServer;
@@ -57,6 +59,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       const inlineOff = state.inlineAutocompleteEnabled === false;
       delete state.inlineAutocompleteEnabled;
       delete state.vaultTabEnabled;
+
       if (inlineOff) state.autocompleteMode = "off";
     },
   },
@@ -66,6 +69,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       delete state.defaultTab;
       delete state.lastActiveTab;
       const [, error] = attemptSync(() => localStorage.removeItem("lastActiveTab"));
+
       if (error !== null) reportBackgroundError("settings.migrate.cleanup", error);
     },
   },
@@ -92,6 +96,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
           upload: typeof upload === "number" ? upload : null,
         };
       }
+
       delete state.dlLimit;
       delete state.ulLimit;
     },
@@ -101,6 +106,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     migrate: (state) => {
       const legacy = isRecord(state.wallpaperShadow) ? state.wallpaperShadow : null;
       const sides = { top: false, right: false, bottom: false, left: false };
+
       if (legacy) {
         if (legacy.side === "around") {
           sides.top = true;
@@ -109,11 +115,13 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
           sides.left = true;
         } else {
           const side = legacy.side;
+
           if (side === "top" || side === "right" || side === "bottom" || side === "left") {
             sides[side] = true;
           }
         }
       }
+
       if (state.searchShadow === undefined) {
         state.searchShadow = {
           sides,
@@ -123,6 +131,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
           softness: DEFAULT_WALLPAPER_SHADOW.softness,
         };
       }
+
       delete state.wallpaperShadow;
     },
   },
@@ -145,7 +154,9 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       if (state.parseTitlesPlayer === undefined) {
         state.parseTitlesPlayer = state.parseTitles === true;
       }
+
       if (state.parseTitlesTorrent === undefined) state.parseTitlesTorrent = false;
+
       if (state.parseTitlesSearch === undefined) state.parseTitlesSearch = false;
       delete state.parseTitles;
     },
@@ -154,6 +165,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     from: 39,
     migrate: (state) => {
       const schedule = state.themeSchedule;
+
       if (isRecord(schedule)) schedule.enabled = false;
     },
   },
@@ -177,6 +189,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     migrate: (state) => {
       const order: string[] = SOURCE_INFOS.map((info) => info.value);
       const rank = new Map(order.map((value, index): [string, number] => [value, index]));
+
       if (Array.isArray(state.visibleSources)) {
         const kept = state.visibleSources.filter(
           (value): value is string => typeof value === "string"
@@ -186,6 +199,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
           ...kept.filter((value) => !rank.has(value)),
         ];
       }
+
       if (state.defaultSearchSource === "erai-raws") state.defaultSearchSource = "rutracker";
     },
   },
@@ -194,9 +208,11 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     migrate: (state) => {
       const legacy = state.torrentCoversEnabled;
       delete state.torrentCoversEnabled;
+
       if (state.torrentCoverMode === undefined) {
         state.torrentCoverMode = legacy === true ? "full" : "off";
       }
+
       if (state.torrentCoverModeManual === undefined) {
         state.torrentCoverModeManual = legacy === true;
       }
@@ -224,6 +240,7 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
       if (state.notificationPopups === undefined) {
         state.notificationPopups = state.notificationsEnabled === true ? "both" : "off";
       }
+
       delete state.notificationsEnabled;
     },
   },
@@ -277,18 +294,22 @@ const SETTINGS_TRANSFORMS: MigrationTransform[] = [
     from: 60,
     migrate: (state) => {
       const pageSize = state.pageSize;
+
       if (state.anilistPageSize === undefined) {
         state.anilistPageSize =
           typeof pageSize === "number" ? pageSize : DEFAULT_SETTINGS.anilistPageSize;
       }
+
       delete state.pageSize;
       const resultsPerPage = state.resultsPerPage;
+
       if (state.searchResultsPerPage === undefined) {
         state.searchResultsPerPage =
           typeof resultsPerPage === "number"
             ? resultsPerPage
             : DEFAULT_SETTINGS.searchResultsPerPage;
       }
+
       delete state.resultsPerPage;
     },
   },
@@ -386,6 +407,7 @@ export function migrateSettingsData(persistedState: unknown, version: number): S
   delete rest.language;
   const transformed = runTransforms(rest, version, SETTINGS_TRANSFORMS);
   const resolved = resolveWithDefaults(transformed, { ...DEFAULT_SETTINGS }, SETTINGS_VALIDATORS);
+
   return {
     ...DEFAULT_SETTINGS,
     ...resolved,

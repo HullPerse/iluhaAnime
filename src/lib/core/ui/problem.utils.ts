@@ -63,6 +63,7 @@ const CAUSE_MATCHERS: readonly { cause: TorrentProblemCause; tests: (lower: stri
 function causeFromMessage(raw: string): TorrentProblemCause {
   const lower = raw.toLowerCase();
   const hit = CAUSE_MATCHERS.find((entry) => entry.tests(lower));
+
   return hit ? hit.cause : "other";
 }
 
@@ -71,7 +72,9 @@ export function describeTorrentProblem(
   missingFiles: boolean
 ): TorrentProblemDescriptor {
   if (missingFiles) return { cause: "missing", headlineKey: HEADLINE_KEY.missing };
+
   if (!error) return { cause: "unknown", headlineKey: HEADLINE_KEY.unknown };
   const cause = causeFromMessage(error);
+
   return { cause, headlineKey: HEADLINE_KEY[cause] };
 }

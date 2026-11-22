@@ -42,14 +42,23 @@ const contexts: FakeAudioContext[] = [];
 
 class FakeAudioContext {
   state = "suspended";
+
   currentTime = 0;
+
   sampleRate = 48000;
+
   destination = {};
+
   oscillators: FakeOscillator[] = [];
+
   gains: FakeGain[] = [];
+
   buffers: FakeBuffer[] = [];
+
   sources: FakeBufferSource[] = [];
+
   resume = vi.fn(async () => undefined);
+
   close = vi.fn(async () => undefined);
 
   constructor() {
@@ -63,6 +72,7 @@ class FakeAudioContext {
       disconnect: vi.fn(),
     };
     this.gains.push(gain);
+
     return gain;
   }
 
@@ -76,6 +86,7 @@ class FakeAudioContext {
       stop: vi.fn(),
     };
     this.oscillators.push(oscillator);
+
     return oscillator;
   }
 
@@ -83,6 +94,7 @@ class FakeAudioContext {
     const data = new Float32Array(length);
     const buffer = { length, data, getChannelData: () => data };
     this.buffers.push(buffer);
+
     return buffer;
   }
 
@@ -97,6 +109,7 @@ class FakeAudioContext {
       stop: vi.fn(),
     };
     this.sources.push(source);
+
     return source;
   }
 }
@@ -284,6 +297,7 @@ describe("createGameAudio wavetable mode", () => {
     audio.setWavetable(4000, pattern);
     audio.setActive(true);
     const context = contexts.at(-1);
+
     if (context) context.currentTime = 0.25;
     audio.setWavetable(8000, pattern);
 
@@ -299,6 +313,7 @@ describe("createGameAudio wavetable mode", () => {
     audio.setWavetable(4000, new Uint8Array(16));
     audio.setActive(true);
     const context = contexts.at(-1);
+
     if (context) context.currentTime = 0.1;
     audio.setActive(false);
 

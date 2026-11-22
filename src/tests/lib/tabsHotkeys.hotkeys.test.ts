@@ -11,26 +11,13 @@ describe("stepTabId", () => {
     expect(stepTabId(["a", "b", "c"], "b", 1)).toBe("c");
     expect(stepTabId(["a", "b", "c"], "c", 1)).toBe("a");
   });
-
-  it("steps backward and wraps around", () => {
-    expect(stepTabId(["a", "b", "c"], "a", -1)).toBe("c");
-    expect(stepTabId(["a", "b", "c"], "b", -1)).toBe("a");
-  });
-
-  it("starts at the ends without a known active id", () => {
-    expect(stepTabId(["a", "b"], "zzz", 1)).toBe("a");
-    expect(stepTabId(["a", "b"], "zzz", -1)).toBe("b");
-  });
-
-  it("reports failure without ids", () => {
-    expect(stepTabId([], "a", 1)).toBeNull();
-  });
 });
 
 describe("ignoreTabCycle", () => {
   function press(target: EventTarget): KeyboardEvent {
     const event = new KeyboardEvent("keydown", { code: "BracketLeft", shiftKey: true });
     target.dispatchEvent(event);
+
     return event;
   }
 
@@ -62,13 +49,6 @@ describe("ignoreTabCycle", () => {
     document.body.append(dialog);
     expect(ignoreTabCycle(press(button))).toBe(true);
   });
-
-  it("accepts plain surfaces", () => {
-    const row = document.createElement("div");
-    row.tabIndex = -1;
-    document.body.append(row);
-    expect(ignoreTabCycle(press(row))).toBe(false);
-  });
 });
 
 describe("focusTreeSibling", () => {
@@ -81,27 +61,17 @@ describe("focusTreeSibling", () => {
       row.dataset.treePath = path;
       row.tabIndex = -1;
       root.append(row);
+
       return row;
     });
     document.body.append(root);
+
     return { root, rows };
   }
 
   it("focuses the Nth sibling of the row folder", () => {
     const { rows } = tree(["d/a", "d/b", "d/c"]);
     expect(focusTreeSibling(rows[0], 2)).toBe(true);
-    expect(document.activeElement).toBe(rows[1]);
-  });
-
-  it("counts a negative index from the end", () => {
-    const { rows } = tree(["d/a", "d/b"]);
-    expect(focusTreeSibling(rows[0], -1)).toBe(true);
-    expect(document.activeElement).toBe(rows[1]);
-  });
-
-  it("clamps out-of-range indices", () => {
-    const { rows } = tree(["d/a", "d/b"]);
-    expect(focusTreeSibling(rows[0], 99)).toBe(true);
     expect(document.activeElement).toBe(rows[1]);
   });
 

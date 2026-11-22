@@ -10,7 +10,9 @@ export function ChangelogCategory({
   entries: ChangelogEntry[];
 }) {
   const { t } = useI18n();
+
   if (entries.length === 0) return null;
+
   return (
     <div className="windows95-border bg-field flex flex-col p-1">
       <span className="windows95-text px-1 text-xs font-bold">{t(titleKey)}</span>

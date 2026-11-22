@@ -21,20 +21,25 @@ export function preferNativeVariants(variants: StreamVariant[]): StreamVariant[]
   const nativeByTeam = new Map(
     variants.filter(isNativeVariant).map((variant) => [keyOf(variant), variant])
   );
+
   if (nativeByTeam.size === 0) return variants;
   const seen = new Set<string>();
   const preferred: StreamVariant[] = [];
+
   for (const variant of variants) {
     const key = keyOf(variant);
     const native = nativeByTeam.get(key);
+
     if (!native) {
       preferred.push(variant);
       continue;
     }
+
     if (seen.has(key)) continue;
     seen.add(key);
     preferred.push(native);
   }
+
   return preferred;
 }
 
@@ -43,19 +48,25 @@ export function pickVariant(
   prefs: Pick<StreamPrefs, "variantId"> | null
 ): StreamVariant | null {
   const preferred = preferNativeVariants(variants);
+
   if (preferred.length === 0) return null;
+
   if (prefs?.variantId) {
     const exact = preferred.find(
       (variant) => `${variant.player}:${variant.id}` === prefs.variantId
     );
+
     if (exact) return exact;
     const teamId = prefs.variantId.split(":").at(-1);
     const sameTeam = preferred.find((variant) => variant.id === teamId);
+
     if (sameTeam) return sameTeam;
     const player = prefs.variantId.split(":")[0];
     const samePlayer = preferred.find((variant) => variant.player === player);
+
     if (samePlayer) return samePlayer;
   }
+
   return preferred[0];
 }
 

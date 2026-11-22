@@ -18,6 +18,7 @@ export function ViewTabs({
   onChange: (next: FriendView) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="shrink-0">
       <Tabs

@@ -4,6 +4,7 @@ import type { AniMedia } from "@/types/anilist/anilist";
 
 export function Poster({ media }: { media: AniMedia }) {
   const coverSrc = useRemoteImage(media.cover_url);
+
   return (
     <ImageComponent
       src={coverSrc ?? "/images/unknown_source.png"}

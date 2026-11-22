@@ -6,6 +6,7 @@ export function cardListEntry(
   progress: number | null
 ) {
   if (!entry || !status) return undefined;
+
   return {
     progress,
     score: entry.score,

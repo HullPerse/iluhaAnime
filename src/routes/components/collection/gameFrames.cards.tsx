@@ -25,10 +25,10 @@ import { HintsRail } from "@/routes/components/collection/hintsRail.cards";
 export { FramePips } from "@/routes/components/collection/framePips.cards";
 export { Result } from "@/routes/components/collection/gameResult.cards";
 export { GuessHistory } from "@/routes/components/collection/guessHistory.cards";
-export { HintsRail } from "@/routes/components/collection/hintsRail.cards";
 
 function mergeFrame(frames: DailyFrameView[], next: DailyFrameView): DailyFrameView[] {
   if (frames.some((frame) => frame.slot === next.slot)) return frames;
+
   return [...frames, next].sort((left, right) => left.slot - right.slot);
 }
 
@@ -46,10 +46,10 @@ export default function GameFrames({
   const skip = useSkipDailyGame(day);
   const reveal = useRevealDailyFrames(day);
   const [frames, setFrames] = useState<DailyFrameView[]>(initial.frames);
-  const [attempts, setAttempts] = useState(initial.attempts);
+  const [attempts, setAttempts] = useState<number>(initial.attempts);
   const [result, setResult] = useState<DailyResultView | null>(initial.result);
-  const [showReveal, setShowReveal] = useState(false);
-  const [query, setQuery] = useState("");
+  const [showReveal, setShowReveal] = useState<boolean>(false);
+  const [query, setQuery] = useState<string>("");
   const [selected, setSelected] = useState<DailyGuessSuggestion | null>(null);
   const [history, setHistory] = useState<GuessHistoryItem[]>([]);
   const [viewSlot, setViewSlot] = useState<number | null>(null);
@@ -71,23 +71,28 @@ export default function GameFrames({
   }) => {
     setAttempts(view.attempts);
     let nextFrames = frames;
+
     if (view.frame !== null) {
       nextFrames = mergeFrame(frames, view.frame);
       setFrames(nextFrames);
     }
+
     setViewSlot(null);
+
     if (view.result !== null) {
       setResult(view.result);
       setShowReveal(true);
       setFrames([]);
       loadAllFrames();
     }
+
     setQuery("");
     setSelected(null);
   };
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+
     if (selected === null || pending) return;
     const guessed = selected;
     guess.mutate(

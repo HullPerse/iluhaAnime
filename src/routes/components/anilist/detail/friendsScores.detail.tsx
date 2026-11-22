@@ -46,8 +46,10 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
     enabled: expanded && base.length > 0,
     retry: false,
   });
+
   if (friends.length === 0) return null;
   const rows = query.data ?? [];
+
   return (
     <Section
       header={t("anilist.details.friends.scores")}
@@ -82,6 +84,7 @@ export function FriendsScoresSection({ animeId }: { animeId: number }) {
             const total = row.episodes;
             const showProgress = row.progress != null && total != null && total > 0;
             const showRewatch = row.repeat != null && row.repeat > 0;
+
             return (
               <div
                 key={row.id}

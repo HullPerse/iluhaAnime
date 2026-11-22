@@ -14,11 +14,15 @@ export function createJobRunner<P, R>(options: JobRunnerOptions<P, R>): JobRunne
 
   const handleMessage = (event: MessageEvent) => {
     const data = event.data as WorkerJobResponse<R> | undefined;
+
     if (!data || data.id !== epoch) return;
+
     if (!data.ok) {
       if (onError) onError(new Error(data.error));
+
       return;
     }
+
     onResult(data.result);
   };
 
@@ -29,6 +33,7 @@ export function createJobRunner<P, R>(options: JobRunnerOptions<P, R>): JobRunne
 
   const handleError = () => {
     dropWorker();
+
     if (onError) onError(new Error("worker failed"));
   };
 
@@ -37,17 +42,22 @@ export function createJobRunner<P, R>(options: JobRunnerOptions<P, R>): JobRunne
       if (disposed) return;
       epoch += 1;
       const id = epoch;
+
       if (!worker) {
         const [created, error] = attemptSync(createWorker);
+
         if (error || !created) {
           if (runSync) onResult(runSync(payload));
           else if (onError) onError(error ?? new Error("worker unavailable"));
+
           return;
         }
+
         worker = created;
         worker.addEventListener("message", handleMessage);
         worker.addEventListener("error", handleError);
       }
+
       worker.postMessage({ id, payload } satisfies WorkerJobEnvelope<P>, transfer ?? []);
     },
     dispose() {

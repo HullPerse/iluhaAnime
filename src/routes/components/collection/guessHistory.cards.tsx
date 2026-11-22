@@ -5,12 +5,14 @@ import type { GuessHistoryItem } from "@/types/ui/daily";
 
 export function GuessHistory({ history }: { history: GuessHistoryItem[] }) {
   const { t } = useI18n();
+
   if (history.length === 0) return null;
 
   return (
     <div className="daily-guess-history">
       {history.toReversed().map((item, index) => {
         const state = item.correct ? "correct" : item.franchise ? "franchise" : "wrong";
+
         return (
           <div
             key={`${item.media.id}:${history.length - index}`}

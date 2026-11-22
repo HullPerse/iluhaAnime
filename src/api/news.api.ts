@@ -4,21 +4,19 @@ import { assertSchema } from "@/lib/core/system/invoke.utils";
 import type { ApiTransport } from "@/types/core/transport";
 import type { NewsAnimeLink, NewsPage } from "@/types/news/news";
 
-interface NewsApiConfig {
-  transport?: ApiTransport;
-}
-
 export class NewsApi {
   private readonly transport: ApiTransport;
 
-  constructor(config: NewsApiConfig = {}) {
+  constructor(config: { transport?: ApiTransport } = {}) {
     this.transport = config.transport ?? tauriTransport;
   }
 
   async feed(page: number, proxyUrl: string | null): Promise<NewsPage> {
     const args: Record<string, unknown> = { page };
+
     if (proxyUrl) args.proxyUrl = proxyUrl;
     const raw = await this.transport.call<unknown>("news_feed", args);
+
     return assertSchema(raw, NewsPageSchema);
   }
 
@@ -29,15 +27,20 @@ export class NewsApi {
     anilistProxyUrl: string | null
   ): Promise<NewsAnimeLink | null> {
     const args: Record<string, unknown> = { shikimoriId };
+
     if (proxyUrl) args.proxyUrl = proxyUrl;
+
     if (anilistProxyUrl) args.anilistProxyUrl = anilistProxyUrl;
     const raw = await this.transport.call<unknown>("news_anime_link", args);
+
     if (raw === null) return null;
+
     return assertSchema(raw, NewsAnimeLinkSchemaCompiled);
   }
 
   async testConnection(proxyUrl: string | null): Promise<string> {
     const page = await this.feed(1, proxyUrl);
+
     return `shikimori.io, ${page.items.length} posts`;
   }
 }

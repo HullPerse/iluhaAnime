@@ -31,12 +31,16 @@ export default function SettingsMedia() {
 
   const commit = (raw: string, fallback: string[], apply: (list: string[]) => void) => {
     const parsed = parseExtensions(raw);
+
     if (!parsed) {
       setEmptyError(true);
+
       return fallback.join(", ");
     }
+
     setEmptyError(false);
     apply(parsed);
+
     return parsed.join(", ");
   };
 

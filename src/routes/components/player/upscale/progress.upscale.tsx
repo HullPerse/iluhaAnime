@@ -20,6 +20,7 @@ export function UpscaleProgressPanel({
 }) {
   const { t } = useI18n();
   const hostStats = useHostStats(activeItem?.status === "processing");
+
   if (!activeItem) return null;
   const hasFrameProgress =
     activeItem.current != null && activeItem.total != null && activeItem.total > 0;

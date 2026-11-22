@@ -11,6 +11,7 @@ const KEY_BOUNDARIES: Partial<Record<string, (count: number) => number>> = {
 
 export function moveIndex(current: number, delta: number, length: number): number {
   if (length <= 0) return -1;
+
   return (current + delta + length) % length;
 }
 
@@ -45,38 +46,53 @@ function handleListNavigationKey<T extends Element>(
     onTab,
     onEscape,
   } = options;
+
   if (key === "Escape" && onEscape?.()) {
     event.preventDefault();
+
     return true;
   }
+
   if (!enabled) return false;
+
   if (key === nextKey) {
     event.preventDefault();
     move(1);
+
     return true;
   }
+
   if (key === previousKey) {
     event.preventDefault();
     move(-1);
+
     return true;
   }
+
   const boundary = KEY_BOUNDARIES[key]?.(count) ?? null;
+
   if (boundary !== null) {
     event.preventDefault();
     setActiveIndex(boundary);
     onFocus?.(boundary, event);
+
     return true;
   }
+
   if (key === "Enter" && count > 0 && activeIndex >= 0) {
     event.preventDefault();
     onEnter?.(activeIndex);
+
     return true;
   }
+
   if (key === "Tab" && !event.shiftKey && count > 0 && activeIndex >= 0) {
     event.preventDefault();
     onTab?.(activeIndex);
+
     return true;
   }
+
   return false;
 }
 
@@ -117,6 +133,7 @@ export function createListNavigationHandler<T extends Element = Element>({
       onTab,
       onEscape,
     });
+
     if (!handled) onUnhandled?.(event);
   };
 }
@@ -133,6 +150,7 @@ export function enterOrSpace(onActivate: () => void): (event: KeyboardEvent) => 
 export function enterSubmit(onSubmit: () => void): (event: KeyboardEvent) => void {
   return (event) => {
     if (event.nativeEvent.isComposing) return;
+
     if (event.key === "Enter") onSubmit();
   };
 }

@@ -28,27 +28,30 @@ export default function AnimelibSettings() {
 
   const save = async () => {
     const token = input.trim();
+
     if (!token || saving) return;
     setSaving(true);
     setSaved(false);
     setError(null);
-    try {
+    await (async () => {
       const [, failure] = await attempt(streamApi.tokenSave(token));
+
       if (failure) setError(failure.message);
       else {
         setInput("");
         setSaved(true);
         await refresh();
       }
-    } finally {
+    })().finally(() => {
       setSaving(false);
-    }
+    });
   };
 
   const clear = async () => {
     setSaved(false);
     setError(null);
     const [, failure] = await attempt(streamApi.tokenClear());
+
     if (failure) setError(failure.message);
     else await refresh();
   };

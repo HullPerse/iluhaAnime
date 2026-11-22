@@ -14,14 +14,17 @@ function rowEdge(
   filter: (index: number, other: number) => boolean
 ): number {
   let edge = left[index] ?? 0;
+
   for (const other of placed) {
     const sameRow = Math.abs((boxes[index]?.minY ?? 0) - (boxes[other]?.minY ?? 0)) < rowGap;
     const overlaps =
       sameRow &&
       edge < (left[other] ?? 0) + (width[other] ?? 0) &&
       edge + (width[index] ?? 0) > (left[other] ?? 0);
+
     if (filter(index, other) && overlaps) edge = (left[other] ?? 0) + (width[other] ?? 0);
   }
+
   return edge;
 }
 
@@ -39,16 +42,20 @@ function resolveRow(
     (a, b) => Number(anchored(b)) - Number(anchored(a)) || (left[a] ?? 0) - (left[b] ?? 0)
   );
   let moved = false;
+
   for (const index of order) {
     if (!anchored(index)) {
       const edge = rowEdge(index, placed, boxes, left, width, rowGap, filter);
+
       if (edge !== left[index]) {
         left[index] = edge;
         moved = true;
       }
     }
+
     placed.push(index);
   }
+
   return moved;
 }
 
@@ -64,16 +71,21 @@ export function resolveRowCollisions(
     boxes.map((box) => box.minY),
     rowGap
   );
+
   for (let pass = 0; pass < maxPasses; pass += 1) {
     let moved = false;
+
     for (const row of rows) {
       moved = resolveRow(row, boxes, left, width, rowGap, anchored, filter) || moved;
     }
+
     if (!moved) break;
   }
+
   const moved: number[] = [];
   boxes.forEach((box, index) => {
     if (left[index] !== box.minX) moved.push(index);
   });
+
   return { left, moved };
 }

@@ -12,7 +12,9 @@ export function MyScoreBadge({
   title: string;
 }) {
   const display = formatEntryScore(score, format);
+
   if (!display) return null;
+
   if (format === "POINT_3") {
     return (
       <span
@@ -24,6 +26,7 @@ export function MyScoreBadge({
       </span>
     );
   }
+
   return (
     <span
       className="bg-secondary text-primary flex shrink-0 flex-row items-center gap-0.5 px-1 text-xs whitespace-nowrap"

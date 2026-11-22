@@ -6,7 +6,7 @@ import type { Scenario } from "../harness";
 const SETTINGS_KEY = "iluha.v1.settings";
 const SETTINGS_SCHEMA_VERSION = 61;
 
-async function enableCollectionTab(page: Page): Promise<void> {
+export async function enableCollectionTab(page: Page): Promise<void> {
   await page.evaluate(
     ({ key, sv }) => {
       const raw = localStorage.getItem(key);
@@ -29,14 +29,27 @@ async function enableCollectionTab(page: Page): Promise<void> {
   await waitForReady(page);
 }
 
-async function expectVisible(page: Page, text: string, timeout = 15_000): Promise<void> {
+export async function expectVisible(page: Page, text: string, timeout = 15_000): Promise<void> {
   await page.locator(`text=${text}`).first().waitFor({ timeout });
 }
 
-async function clickTab(page: Page, name: string): Promise<void> {
+export async function clickTab(page: Page, name: string): Promise<void> {
   const tab = page.getByRole("tab", { name }).first();
+
   if ((await tab.getAttribute("aria-selected")) === "true") return;
   await tab.click({ timeout: 10_000 });
+}
+
+async function commandInvokes(page: Page, command: string): Promise<number> {
+  return page.evaluate((name) => {
+    const read = (
+      window as unknown as {
+        __iluhaTransportStats?: () => Array<{ command: string; invokes: number }>;
+      }
+    ).__iluhaTransportStats;
+
+    return read?.().find((stat) => stat.command === name)?.invokes ?? 0;
+  }, command);
 }
 
 export const collection: Scenario = {
@@ -55,25 +68,56 @@ export const collection: Scenario = {
       await expectVisible(page, "Магазин");
       await expectVisible(page, "Чубрики");
       const errors = await page.locator('[role="alert"]').count();
+
       if (errors > 0) throw new Error("collection shell rendered an alert");
     });
 
     await step("packs tab has no packs while signed out", async () => {
       await clickTab(page, "Паки");
       await sleep(1_500);
+
+      if (process.env.E2E_MEASURE_PACK_POLL === "1") {
+        const before = await commandInvokes(page, "cards_packs");
+        await sleep(31_000);
+        const after = await commandInvokes(page, "cards_packs");
+
+        if (after - before < 5) {
+          throw new Error(`packs polling made ${after - before} calls in 31s, expected at least 5`);
+        }
+      }
+
       const packCards = await page.locator("article").count();
+
       if (packCards !== 0) throw new Error(`expected no packs, found ${packCards} cards`);
       const cardCount = await page.getByTestId("collection-card-count").textContent();
+
       if ((cardCount ?? "").trim() !== "0") {
         throw new Error(`card counter is "${cardCount}", expected "0"`);
       }
     });
 
-    await step("album shows the empty state and toolbar", async () => {
-      await clickTab(page, "Альбом");
-      await page.getByPlaceholder("Поиск по карточкам").first().waitFor({ timeout: 10_000 });
-      await expectVisible(page, "В альбоме пока нет карточек.");
-    });
+    await step(
+      "empty album keeps the toolbar and shows a result for an active filter",
+      async () => {
+        await clickTab(page, "Альбом");
+        const search = page.getByPlaceholder("Поиск по карточкам").first();
+        await search.waitFor({ timeout: 10_000 });
+        const empty = page.getByText("Нет результатов", { exact: true });
+
+        if ((await empty.count()) !== 0) {
+          throw new Error("empty album showed a no-results message before filtering");
+        }
+
+        if ((await page.getByText("В альбоме пока нет карточек.").count()) !== 0) {
+          throw new Error("empty album rendered a duplicate empty message");
+        }
+
+        await search.fill("No matching card");
+        await empty.waitFor();
+        await search.fill("");
+        await empty.waitFor({ state: "hidden" });
+      }
+    );
 
     await step("album binder toggle switches back to the grid", async () => {
       await page.getByRole("button", { name: "Биндер", exact: true }).click({ timeout: 10_000 });
@@ -86,6 +130,7 @@ export const collection: Scenario = {
       });
       await sleep(1_500);
       const shelf = await page.getByTestId("collection-shelf").count();
+
       if (shelf !== 0) throw new Error("shelf rendered without any owned collections");
     });
 
@@ -93,8 +138,10 @@ export const collection: Scenario = {
       await clickTab(page, "Магазин");
       await page.locator(".cards-shop-pack").first().waitFor({ timeout: 15_000 });
       const packs = await page.locator(".cards-shop-pack").count();
+
       if (packs !== 6) throw new Error(`expected 6 shop packs, found ${packs}`);
       const disabled = await page.locator(".cards-shop-buy:disabled").count();
+
       if (disabled !== 6) throw new Error(`expected 6 unaffordable packs, found ${disabled}`);
     });
 
@@ -110,6 +157,7 @@ export const collection: Scenario = {
       await clickTab(page, "Подарки");
       await sleep(1_500);
       const errors = await page.locator('[role="alert"]').count();
+
       if (errors > 0) throw new Error("gifts tab rendered an alert");
     });
   },

@@ -8,6 +8,7 @@ import type { Cell, SignalStore } from "@/types/core/signal";
 
 function defaultGetStorage(): Storage | undefined {
   if (typeof localStorage === "undefined") return undefined;
+
   return localStorage;
 }
 
@@ -19,6 +20,7 @@ export function bindMirroredAtom<T>(
   serialize: (value: T) => unknown = (value) => value
 ): Cell<T> {
   const cell = store.atom(key, initial);
+
   return {
     id: cell.id,
     get: cell.get,
@@ -42,9 +44,11 @@ export function buildMirrorAtoms<T extends object>(
   serialize?: (value: unknown) => unknown
 ): { [K in keyof T]-?: Cell<T[K]> } {
   const atoms: Record<string, Cell<unknown>> = {};
+
   for (const [key, initial] of Object.entries(data)) {
     atoms[key] = bindMirroredAtom(store, key, initial, mirror, serialize);
   }
+
   return atoms as { [K in keyof T]-?: Cell<T[K]> };
 }
 
@@ -53,9 +57,11 @@ export function buildSignalAtoms<T extends object>(
   data: T
 ): { [K in keyof T]-?: Cell<T[K]> } {
   const atoms: Record<string, Cell<unknown>> = {};
+
   for (const [key, initial] of Object.entries(data)) {
     atoms[key] = store.atom(key, initial);
   }
+
   return atoms as { [K in keyof T]-?: Cell<T[K]> };
 }
 
@@ -64,6 +70,7 @@ export function applyAtomValues<T extends object>(
   values: Partial<T>
 ): void {
   const target = atoms as Record<string, Cell<unknown>>;
+
   for (const [key, value] of Object.entries(values)) {
     target[key]?.set(value);
   }
@@ -81,7 +88,9 @@ export function createPersistedStoreContext(options: PersistedStoreOptions): Per
     fallback: options.onFallback
       ? () => {
           const migrated = options.onFallback?.(getStorage) ?? null;
+
           if (migrated) adoptedFromLegacy = true;
+
           return migrated;
         }
       : undefined,
@@ -96,18 +105,24 @@ export function createPersistedStoreContext(options: PersistedStoreOptions): Per
     if (!adoptedFromLegacy) return;
     const probeKey = keys?.probe ?? persistKey(options.storeName);
     const removeKey = keys?.remove ?? probeKey;
+
     if (snapshot) persistor.write(snapshot());
     persistor.flush();
     const [storage, storageError] = attemptSync(() => getStorage());
+
     if (storageError !== null) {
       reportBackgroundError(`${options.short}.signal.adopt`, storageError);
+
       return;
     }
+
     const [adopted, adoptError] = attemptSync(() => storage?.getItem(probeKey));
+
     if (adoptError !== null) {
       reportBackgroundError(`${options.short}.signal.adopt`, adoptError);
     } else if (adopted) {
       const [, removeError] = attemptSync(() => storage?.removeItem(removeKey));
+
       if (removeError !== null) reportBackgroundError(`${options.short}.signal.adopt`, removeError);
     }
   };

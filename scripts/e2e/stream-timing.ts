@@ -51,6 +51,7 @@ interface Chain {
 function percentile(values: number[], q: number): number {
   const sorted = [...values].sort((a, b) => a - b);
   const index = Math.min(sorted.length - 1, Math.floor(q * sorted.length));
+
   return sorted[index] ?? 0;
 }
 
@@ -58,6 +59,7 @@ async function timed<T>(steps: Step[], name: string, run: () => Promise<T>): Pro
   const start = performance.now();
   const value = await run();
   steps.push({ name, ms: performance.now() - start });
+
   return value;
 }
 
@@ -73,6 +75,7 @@ async function resolveChain(page: Page, slug: string | undefined): Promise<Chain
     })
   );
   const hit = slug ? search.items.find((item) => item.slugUrl === slug) : search.items[0];
+
   if (!hit) throw new Error(`no catalog title matched ${slug ?? "the first page"}`);
 
   const title = await timed(steps, "anime_lib_title", () =>
@@ -82,12 +85,14 @@ async function resolveChain(page: Page, slug: string | undefined): Promise<Chain
   );
   const anime = title.anime;
   const episode = title.episodes[0];
+
   if (!episode) throw new Error(`${anime.title} returned no episodes`);
 
   const variants = await timed(steps, "anime_lib_players", () =>
     invoke<CatalogVariant[]>(page, "anime_lib_players", { input: { episodeId: episode.id } })
   );
   const variant = variants[0];
+
   if (!variant) throw new Error(`${anime.title} episode ${episode.number} has no voice-overs`);
 
   const sources = await timed(steps, "anime_lib_stream_sources", () =>
@@ -95,6 +100,7 @@ async function resolveChain(page: Page, slug: string | undefined): Promise<Chain
       input: { episodeId: episode.id, variantId: variantIdOf(variant) },
     })
   );
+
   if (sources.length === 0) throw new Error(`${anime.title} resolved no playable sources`);
 
   return { anime, episode, variants, sources, steps };
@@ -104,15 +110,18 @@ function printChain(label: string, chain: Chain): void {
   const total = chain.steps.reduce((sum, step) => sum + step.ms, 0);
   console.log(`\n${label} (${chain.steps.length} IPC round trips)`);
   console.log(`  ${chain.anime.title}, episode ${chain.episode.number}`);
+
   for (const step of chain.steps) {
     console.log(`  ${step.name.padEnd(24)} ${step.ms.toFixed(1).padStart(8)} ms`);
   }
+
   console.log(`  ${"total".padEnd(24)} ${total.toFixed(1).padStart(8)} ms`);
 }
 
 async function measurePlayer(browser: Browser, page: Page, chain: Chain): Promise<number> {
   const source = chain.sources[0];
   const variant = chain.variants[0];
+
   if (!source || !variant) throw new Error("no source to play");
   const stream = {
     sourceId: "animelib",
@@ -151,30 +160,37 @@ async function measurePlayer(browser: Browser, page: Page, chain: Chain): Promis
   const windowMs = performance.now() - started;
 
   const deadline = performance.now() + LOAD_TIMEOUT_MS;
+
   while (performance.now() < deadline) {
     const duration = await invoke<number | null>(player, "player_get_property", {
       name: "duration",
       format: "double",
     }).catch(() => null);
+
     if (typeof duration === "number" && duration > 0) {
       const totalMs = performance.now() - started;
       console.log(`\nplayer (${source.label} ${source.type})`);
       console.log(`  ${"window ready".padEnd(24)} ${windowMs.toFixed(1).padStart(8)} ms`);
       console.log(`  ${"stream loaded".padEnd(24)} ${totalMs.toFixed(1).padStart(8)} ms`);
+
       return totalMs;
     }
+
     await sleep(100);
   }
+
   throw new Error(`stream did not load within ${LOAD_TIMEOUT_MS}ms`);
 }
 
 async function main(): Promise<void> {
   const browser = await connectCdp(120_000);
+
   try {
     const page = await mainPage(browser);
     await waitForReady(page);
 
     const runs: Chain[] = [];
+
     for (let run = 0; run < RUNS; run++) {
       const chain = await resolveChain(page, process.env.BENCH_STREAM_SLUG);
       runs.push(chain);
@@ -189,6 +205,7 @@ async function main(): Promise<void> {
 
     if (PLAY) {
       const warm = runs.at(-1);
+
       if (!warm) throw new Error("no chain to play");
       await measurePlayer(browser, page, warm);
     }

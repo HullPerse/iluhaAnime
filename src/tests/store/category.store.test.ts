@@ -29,6 +29,7 @@ function seed(store: CategorySignalStore): string {
   store.addEntry(id, { type: "folder", name: "A", folderPath: "/a" });
   store.addEntry(id, { type: "folder", name: "B", folderPath: "/b" });
   store.addEntry(id, { type: "folder", name: "C", folderPath: "/c" });
+
   return id;
 }
 

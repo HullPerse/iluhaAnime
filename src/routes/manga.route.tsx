@@ -3,11 +3,11 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { sourceShowsNsfw } from "@/lib/manga/nsfw.utils";
-import MangaDetail from "@/routes/components/manga/detail.manga";
-import MangaHistory from "@/routes/components/manga/history.manga";
-import MangaLibrary from "@/routes/components/manga/library.manga";
-import MangaSearch from "@/routes/components/manga/search.manga";
-import MangaSources from "@/routes/components/manga/sources.manga";
+import MangaDetail from "@/routes/components/manga/detail/view.detail";
+import MangaHistory from "@/routes/components/manga/history/view.history";
+import MangaLibrary from "@/routes/components/manga/library/view.library";
+import MangaSearch from "@/routes/components/manga/search/view.search";
+import MangaSources from "@/routes/components/manga/sources/view.sources";
 import { mangaDetail, mangaSection } from "@/store/manga.store";
 import { settingsAtoms } from "@/store/settings.store";
 

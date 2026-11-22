@@ -17,6 +17,7 @@ export function StreamError({
   onRetry?: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <StatePanel
       alert

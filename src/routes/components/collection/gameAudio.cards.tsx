@@ -37,16 +37,16 @@ export default function GameAudio({
   const { t } = useI18n();
   const guess = useGuessDailyAudio(day);
   const skip = useSkipDailyAudio(day);
-  const [attempts, setAttempts] = useState(initial.attempts);
+  const [attempts, setAttempts] = useState<number>(initial.attempts);
   const [result, setResult] = useState<DailyResultView | null>(initial.result);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [selected, setSelected] = useState<DailyGuessSuggestion | null>(null);
   const [history, setHistory] = useState<GuessHistoryItem[]>([]);
-  const [fullPath, setFullPath] = useState(initial.fullPath);
-  const [showFullClip, setShowFullClip] = useState(false);
+  const [fullPath, setFullPath] = useState<string>(initial.fullPath);
+  const [showFullClip, setShowFullClip] = useState<boolean>(false);
   const [viewStage, setViewStage] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const startRef = useRef(0);
+  const startRef = useRef<number>(0);
   const clipUrl = convertFileSrc(initial.clipPath);
   const resultClipUrl = convertFileSrc(fullPath.length > 0 ? fullPath : initial.clipPath);
   useDailyRewardNotice(result, t);
@@ -68,7 +68,9 @@ export default function GameAudio({
 
   const handlePlay = () => {
     const video = videoRef.current;
+
     if (!video) return;
+
     if (
       video.currentTime < startRef.current - 0.05 ||
       video.currentTime >= startRef.current + AUDIO_SECONDS - 0.05
@@ -79,6 +81,7 @@ export default function GameAudio({
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
+
     if (video && video.currentTime >= startRef.current + AUDIO_SECONDS) {
       video.pause();
     }
@@ -88,10 +91,12 @@ export default function GameAudio({
     setAttempts(view.state.attempts);
     setFullPath(view.state.fullPath);
     setViewStage(null);
+
     if (view.state.result !== null) {
       setResult(view.state.result);
       setShowFullClip(true);
     }
+
     setQuery("");
     setSelected(null);
   };
@@ -100,6 +105,7 @@ export default function GameAudio({
     if (!canOpenAudioStage(slot, stage)) return;
     setViewStage(slot);
     const video = videoRef.current;
+
     if (!video) return;
     video.currentTime = startRef.current;
     ignore(video.play());
@@ -107,6 +113,7 @@ export default function GameAudio({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+
     if (selected === null || pending) return;
     const guessed = selected;
     guess.mutate(

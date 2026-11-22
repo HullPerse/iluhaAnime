@@ -13,7 +13,10 @@ export function OverlayScreens({
   context: AniListOverlayContext;
 }) {
   if (current.kind === "character") return <CharacterScreen screen={current} context={context} />;
+
   if (current.kind === "staff") return <StaffScreen screen={current} context={context} />;
+
   if (current.kind === "studio") return <StudioScreen screen={current} context={context} />;
+
   return <AnimeScreen screen={current} context={context} />;
 }

@@ -28,6 +28,7 @@ export function ComparePanel({
     friend.id,
     true
   );
+
   return (
     <CompareAnilist
       selfUser={selfUser}

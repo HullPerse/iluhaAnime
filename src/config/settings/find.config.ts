@@ -48,6 +48,7 @@ export function anchorId(tab: SettingsFindTab, section: string): string {
 
 function buildEntries(): SettingsFindEntry[] {
   const entries: SettingsFindEntry[] = [];
+
   for (const tab of SETTINGS_FIND_TAB_ORDER) {
     entries.push({
       key: SETTINGS_FIND_TAB_TITLES[tab],
@@ -56,13 +57,16 @@ function buildEntries(): SettingsFindEntry[] {
       kind: "tab",
     });
   }
+
   for (const group of FIND_GROUPS) {
     const sectionId = anchorId(group.tab, group.section);
     entries.push({ key: group.titleKey, tab: group.tab, sectionId, kind: "section" });
+
     for (const key of group.keys) {
       entries.push({ key, tab: group.tab, sectionId, kind: "setting" });
     }
   }
+
   return entries;
 }
 

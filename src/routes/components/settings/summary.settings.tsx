@@ -83,6 +83,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         withFallback(getMangaPageCacheStats(), { bytes: 0, count: 0 }),
         withFallback(systemApi.getVideoCacheStats(), { hits: 0, misses: 0 }),
       ]);
+
       return { anilistCache, images, mangaCache, videoCache };
     },
     staleTime: 30_000,
@@ -98,6 +99,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
 
   const clearImages = async () => {
     const ok = await confirm(t("settings.summary.images.confirm"));
+
     if (!ok) return;
     const error = await attemptSequence([
       () => systemApi.clearRemoteImageCache(),
@@ -107,6 +109,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
       },
       () => queryClient.invalidateQueries({ queryKey: STORAGE_QUERY_KEY }),
     ]);
+
     if (error !== null) reportBackgroundError("summary.images.clear", error);
   };
 
@@ -116,11 +119,13 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
 
   const clearMangaCache = async () => {
     const ok = await confirm(t("settings.summary.mangaCache.confirm"));
+
     if (!ok) return;
     const error = await attemptSequence([
       () => clearMangaPageCache(),
       () => queryClient.invalidateQueries({ queryKey: STORAGE_QUERY_KEY }),
     ]);
+
     if (error !== null) reportBackgroundError("summary.manga-cache.clear", error);
   };
 
@@ -135,14 +140,19 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
 
   const runUpdateCheck = async () => {
     const outcome = await check();
+
     if (outcome.status === "none") {
       showInfo(t("updater.title"), t("updater.check.none"));
+
       return;
     }
+
     if (outcome.status === "offline") {
       showWarning(t("network.offline.title"), t("network.action.unavailable"));
+
       return;
     }
+
     if (outcome.status === "error") {
       showError(t("updater.check.error"), outcome.error.message);
     }
@@ -159,6 +169,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
         filters: [{ extensions: ["zip"], name: "Zip" }],
       })
     );
+
     if (dialogError !== null || !target) return;
     setCollecting(true);
     const [, collectError] = await attempt(
@@ -169,10 +180,12 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
           settings: getSettingsSnapshot(),
           version: version ?? "?",
         });
+
         return systemApi.collectReproBundle(frontend, target);
       })()
     );
     setCollecting(false);
+
     if (collectError !== null) {
       showError(t("settings.summary.repro.error"), collectError.message);
     }
@@ -187,6 +200,7 @@ export function SettingsSummary({ onJump }: { onJump: (tab: SettingsTab) => void
     ? t("updater.check.available", { version: update.version })
     : t("updater.check");
   let ffmpegValue: ReactNode = "...";
+
   if (ffmpeg.data !== undefined) {
     ffmpegValue = ffmpeg.data ? (
       <span className="inline-flex items-center gap-1">

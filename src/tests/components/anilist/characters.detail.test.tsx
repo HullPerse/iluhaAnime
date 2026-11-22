@@ -32,6 +32,7 @@ const renderPanel = (initialEdges?: AniCharacterEdge[]) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <AniListCharactersPanel animeId={21} initialEdges={initialEdges} />
@@ -54,6 +55,7 @@ describe("AniListCharactersPanel seeding", () => {
     const seeded = Array.from({ length: 25 }, (_, i) => edge(1000 + i, `Seeded ${i}`));
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_anime_characters") return Promise.resolve([]);
+
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
     renderPanel(seeded);
@@ -68,6 +70,7 @@ describe("AniListCharactersPanel seeding", () => {
     const seeded = Array.from({ length: 25 }, (_, i) => edge(1000 + i, `Seeded ${i}`));
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_anime_characters") return Promise.resolve([]);
+
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
     renderPanel(seeded);
@@ -88,6 +91,7 @@ describe("AniListCharactersPanel seeding", () => {
   it("fetches page one when nothing is seeded", async () => {
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_anime_characters") return Promise.resolve([edge(7, "Hero")]);
+
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
     renderPanel(undefined);

@@ -44,11 +44,13 @@ export default function ContextMenu({
     const close = (): void => {
       setOpenRef.current(false);
     };
+
     return registerContextMenuCloser(close);
   }, []);
 
   useEffect(() => {
     if (!isOpen) return;
+
     return registerOverlay(() => setOpen(false));
   }, [isOpen, setOpen]);
 

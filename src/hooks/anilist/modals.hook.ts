@@ -38,5 +38,6 @@ export function useAnilistModals() {
       prev.activity.open ? { ...prev, activity: { ...prev.activity, open: false } } : prev
     );
   }, []);
+
   return { views, handleOpenModal, handleCloseModal, handleOpenActivity, handleCloseActivity };
 }

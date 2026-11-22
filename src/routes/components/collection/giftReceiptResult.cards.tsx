@@ -1,19 +1,12 @@
 import { Button } from "@/components/ui/button.component";
 import { cardKindLabelKeys } from "@/config/cards/labels.config";
 import { useI18n } from "@/hooks/i18n.hook";
+import { giftTotals } from "@/lib/cards/gift.utils";
 import type { GiftItem } from "@/types/api/cards";
 
 import CardBack from "@/routes/components/collection/cardBack.cards";
 import CardFace from "@/routes/components/collection/cardFace.cards";
 import GiftStacks from "@/routes/components/collection/giftStacks.cards";
-
-function totalCopies(cards: GiftItem["cards"]): number {
-  return cards.reduce((sum, card) => sum + card.copies, 0);
-}
-
-function totalValue(cards: GiftItem["cards"]): number {
-  return cards.reduce((sum, card) => sum + card.value * card.copies, 0);
-}
 
 export default function GiftReceiptResult({
   gift,
@@ -33,6 +26,7 @@ export default function GiftReceiptResult({
   const { t } = useI18n();
   const lead = gift.cards[0] ?? null;
   const title = lead?.title.trim() || t("collection.gift");
+  const { copies, value } = giftTotals(gift.cards);
 
   return (
     <div className="cards-detail cards-gift-receipt">
@@ -70,13 +64,13 @@ export default function GiftReceiptResult({
         <dl className="cards-detail-grid">
           <div>
             <dt>{t("collection.copies")}</dt>
-            <dd className="tabular-nums">{totalCopies(gift.cards)}</dd>
+            <dd className="tabular-nums">{copies}</dd>
           </div>
           <div>
             <dt>{t("collection.value")}</dt>
             <dd className="cards-detail-value">
               <img src="/money.png" alt="" className="chubrik-icon" />
-              <span className="tabular-nums">{totalValue(gift.cards)}</span>
+              <span className="tabular-nums">{value}</span>
             </dd>
           </div>
         </dl>

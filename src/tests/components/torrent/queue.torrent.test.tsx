@@ -51,6 +51,7 @@ const props = (overrides: Partial<Props> = {}): Props => {
 const renderQueue = (overrides: Partial<Props> = {}) => {
   const base = props(overrides);
   const view = render(<TorrentQueueModal {...base} />);
+
   return {
     ...base,
     view,
@@ -61,7 +62,9 @@ const renderQueue = (overrides: Partial<Props> = {}) => {
 
 const row = (index: number): HTMLElement => {
   const found = document.querySelector<HTMLElement>(`[data-queue-index="${index}"]`);
+
   if (!found) throw new Error(`queue row missing: ${index}`);
+
   return found;
 };
 
@@ -73,7 +76,9 @@ const rowOrder = (): string[] => {
 
 const folder = (dir: string): HTMLElement => {
   const found = document.querySelector<HTMLElement>(`[data-queue-folder="${dir}"]`);
+
   if (!found) throw new Error(`queue folder missing: ${dir}`);
+
   return found;
 };
 
@@ -111,10 +116,11 @@ describe("TorrentQueueModal list", () => {
     expect(folder("S1").getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("shows an empty state when nothing is downloading", () => {
+  it("leaves the queue blank when nothing is downloading", () => {
     renderQueue({ files: [file(0, "S1/01.mkv", { completed: true })] });
 
-    expect(screen.getByTestId("torrent-queue-empty").textContent).toBe("Скачивать больше нечего.");
+    expect(screen.queryByTestId("torrent-queue-empty")).toBeNull();
+    expect(screen.queryByRole("tree")).toBeNull();
     expect(saveButton().hasAttribute("disabled")).toBe(true);
   });
 

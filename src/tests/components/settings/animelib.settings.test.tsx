@@ -25,10 +25,13 @@ describe("AnimelibSettings", () => {
             : { tokenSaved: false, authorized: false, login: null }
         );
       }
+
       if (command === "animelib_token_clear") {
         stored = false;
+
         return Promise.resolve(null);
       }
+
       return Promise.resolve(null);
     });
 
@@ -51,10 +54,13 @@ describe("AnimelibSettings", () => {
             : { tokenSaved: false, authorized: false, login: null }
         );
       }
+
       if (command === "animelib_token_save") {
         saved = true;
+
         return Promise.resolve(null);
       }
+
       return Promise.resolve(null);
     });
 
@@ -76,6 +82,7 @@ describe("AnimelibSettings", () => {
       if (command === "animelib_account") {
         return Promise.resolve({ tokenSaved: true, authorized: true, login: null });
       }
+
       return Promise.resolve(null);
     });
 
@@ -90,6 +97,7 @@ describe("AnimelibSettings", () => {
       if (command === "animelib_account") {
         return Promise.resolve({ tokenSaved: true, authorized: false, login: null });
       }
+
       return Promise.resolve(null);
     });
 
@@ -108,11 +116,15 @@ describe("AnimelibSettings", () => {
             : { tokenSaved: false, authorized: false, login: null }
         );
       }
+
       if (command === "animelib_webview_login") return Promise.resolve("ok");
+
       if (command === "animelib_finish_webview_login") {
         done = true;
+
         return Promise.resolve("ok");
       }
+
       return Promise.resolve(null);
     });
 
@@ -122,8 +134,8 @@ describe("AnimelibSettings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Войти через AnimeLib" }));
 
     await screen.findByText("Вы вошли как milky");
-    expect(mockInvoke).toHaveBeenCalledWith("animelib_webview_login", undefined);
-    expect(mockInvoke).toHaveBeenCalledWith("animelib_finish_webview_login", undefined);
+    expect(mockInvoke).toHaveBeenCalledWith("animelib_webview_login", {});
+    expect(mockInvoke).toHaveBeenCalledWith("animelib_finish_webview_login", {});
   });
 
   it("stores and clears the AnimeLib proxy", async () => {
@@ -131,6 +143,7 @@ describe("AnimelibSettings", () => {
       if (command === "animelib_account") {
         return Promise.resolve({ tokenSaved: false, authorized: false, login: null });
       }
+
       return Promise.resolve(null);
     });
 
@@ -149,9 +162,11 @@ describe("AnimelibSettings", () => {
       if (command === "animelib_account") {
         return Promise.resolve({ tokenSaved: false, authorized: false, login: null });
       }
+
       if (command === "animelib_token_save") {
         return Promise.reject(new Error("AnimeLib rejected the token"));
       }
+
       return Promise.resolve(null);
     });
 

@@ -8,6 +8,7 @@ import {
 
 function makeEntries(count: number): FingerprintEntry[] {
   const entries: FingerprintEntry[] = [];
+
   for (let i = 0; i < count; i++) {
     entries.push({
       path: `src/routes/components/anilist/detail/section-${i}.tsx`,
@@ -15,6 +16,7 @@ function makeEntries(count: number): FingerprintEntry[] {
       modifiedMs: 1_700_000_000_000 + (i % 10_000),
     });
   }
+
   return entries;
 }
 
@@ -28,6 +30,7 @@ group("build-fingerprint @quick", () => {
   bench("fingerprint 10k files", () => fingerprintEntries(ENTRIES_10K));
   bench("diff 10k vs 5k", () => {
     const diff = diffFingerprintEntries(ENTRIES_10K, ENTRIES_5K);
+
     return diff.added.length + diff.changed.length + diff.removed.length;
   });
 });

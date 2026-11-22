@@ -13,6 +13,7 @@ import {
 
 function memoryStorage(seed: Record<string, string> = {}): Storage {
   const data = new Map(Object.entries(seed));
+
   return {
     getItem: (key: string) => data.get(key) ?? null,
     setItem: (key: string, value: string) => {
@@ -106,6 +107,7 @@ describe("theme overlay", () => {
 
 describe("theme extends", () => {
   const base = THEMES.find((theme) => theme.name === "xp");
+
   if (!base) throw new Error("missing xp theme");
 
   const resolveBuiltin = (name: string) => THEMES.find((theme) => theme.name === name);
@@ -133,6 +135,7 @@ describe("theme extends", () => {
 
   it("merges overrides and components over the base pack", () => {
     const mono = THEMES.find((theme) => theme.name === "mono");
+
     if (!mono) throw new Error("missing mono theme");
 
     const parsed = parseRetroismTheme(
@@ -258,6 +261,7 @@ describe("theme patch files", () => {
   it("parses a plain theme file through the same entry point", () => {
     const parsed = parseThemeFile(JSON.stringify({ colors: { base: "#abc123" }, name: "x" }));
     expect(parsed?.kind).toBe("theme");
+
     if (parsed?.kind === "theme") expect(parsed.theme.name).toBe("x");
   });
 });

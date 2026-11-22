@@ -11,6 +11,7 @@ import {
 
 export function FlagIcon({ code, className }: { code?: string | null; className?: string }) {
   const cell = code ? FLAG_CELLS[code.toLowerCase()] : undefined;
+
   if (!cell) {
     return (
       <span
@@ -20,6 +21,7 @@ export function FlagIcon({ code, className }: { code?: string | null; className?
       />
     );
   }
+
   return (
     <span
       role="img"

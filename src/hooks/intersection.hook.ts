@@ -6,10 +6,13 @@ export function useOnScreen<T extends HTMLElement>() {
 
   useEffect(() => {
     const element = ref.current;
+
     if (!element || typeof IntersectionObserver === "undefined") {
       setVisible(true);
+
       return;
     }
+
     const root = element.closest("[data-playlist-scroll]");
     const observer = new IntersectionObserver(
       (entries) => {
@@ -21,6 +24,7 @@ export function useOnScreen<T extends HTMLElement>() {
       { root: root instanceof Element ? root : null, rootMargin: "256px" }
     );
     observer.observe(element);
+
     return () => observer.disconnect();
   }, []);
 

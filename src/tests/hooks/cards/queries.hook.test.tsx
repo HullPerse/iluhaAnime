@@ -122,7 +122,7 @@ describe("cards queries", () => {
     expect(cardsApi.bootstrap).toHaveBeenCalledTimes(1);
   });
 
-  it("loads packs and stats through the slow preset", async () => {
+  it("loads packs and stats", async () => {
     vi.spyOn(cardsApi, "packs").mockResolvedValue([PACK]);
     vi.spyOn(cardsApi, "stats").mockResolvedValue(STATS);
     const packs = renderHook(() => useCardsPacks(), { wrapper });

@@ -23,5 +23,6 @@ export function feedbackScore(
   );
   const ageHours = Math.max(0, (now - counters.lastUsedAt) / 3_600_000);
   const decay = 0.5 ** (ageHours / RANKING.FEEDBACK_HALFLIFE_HOURS);
+
   return (positive - negative) * decay;
 }

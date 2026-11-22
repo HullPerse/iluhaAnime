@@ -24,24 +24,30 @@ export function usePlayerScreen(
 
     const resolvePath = async (id: string): Promise<string> => {
       const cached = shaderPathsRef.current.get(id);
+
       if (cached !== undefined) return cached;
       const path = await playerShaderPath(id);
       shaderPathsRef.current.set(id, path);
+
       return path;
     };
 
     const apply = async () => {
       const path = def.shader === null ? null : await resolvePath(def.shader);
+
       if (epoch !== epochRef.current) return;
       const commands = buildModeCommands(activeShaderRef.current, {
         shader: def.shader,
         path,
         params: playerModeParams(mode, settings.crtCurvature),
       });
+
       for (const command of commands) {
         await runPlayerCommand(command.name, command.args);
+
         if (epoch !== epochRef.current) return;
       }
+
       activeShaderRef.current =
         def.shader !== null && path !== null ? { shader: def.shader, path } : null;
     };

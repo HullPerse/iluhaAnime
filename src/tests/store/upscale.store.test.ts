@@ -33,6 +33,7 @@ const CONFIG: UpscaleConfig = {
 function setup(): UpscaleSignalStore {
   const store = createUpscaleSignalStore();
   store.setPaused(true);
+
   return store;
 }
 
@@ -42,6 +43,7 @@ beforeEach(() => {
   listeners.clear();
   mockListen.mockImplementation((event: string, handler: (event: { payload: unknown }) => void) => {
     listeners.set(event, handler);
+
     return Promise.resolve(() => {
       listeners.delete(event);
     });

@@ -21,6 +21,7 @@ export function usePrewarmSpellIndex(): void {
   const symSpellEnabled = useCell(settingsAtoms.searchSymSpellEnabled);
   useEffect(() => {
     if (!symSpellEnabled) return;
+
     return prewarmSpelling({ animeIndex, history, symSpell: symSpellEnabled });
   }, [animeIndex, history, symSpellEnabled]);
 }

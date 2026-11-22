@@ -37,6 +37,7 @@ vi.mock("@/hooks/player/stream.hook", () => ({
 vi.mock("@/routes/components/player/media/playlist.player", () => ({
   default: (props: { focusedIndex?: number | null }) => {
     playlistBodyProps.current = props;
+
     return <div data-testid="playlist-body" />;
   },
 }));

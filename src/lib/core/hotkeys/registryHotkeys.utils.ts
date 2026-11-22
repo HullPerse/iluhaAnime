@@ -10,22 +10,28 @@ export function createHotkeyRegistry<TId extends string>(
   defs: readonly HotkeyDef<TId>[]
 ): Map<string, ResolvedHotkey<TId>> {
   const registry = new Map<string, ResolvedHotkey<TId>>();
+
   for (const def of defs) {
     const chord = parseChord(def.chord);
+
     if (!chord) {
       console.warn(`hotkeys: invalid chord "${def.chord}" for "${def.id}", skipped`);
       continue;
     }
+
     const key = chordKey(chord);
     const clash = registry.get(key);
+
     if (clash) {
       console.warn(
         `hotkeys: chord "${def.chord}" of "${def.id}" clashes with "${clash.id}", skipped`
       );
       continue;
     }
+
     registry.set(key, { id: def.id, repeat: def.repeat });
   }
+
   return registry;
 }
 
@@ -33,10 +39,13 @@ export function createHotkeysHandler<TId extends string>(
   options: HotkeysHandlerOptions<TId>
 ): (event: KeyboardEvent) => void {
   const { registry, ignore, onAction } = options;
+
   return (event) => {
     if (event.isComposing || ignore?.(event)) return;
     const hit = registry.get(chordKeyFromEvent(event));
+
     if (!hit) return;
+
     if (event.repeat && hit.repeat === "once") return;
     event.preventDefault();
     onAction(hit.id, event);
@@ -56,6 +65,8 @@ export function subscribeHotkeys<TId extends string>(
   const listener = (event: Event) => {
     if (event instanceof KeyboardEvent) handler(event);
   };
+
   target.addEventListener("keydown", listener, capture);
+
   return () => target.removeEventListener("keydown", listener, capture);
 }

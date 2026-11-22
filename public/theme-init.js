@@ -20,13 +20,17 @@
 
   function stored(key) {
     const data = localStorage.getItem(key);
+
     if (!data) return null;
+
     return data;
   }
 
   function readJson(key) {
     const raw = stored(key);
+
     if (!raw) return null;
+
     try {
       return JSON.parse(raw);
     } catch {
@@ -44,17 +48,22 @@
 
   function readStoredSettings() {
     const envelope = readJson("iluha.v1.settings");
+
     if (isRecord(envelope) && isRecord(envelope.data)) return envelope.data;
     const legacy = readJson("settings");
+
     if (!isRecord(legacy)) return null;
+
     return isRecord(legacy.state) ? legacy.state : legacy;
   }
 
   function applyVisualSettings(settings) {
     if (!isRecord(settings)) return "";
+
     if (oneOf(settings.windowEffect, WINDOW_EFFECTS)) {
       root.dataset.windowEffect = settings.windowEffect;
     }
+
     if (
       typeof settings.windowTintOpacity === "number" &&
       Number.isFinite(settings.windowTintOpacity)
@@ -62,37 +71,48 @@
       const tint = Math.max(0, Math.min(1, settings.windowTintOpacity));
       setVar("--ui-window-opacity", `${Math.round(tint * 100)}%`);
     }
+
     if (oneOf(settings.retroStyle, RETRO_STYLES)) {
       root.dataset.retroStyle = settings.retroStyle;
     }
+
     if (oneOf(settings.uiDensity, UI_DENSITIES)) {
       root.dataset.uiDensity = settings.uiDensity;
     }
+
     if (typeof settings.yorhaScanlinesEnabled === "boolean") {
       root.dataset.yorhaScanlines = settings.yorhaScanlinesEnabled ? "on" : "off";
     }
+
     return typeof settings.appFont === "string" ? settings.appFont.trim() : "";
   }
 
   function applyAppFont(font) {
     if (typeof font !== "string" || font.trim().length === 0) return false;
     setVar("--font-family", `"${font.trim().replace(/"/g, '\\"')}", ${FALLBACK_FONTS}`);
+
     return true;
   }
 
   function applyPayloadV2(value) {
     const vars = value.vars;
+
     if (vars && typeof vars === "object") {
       for (const name of Object.keys(vars)) setVar(name, vars[name]);
     }
+
     const overrides = value.overrides;
+
     if (overrides && typeof overrides === "object") {
       for (const name of Object.keys(overrides)) setColor(name, overrides[name]);
     }
+
     const datasets = value.datasets;
+
     if (datasets && typeof datasets === "object") {
       for (const name of Object.keys(datasets)) {
         const entry = datasets[name];
+
         if (typeof entry === "string" && entry.length > 0 && root.dataset) {
           root.dataset[name] = entry;
         }
@@ -116,23 +136,27 @@
     setColor("--color-win-highlight", value.winHighlight);
     setColor("--color-win-shadow", value.winShadow);
     setColor("--color-title-text", value.titleText);
+
     if (
       typeof value.autocompleteOpacity === "number" &&
       Number.isFinite(value.autocompleteOpacity)
     ) {
       setVar("--autocomplete-opacity", String(Math.max(0, Math.min(1, value.autocompleteOpacity))));
     }
+
     if (typeof value.windowAlpha === "string") setVar("--ui-window-alpha", value.windowAlpha);
   }
 
   function applyThemePayload(hasAppFont) {
     const value = readJson("themeVars");
+
     if (!isRecord(value)) return;
 
     if (value.schema === 2) applyPayloadV2(value);
     else applyPayloadV1(value);
 
     if (!hasAppFont) setVar("--font-family", value.fontFamily);
+
     if (typeof value.themeName === "string" && value.themeName.length > 0 && root.dataset) {
       root.dataset.theme = value.themeName;
     }

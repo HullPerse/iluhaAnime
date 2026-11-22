@@ -1,4 +1,12 @@
-import { BookOpen, Film, HardDrive, History, Magnet, SpellCheck, type LucideIcon } from "lucide-react";
+import {
+  BookOpen,
+  Film,
+  HardDrive,
+  History,
+  Magnet,
+  SpellCheck,
+  type LucideIcon,
+} from "lucide-react";
 
 import type { TranslationKey } from "@/types/core/i18n";
 import type { SearchSuggestion } from "@/types/search/search";

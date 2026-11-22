@@ -28,7 +28,9 @@ const renderTimeline = (duration = 1400, chapters = [{ time: 0, title: "Opening"
     <Timeline duration={duration} chapters={chapters} seekTarget={null} {...callbacks} />
   );
   const bar = result.container.querySelector(".h-4");
+
   if (!bar) throw new Error("timeline bar not found");
+
   return { ...result, bar, ...callbacks };
 };
 

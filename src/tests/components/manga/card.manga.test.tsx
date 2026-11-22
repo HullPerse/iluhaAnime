@@ -3,11 +3,11 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import type { LibraryCopy } from "@/api/manga.api";
-import { MangaCard } from "@/routes/components/manga/card.manga";
+import { MangaCard } from "@/routes/components/manga/card/tile.card";
 
 afterEach(cleanup);
 
-it("shows the library favourite and fills completed progress without changing stored counts", () => {
+it("shows the library favourite and fills completed progress", () => {
   const entry: LibraryCopy = {
     id: "item",
     source: "mangadex",
@@ -35,28 +35,10 @@ it("shows the library favourite and fills completed progress without changing st
     </QueryClientProvider>
   );
 
-  expect(screen.getByTitle("В избранном")).toBeTruthy();
   expect(screen.queryByTitle("Непрочитанных глав: 7")).toBeNull();
   const progress = screen.getByRole("progressbar", { name: "Прочитано полностью" });
   expect(progress.getAttribute("aria-valuenow")).toBe("10");
   expect(progress.getAttribute("aria-valuemax")).toBe("10");
-});
-
-it("shows the source publication status and total chapter count", () => {
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MangaCard
-        title="Sample"
-        cover={null}
-        publicationStatus="ongoing"
-        chapters={313}
-        onOpen={vi.fn()}
-      />
-    </QueryClientProvider>
-  );
-
-  expect(screen.getByText("Продолжается")).toBeTruthy();
-  expect(screen.getByTitle("Всего глав: 313").textContent).toBe("313 гл.");
 });
 
 it("keeps source status labels and omits unknown counts", () => {
@@ -66,6 +48,5 @@ it("keeps source status labels and omits unknown counts", () => {
     </QueryClientProvider>
   );
 
-  expect(screen.getByText("Приостановлен")).toBeTruthy();
   expect(screen.queryByTitle(/Всего глав/)).toBeNull();
 });

@@ -37,9 +37,11 @@ describe("AnimeDetailShell transport", () => {
           recommendations: [],
         });
       }
+
       if (command === "get_anime_franchise") {
         return Promise.resolve({ root_id: 21, nodes: [], edges: [] });
       }
+
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
   });

@@ -88,6 +88,7 @@ describe("useTorrentRealtime", () => {
     let active = 0;
     mockListen.mockImplementation(async () => {
       active += 1;
+
       return vi.fn(() => {
         active -= 1;
       });
@@ -103,15 +104,19 @@ describe("useTorrentRealtime", () => {
   });
 
   it("applies the event payload to the query cache without pending removals", async () => {
-    let handler: ((payload: Event<TorrentUpdatePayload>) => void) | undefined;
+    let handler: ((payload: Event<unknown>) => void) | undefined;
     mockListen.mockImplementation(async (_name: string, callback: typeof handler) => {
       handler = callback;
+
       return vi.fn();
     });
     client.setQueryData(TORRENTS_QUERY_KEY, [torrent(1)]);
 
     renderHook(() => useTorrentRealtime({ data: [torrent(1)], error: null }), { wrapper });
     await waitFor(() => expect(handler).toBeDefined());
+
+    act(() => handler?.({ ...event([]), payload: { updates: null, removed: [], reset: true } }));
+    expect(client.getQueryData(TORRENTS_QUERY_KEY)).toEqual([torrent(1)]);
 
     torrentAtoms.opInFlight.set({ 1: "remove" });
     act(() => handler?.(event([torrent(1), torrent(2)])));
@@ -125,6 +130,7 @@ describe("useTorrentRealtime", () => {
     let handler: ((payload: Event<TorrentUpdatePayload>) => void) | undefined;
     mockListen.mockImplementation(async (_name: string, callback: typeof handler) => {
       handler = callback;
+
       return vi.fn();
     });
     client.setQueryData(TORRENTS_QUERY_KEY, [torrent(4)]);

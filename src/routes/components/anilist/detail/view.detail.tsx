@@ -51,7 +51,9 @@ export function AniListDetailView({
     setCrossSearchQuery(query ?? anime?.title ?? "");
     onClose();
   };
+
   if (isLoading) return <TabLoader className="min-h-48 flex-1" />;
+
   if (isError) {
     return (
       <section className="flex flex-col items-center gap-2 p-4">
@@ -62,8 +64,10 @@ export function AniListDetailView({
       </section>
     );
   }
+
   if (!anime) return <TabLoader className="min-h-48 flex-1" />;
   const relatedManga = anime.relations.filter(({ media }) => media.media_type === "MANGA");
+
   return (
     <section className="relative flex flex-col gap-2">
       <div className="flex items-start gap-2">

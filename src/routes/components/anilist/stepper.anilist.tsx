@@ -89,6 +89,7 @@ export function ProgressStepper({
 
   const sendPending = useCallback(async () => {
     const target = targetRef.current;
+
     if (target === null || inflightRef.current) return;
     targetRef.current = null;
     inflightRef.current = true;
@@ -113,20 +114,25 @@ export function ProgressStepper({
     const elapsedMs = Math.round(performance.now() - startedAt);
     inflightRef.current = false;
     const superseded = targetRef.current !== null;
+
     if (error) {
       const reason = shortReason(error);
+
       if (superseded) {
         setPhase("idle");
       } else {
         patchEntry(queryClient, media.id, { progress: confirmedRef.current });
         anilistProgressOverride.clear(media.id);
+
         if (statusInvalidateRef.current) {
           statusInvalidateRef.current = false;
           ignore(queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() }));
         }
+
         setFailure({ target, reason });
         setPhase("error");
       }
+
       console.warn("anilist.stepper.failed", {
         elapsedMs,
         mediaId: media.id,
@@ -139,6 +145,7 @@ export function ProgressStepper({
       const confirmedStatus = saved?.status ?? nextStatus;
       confirmedRef.current = confirmed;
       const returnedCustomLists = saved?.customLists ?? [];
+
       if (confirmedStatus !== live.status) statusInvalidateRef.current = true;
       markOwnAnilistListStatus(media.id, confirmedStatus);
       patchEntry(queryClient, media.id, {
@@ -146,17 +153,21 @@ export function ProgressStepper({
         list_status: confirmedStatus,
         ...(returnedCustomLists.length > 0 ? { custom_lists: returnedCustomLists } : {}),
       });
+
       if (!superseded) {
         anilistProgressOverride.clear(media.id);
+
         if (statusInvalidateRef.current) {
           statusInvalidateRef.current = false;
           ignore(queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() }));
         }
       }
+
       setPhase("saved");
       clearSaved();
       savedTimer.current = scheduleTask("timeout", STEPPER_SAVED_MS, () => setPhase("idle"));
     }
+
     if (superseded) debouncer.maybeExecute();
   }, [debouncer, media.id, media.episodes, queryClient, t, clearSaved]);
 
@@ -174,6 +185,7 @@ export function ProgressStepper({
       notes: fallback.notes,
     });
     const status = resolveSaveStatus(target, media.episodes, live.status);
+
     return status === live.status ? null : status;
   };
 
@@ -181,17 +193,20 @@ export function ProgressStepper({
     const base =
       targetRef.current ?? anilistProgressOverride.get(media.id)?.progress ?? confirmedRef.current;
     const next = clampProgress(base + delta, media.episodes);
+
     if (next === base) return;
     targetRef.current = next;
     setFailure(null);
     clearSaved();
     setPhase((prev) => (prev === "error" || prev === "saved" ? "idle" : prev));
     anilistProgressOverride.set(media.id, next, optimisticStatus(next));
+
     if (!inflightRef.current) debouncer.maybeExecute();
   };
 
   const retry = () => {
     if (failure === null || inflightRef.current) return;
+
     if (targetRef.current !== null) return;
     const target = failure.target;
     targetRef.current = target;
@@ -208,6 +223,7 @@ export function ProgressStepper({
   const buttonClass =
     "h-3.5 w-3.5 shrink-0 focus-visible:visible invisible group-hover:visible group-focus-within:visible";
   const statusClass = "flex h-3.5 w-3.5 shrink-0 items-center justify-center";
+
   return (
     <span
       className="flex items-center gap-0.5"

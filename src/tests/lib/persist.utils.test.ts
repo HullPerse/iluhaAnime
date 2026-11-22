@@ -156,6 +156,7 @@ describe("persist storage failures", () => {
     storage.setItem = () => {
       throw new Error("quota exceeded");
     };
+
     const persistor = createPersistor({
       storeName: "settings",
       schemaVersion: 37,

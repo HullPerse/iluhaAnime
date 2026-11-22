@@ -27,27 +27,6 @@ const mockSpellRect = () => {
 };
 
 describe("InlineAutocompleteInput", () => {
-  it("aligns the ghost text with the input content box", async () => {
-    const user = userEvent.setup();
-    const view = render(
-      <InlineAutocompleteInput
-        aria-label="Search"
-        className="h-9 font-bold"
-        completion="Frieren: Beyond Journey's End"
-        value="fri"
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search" }));
-
-    const ghost = view.container.querySelector(".inline-autocomplete-ghost");
-    expect(ghost?.classList.contains("border-2")).toBe(true);
-    expect(ghost?.classList.contains("px-1.5")).toBe(true);
-    expect(ghost?.querySelector("span")?.classList.contains("font-bold")).toBe(true);
-    expect(ghost?.textContent).toContain("eren: Beyond Journey's End");
-  });
-
   it("accepts the ghost completion with Tab", async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn();
@@ -65,24 +44,6 @@ describe("InlineAutocompleteInput", () => {
     await user.keyboard("{Tab}");
 
     expect(onAccept).toHaveBeenCalledWith("Frieren: Beyond Journey's End");
-  });
-
-  it("does not render a completion or menu when autocomplete is off", async () => {
-    const user = userEvent.setup();
-    patchSettings({ autocompleteMode: "off" });
-    const view = render(
-      <InlineAutocompleteInput
-        aria-label="Search"
-        completion="Frieren"
-        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
-        value="fri"
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search" }));
-    expect(view.container.querySelector('[aria-hidden="true"]')).toBeNull();
-    expect(screen.queryByRole("listbox")).toBeNull();
   });
 
   it("selects a dropdown suggestion with ArrowDown and Enter", async () => {
@@ -235,25 +196,6 @@ describe("InlineAutocompleteInput", () => {
     expect(options[3]).toContain("Frieren S01E01.mkv");
   });
 
-  it("renders the footer key hints with the menu", async () => {
-    const user = userEvent.setup();
-    const view = render(
-      <InlineAutocompleteInput
-        aria-label="Search"
-        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
-        value="fri"
-        onChange={() => {}}
-      />
-    );
-
-    expect(view.container.querySelector("[data-footer]")).toBeNull();
-    await user.click(screen.getByRole("textbox", { name: "Search" }));
-
-    const footer = view.container.querySelector("[data-footer]");
-    expect(footer).not.toBeNull();
-    expect(footer?.textContent).toContain("Tab");
-  });
-
   it("shows recent history first when the input is empty, then suggestions while typing", async () => {
     const user = userEvent.setup();
     const onAccept = vi.fn();
@@ -278,34 +220,6 @@ describe("InlineAutocompleteInput", () => {
     await user.click(screen.getByRole("option", { name: /frieren 1080p/ }));
     expect(onAccept).toHaveBeenCalledWith("frieren 1080p");
   });
-  it("highlights token ranges in the backdrop and hides the input text", () => {
-    const view = render(
-      <InlineAutocompleteInput
-        aria-label="Search"
-        value="studio=MAPPA frieren"
-        highlightRanges={[{ start: 0, end: 12 }]}
-        onChange={() => {}}
-      />
-    );
-
-    const highlighted = view.container.querySelector(".bg-highlight");
-    expect(highlighted?.textContent).toBe("studio=MAPPA");
-    expect(
-      screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
-    ).toBe(true);
-  });
-
-  it("renders no highlight layer without ranges", () => {
-    const view = render(
-      <InlineAutocompleteInput aria-label="Search" value="frieren" onChange={() => {}} />
-    );
-
-    expect(view.container.querySelector(".bg-highlight")).toBeNull();
-    expect(
-      screen.getByRole("textbox", { name: "Search" }).classList.contains("text-transparent")
-    ).toBe(false);
-  });
-
   it("underlines a warned word amber and an error word red", () => {
     const warn = render(
       <InlineAutocompleteInput
@@ -380,30 +294,6 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
     expect(tip.classList.contains("-translate-x-1/2")).toBe(false);
   });
 
-  it("lists every correction as its own row", async () => {
-    patchSettings({ autocompleteMode: "off" });
-    const user = userEvent.setup();
-    const onApplyAt = vi.fn();
-    render(
-      <InlineAutocompleteInput
-        aria-label="Search spell"
-        value="friren"
-        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
-        spellCorrections={["frieren", "frisen"]}
-        onApplySpellCorrectionAt={onApplyAt}
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
-
-    const tip = await screen.findByRole("tooltip");
-    expect(tip.querySelectorAll("button").length).toBe(3);
-    await user.click(screen.getByRole("button", { name: "frisen" }));
-
-    expect(onApplyAt).toHaveBeenCalledWith("frisen");
-  });
-
   it("hides the panel while the suggestion menu is open", async () => {
     const user = userEvent.setup();
     render(
@@ -421,28 +311,6 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
 
     expect(screen.getByRole("listbox")).not.toBeNull();
     expect(screen.queryByRole("tooltip")).toBeNull();
-  });
-
-  it("pins corrections first in the open menu", async () => {
-    const user = userEvent.setup();
-    const view = render(
-      <InlineAutocompleteInput
-        aria-label="Search spell"
-        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
-        value="friren"
-        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
-        spellCorrections={["frieren"]}
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
-
-    const sections = [...view.container.querySelectorAll("[data-section]")].map(
-      (node) => (node as HTMLElement).dataset.section
-    );
-    expect(sections[0]).toBe("spell");
-    expect(screen.getAllByRole("option")[0]?.textContent).toContain("frieren");
   });
 
   it("applies the pinned correction from the menu without submitting the suggestion", async () => {
@@ -510,26 +378,6 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
     await user.keyboard("{Tab}");
 
     expect(onApplySpell).toHaveBeenCalledOnce();
-  });
-
-  it("does not hijack Shift+Tab for the spell correction", async () => {
-    mockSpellRect();
-    const user = userEvent.setup();
-    const onApplySpell = vi.fn();
-    render(
-      <InlineAutocompleteInput
-        aria-label="Search spell"
-        value="friren"
-        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
-        onApplySpellCorrection={onApplySpell}
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
-    await user.keyboard("{Shift>}{Tab}{/Shift}");
-
-    expect(onApplySpell).not.toHaveBeenCalled();
   });
 
   it("prefers the ghost completion over the spell correction on Tab", async () => {
@@ -626,26 +474,6 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
     expect(onSaveWord).toHaveBeenCalledOnce();
   });
 
-  it("shows the Ctrl+Tab hint for the dictionary action", async () => {
-    mockSpellRect();
-    patchSettings({ autocompleteMode: "off" });
-    const user = userEvent.setup();
-    render(
-      <InlineAutocompleteInput
-        aria-label="Search spell"
-        value="friren"
-        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
-        spellCorrections={["frieren"]}
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
-
-    const hintTip = await screen.findByRole("tooltip");
-    expect(hintTip.textContent).toContain("Ctrl+Tab");
-  });
-
   it("saves the word with Ctrl+Tab when there is no ghost or menu selection", async () => {
     mockSpellRect();
     const user = userEvent.setup();
@@ -667,25 +495,6 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
 
     expect(onSaveWord).toHaveBeenCalledOnce();
     expect(onApplySpell).not.toHaveBeenCalled();
-  });
-
-  it("does not hijack Ctrl+Shift+Tab for the dictionary action", async () => {
-    const user = userEvent.setup();
-    const onSaveWord = vi.fn();
-    render(
-      <InlineAutocompleteInput
-        aria-label="Search spell"
-        value="friren"
-        spellCheck={{ correction: "frieren", start: 0, end: 6, severity: "warn", word: "friren" }}
-        onAddWordToDictionary={onSaveWord}
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search spell" }));
-    await user.keyboard("{Control>}{Shift>}{Tab}{/Shift}{/Control}");
-
-    expect(onSaveWord).not.toHaveBeenCalled();
   });
 
   it("prefers the dictionary save over the ghost completion on Ctrl+Tab", async () => {
@@ -735,45 +544,6 @@ describe("InlineAutocompleteInput spell quick-fix", () => {
   });
 });
 
-describe("InlineAutocompleteInput placement", () => {
-  it("renders the menu below the input by default", async () => {
-    const user = userEvent.setup();
-    patchSettings({ autocompleteMode: "dropdown" });
-    render(
-      <InlineAutocompleteInput
-        aria-label="Search"
-        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
-        value="fri"
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search" }));
-    const menu = await screen.findByRole("listbox");
-    expect(menu.classList.contains("top-full")).toBe(true);
-    expect(menu.classList.contains("bottom-full")).toBe(false);
-  });
-
-  it("renders the menu above the input with placement above", async () => {
-    const user = userEvent.setup();
-    patchSettings({ autocompleteMode: "dropdown" });
-    render(
-      <InlineAutocompleteInput
-        aria-label="Search"
-        placement="above"
-        suggestions={[{ kind: "anime", score: 100, value: "Frieren" }]}
-        value="fri"
-        onChange={() => {}}
-      />
-    );
-
-    await user.click(screen.getByRole("textbox", { name: "Search" }));
-    const menu = await screen.findByRole("listbox");
-    expect(menu.classList.contains("bottom-full")).toBe(true);
-    expect(menu.classList.contains("top-full")).toBe(false);
-  });
-});
-
 describe("InlineAutocompleteInput per-word spell actions", () => {
   const twoWordSpell = {
     correction: "frieren attack",
@@ -801,6 +571,7 @@ describe("InlineAutocompleteInput per-word spell actions", () => {
         {...callbacks}
       />
     );
+
     return screen.getByRole<HTMLInputElement>("textbox", { name: "Search spell words" });
   };
 

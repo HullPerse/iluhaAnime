@@ -12,17 +12,9 @@ export interface MediaSignalStore {
   persistor: Persistor;
   getEntry: (path: string) => MediaEntry | undefined;
   setPosition: (path: string, time: number, duration?: number) => void;
-  setTrack: (
-    path: string,
-    type: "audio" | "sub",
-    index: number | "no",
-    identity?: string
-  ) => void;
+  setTrack: (path: string, type: "audio" | "sub", index: number | "no", identity?: string) => void;
   setSubOffset: (path: string, offset: number) => void;
   setAudioOffset: (path: string, offset: number) => void;
-  hydrate: (
-    path: string,
-    storedOverride?: WatchState | null
-  ) => Promise<MediaEntry | undefined>;
+  hydrate: (path: string, storedOverride?: WatchState | null) => Promise<MediaEntry | undefined>;
   clearEntries: () => void;
 }

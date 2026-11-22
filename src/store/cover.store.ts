@@ -22,15 +22,19 @@ function capRecord<T>(
   delete next[key];
   next[key] = value;
   const keys = Object.keys(next);
+
   if (keys.length <= cap) return next;
+
   for (const key of keys.slice(0, keys.length - cap)) {
     delete next[key];
   }
+
   return next;
 }
 
 export function coverKey(title: string, season?: number): string {
   const norm = normCoverKey(title);
+
   return `${norm}|${season ?? 0}`;
 }
 
@@ -50,9 +54,11 @@ export function createCoverCorrectionsStore(
   const keepResolved = (persisted?.schemaVersion ?? 0) >= 3;
   const rawResolved = keepResolved ? (persistedData.resolved ?? {}) : {};
   const resolvedInit: Record<string, ResolvedCover> = {};
+
   for (const [storedKey, storedEntry] of Object.entries(rawResolved)) {
     resolvedInit[storedKey] = normalizeResolvedCover(storedKey, storedEntry);
   }
+
   const atoms = {
     overrides: store.atom("overrides", persistedData.overrides ?? {}),
     rejections: store.atom("rejections", persistedData.rejections ?? {}),
@@ -69,6 +75,7 @@ export function createCoverCorrectionsStore(
       blobs: atoms.blobs.get(),
     });
   };
+
   store.subscribeAll(write);
 
   return {
@@ -85,6 +92,7 @@ export function createCoverCorrectionsStore(
     },
     rejectCandidate: (key, id) => {
       const current = atoms.rejections.get()[key] ?? [];
+
       if (current.includes(id)) return;
       atoms.rejections.set({ ...atoms.rejections.get(), [key]: [...current, id] });
       removeResolvedFor(atoms, key);

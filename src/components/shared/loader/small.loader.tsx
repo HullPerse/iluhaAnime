@@ -13,6 +13,7 @@ export function SmallLoader({
   inheritSize?: boolean;
 }) {
   const { t } = useI18n();
+
   return (
     <Box
       aria-label={t("common.loading")}

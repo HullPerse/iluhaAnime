@@ -11,6 +11,7 @@ export default function LabAnimeShelf() {
     >
       {LAB_SHELF.map((item) => {
         const owned = item.characters.filter((character) => character.owned).length;
+
         return (
           <article
             key={item.id}

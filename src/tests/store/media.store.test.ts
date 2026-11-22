@@ -122,6 +122,7 @@ describe("media entries", () => {
 
   it("keeps the latest value under rapid position ticks", () => {
     const store = createMediaSignalStore({ getStorage: () => memoryStorage() });
+
     for (let i = 0; i < 500; i++) store.setPosition("/a.mkv", i, 1000);
     expect(store.getEntry("/a.mkv")?.position).toBe(499);
     expect(store.entries.get()).toHaveLength(1);

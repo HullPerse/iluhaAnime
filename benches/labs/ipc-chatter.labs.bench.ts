@@ -27,6 +27,7 @@ export function createCountingTransport(
   const transport: ApiTransport = {
     call: <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       const key = `${command}:${JSON.stringify(args ?? null)}`;
+
       return inflightFetch(inflight, key, () => {
         const response = handlers[command]?.(args) ?? null;
         const record = records.get(command) ?? { invokes: 0, requestBytes: 0, responseBytes: 0 };
@@ -34,10 +35,12 @@ export function createCountingTransport(
         record.requestBytes += byteSize(args ?? null);
         record.responseBytes += byteSize(response);
         records.set(command, record);
+
         return Promise.resolve(response as T);
       }) as Promise<T>;
     },
   };
+
   return {
     records,
     reset: () => {
@@ -50,9 +53,11 @@ export function createCountingTransport(
 
 function totals(records: Map<string, CallRecord>): number {
   let sum = 0;
+
   for (const record of records.values()) {
     sum += record.invokes * 1_000_000 + record.requestBytes + record.responseBytes;
   }
+
   return sum;
 }
 
@@ -62,6 +67,7 @@ function invokes(records: Map<string, CallRecord>, command: string): number {
 
 export function makeIndexRows(count = 8): UnifiedIndexRow[] {
   const rows: UnifiedIndexRow[] = [];
+
   for (let i = 0; i < count; i++) {
     rows.push({
       id: `row-${i}`,
@@ -75,11 +81,13 @@ export function makeIndexRows(count = 8): UnifiedIndexRow[] {
       value: `Title ${i}`,
     });
   }
+
   return rows;
 }
 
 export function makeTorrents(count: number): TorrentInfo[] {
   const out: TorrentInfo[] = [];
+
   for (let i = 0; i < count; i++) {
     out.push({
       download_order: [],
@@ -106,6 +114,7 @@ export function makeTorrents(count: number): TorrentInfo[] {
       uploaded_bytes: 800_000_000,
     });
   }
+
   return out;
 }
 
@@ -115,8 +124,10 @@ export const QUERIES = ["friren", "naruto ship", "attack", "one", "steins"];
 
 function handlers(): Record<string, (args?: Record<string, unknown>) => unknown> {
   const fileTrees: Record<number, unknown> = {};
+
   for (let id = 0; id < 20; id++) {
     const files: Array<Record<string, unknown>> = [];
+
     for (let f = 0; f < 20; f++) {
       files.push({
         completed: f % 2 === 0,
@@ -129,12 +140,15 @@ function handlers(): Record<string, (args?: Record<string, unknown>) => unknown>
         size: 1_400_000_000,
       });
     }
+
     fileTrees[id] = files;
   }
+
   return {
     get_running_torrent_files: (args) => fileTrees[Number(args?.id ?? 0)] ?? [],
     get_running_torrent_files_batch: (args) => {
       const ids = Array.isArray(args?.ids) ? (args.ids as number[]) : [];
+
       return ids.map((id) => ({ files: fileTrees[id] ?? [], id }));
     },
     list_torrents: () => TORRENTS_50,
@@ -149,6 +163,7 @@ group("ipc-chatter @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let rows = 0;
+
       for (const query of QUERIES) {
         const result = await ctx.transport.call<UnifiedIndexRow[]>("search_unified_index", {
           limit: 8,
@@ -157,8 +172,10 @@ group("ipc-chatter @ipc @quick", () => {
         });
         rows += result.length;
       }
+
       return rows + invokes(ctx.records, "search_unified_index") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -167,6 +184,7 @@ group("ipc-chatter @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let rows = 0;
+
       for (const query of QUERIES) {
         const result = await ctx.transport.call<UnifiedIndexRow[]>("search_unified_index", {
           limit: 48,
@@ -175,8 +193,10 @@ group("ipc-chatter @ipc @quick", () => {
         });
         rows += result.length;
       }
+
       return rows + invokes(ctx.records, "search_unified_index") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -185,6 +205,7 @@ group("ipc-chatter @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let rows = 0;
+
       for (const query of QUERIES) {
         const result = await ctx.transport.call<UnifiedIndexRow[]>("search_unified_index", {
           limit: 60,
@@ -193,8 +214,10 @@ group("ipc-chatter @ipc @quick", () => {
         });
         rows += result.length;
       }
+
       return rows + invokes(ctx.records, "search_unified_index") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -203,12 +226,15 @@ group("ipc-chatter @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let rows = 0;
+
       for (let i = 0; i < 30; i++) {
         const batch = await ctx.transport.call<TorrentInfo[]>("list_torrents");
         rows += batch.length;
       }
+
       return rows + invokes(ctx.records, "list_torrents") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -219,8 +245,10 @@ group("ipc-chatter @ipc @quick", () => {
       const results = await Promise.all(
         Array.from({ length: 8 }, () => ctx.transport.call<TorrentInfo[]>("list_torrents"))
       );
+
       return results.length + invokes(ctx.records, "list_torrents") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -229,8 +257,10 @@ group("ipc-chatter @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       const rows = await ctx.transport.call<TorrentInfo[]>("list_torrents");
+
       return rows.length + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -239,6 +269,7 @@ group("ipc-chatter @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let count = 0;
+
       for (let id = 0; id < 20; id++) {
         const files = await ctx.transport.call<Array<Record<string, unknown>>>(
           "get_running_torrent_files",
@@ -246,8 +277,10 @@ group("ipc-chatter @ipc @quick", () => {
         );
         count += files.length;
       }
+
       return count + invokes(ctx.records, "get_running_torrent_files") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -261,8 +294,10 @@ group("ipc-chatter @ipc @quick", () => {
         )
       );
       const count = batches.reduce((sum, files) => sum + files.length, 0);
+
       return count + invokes(ctx.records, "get_running_torrent_files") * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -275,10 +310,12 @@ group("ipc-chatter @ipc @quick", () => {
         { ids: Array.from({ length: 20 }, (_, id) => id) }
       );
       const count = entries.reduce((sum, entry) => sum + (entry.files?.length ?? 0), 0);
+
       return (
         count + invokes(ctx.records, "get_running_torrent_files_batch") * 1000 + totals(ctx.records)
       );
     };
+
     return checksum;
   });
 });

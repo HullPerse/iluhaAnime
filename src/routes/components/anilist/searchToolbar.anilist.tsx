@@ -48,12 +48,14 @@ function AniListSearchToolbar({
     ) {
       field.recordSuggestionIgnored(field.inlineCompletion);
     }
+
     onGlobal();
   }, [field, onGlobal]);
   const handleKeyDown = useMemo(() => enterSubmit(submitSearch), [submitSearch]);
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       field.inputProps.onChange(event);
+
       if (global && !event.target.value.trim()) onClearSearch();
     },
     [field.inputProps, global, onClearSearch]

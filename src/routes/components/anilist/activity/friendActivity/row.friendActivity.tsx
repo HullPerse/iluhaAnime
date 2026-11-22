@@ -30,6 +30,7 @@ export function FriendActivityRow({ activity }: { activity: AniActivity }) {
 
   const Icon = ACTIVITY_STATUS_ICONS[activity.status ?? ""];
   const statusKey = ACTIVITY_STATUS_LABELS[activity.status ?? ""];
+
   return (
     <div className="windows95-border bg-primary flex items-center gap-1 px-1 py-0.5">
       {activity.media_cover && (

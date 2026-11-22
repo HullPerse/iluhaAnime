@@ -74,15 +74,18 @@ describe("useCoverCache", () => {
       Promise.resolve({ id: `blob-${args.url}`, path: coverPath(args.url) })
     );
     const hooks: { result: { current: { cachedUrl: string | null } }; unmount: () => void }[] = [];
+
     for (let i = 0; i <= COVER_CACHE_CAPACITY + 5; i++) {
       const hook = renderHook(() => useCoverCache(`https://example.com/fill-${i}.jpg`, null));
       hooks.push(hook);
     }
+
     await waitFor(() => {
       expect(hooks.at(-1)?.result.current.cachedUrl).toBe(
         assetUrl(coverPath(`https://example.com/fill-${COVER_CACHE_CAPACITY + 5}.jpg`))
       );
     });
+
     for (const hook of hooks) hook.unmount();
 
     invokeMock.mockClear();
@@ -100,6 +103,7 @@ describe("useCoverCache", () => {
     setCoverBlob("https://example.com/persisted.jpg", "blob-p");
     invokeMock.mockImplementation(async (command: unknown) => {
       if (command === "get_user_image") return { id: "blob-p", path: "C:/images/p.png" };
+
       return null;
     });
     const { result, unmount } = renderHook(() =>
@@ -118,6 +122,7 @@ describe("useCoverCache previous id", () => {
     setCoverBlob("https://example.com/refresh.jpg", "blob-old");
     invokeMock.mockImplementation(async (command: unknown) => {
       if (command === "get_user_image") throw new Error("evicted");
+
       return { id: "blob-new", path: "C:/images/refresh.png" };
     });
     const { result, unmount } = renderHook(() =>

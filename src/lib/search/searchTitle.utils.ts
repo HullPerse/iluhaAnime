@@ -30,17 +30,25 @@ function kindOf(
 ): AnimeTitleKind {
   if (seen.has(candidate)) return "alias";
   seen.add(candidate);
+
   if (candidate === main) return "official";
+
   if (input.title_english && candidate === input.title_english.trim()) return "official";
+
   if (input.title_romaji && candidate === input.title_romaji.trim()) return "romaji";
+
   if (input.title_native && candidate === input.title_native.trim()) return "native";
+
   return "alias";
 }
 
 function languageOf(candidate: string, input: TypedTitleInput): string | null {
   if (input.title_english && candidate === input.title_english.trim()) return "en";
+
   if (input.title_romaji && candidate === input.title_romaji.trim()) return "ro";
+
   if (input.title_native && candidate === input.title_native.trim()) return "ja";
+
   return null;
 }
 
@@ -50,7 +58,9 @@ export function buildTypedTitles(animeId: number, input: TypedTitleInput): Anime
   const out: AnimeTitle[] = [];
   const push = (title: string, source: string | null): void => {
     const value = title.trim();
+
     if (!value || normalizeSearchText(value).length === 0) return;
+
     if (out.some((entry) => entry.title === value)) return;
     out.push({
       animeId,
@@ -60,15 +70,22 @@ export function buildTypedTitles(animeId: number, input: TypedTitleInput): Anime
       title: value,
     });
   };
+
   if (main) push(main, "anilist");
+
   if (input.title_english) push(input.title_english, "anilist");
+
   if (input.title_romaji) push(input.title_romaji, "anilist");
+
   if (input.title_native) push(input.title_native, "anilist");
+
   for (const alias of input.titles) push(alias, "anilist");
+
   return out;
 }
 
 export function typedTitlesOf(anime: SearchAnimeSuggestion): AnimeTitle[] {
   if (anime.typedTitles && anime.typedTitles.length > 0) return anime.typedTitles;
+
   return buildTypedTitles(anime.id, { title: anime.title, titles: anime.aliases });
 }

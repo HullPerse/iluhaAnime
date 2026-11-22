@@ -22,6 +22,7 @@ export function SaturationValueArea({
   const setFromCoordinates = useCallback(
     (clientX: number, clientY: number) => {
       const rect = areaRef.current?.getBoundingClientRect();
+
       if (!rect || rect.width === 0 || rect.height === 0) return;
       const x = clamp(clientX - rect.left, 0, rect.width);
       const y = clamp(clientY - rect.top, 0, rect.height);
@@ -39,6 +40,7 @@ export function SaturationValueArea({
     const onUp = () => setDragging(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -54,6 +56,7 @@ export function SaturationValueArea({
       ArrowUp: { s: hsv.s, v: hsv.v + step },
     };
     const move = moves[event.key];
+
     if (!move) return;
     event.preventDefault();
     onChange({ s: clamp(Math.round(move.s), 0, 100), v: clamp(Math.round(move.v), 0, 100) });

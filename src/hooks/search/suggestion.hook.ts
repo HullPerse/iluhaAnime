@@ -32,10 +32,13 @@ export function useSuggestions(
   useEffect(() => {
     let active = true;
     const normalized = debouncedQuery.trim();
+
     if (!normalized || normalized.length < 2) {
       setSuggestions([]);
+
       return;
     }
+
     requestRef.current += 1;
     const requestId = requestRef.current;
     const terms = parseOperatorTerms(normalized);
@@ -45,11 +48,15 @@ export function useSuggestions(
       const [rows, error] = await attempt(
         unifiedIndexApi.searchUnifiedIndex(normalized, scope, suggestionPoolSize(limit))
       );
+
       if (!active || requestRef.current !== requestId) return;
+
       if (error) {
         setSuggestions([]);
+
         return;
       }
+
       const now = Date.now();
       setSuggestions(
         (Array.isArray(rows) ? rows : [])
@@ -62,6 +69,7 @@ export function useSuggestions(
               ignoredCount: row.ignoredCount,
               lastUsedAt: row.lastUsedAt * 1000,
             };
+
             return {
               kind: suggestionKind(row.kind),
               score: suggestionScore(match, 0, counters, now),
@@ -73,6 +81,7 @@ export function useSuggestions(
           .slice(0, Math.max(1, limit))
       );
     })();
+
     return () => {
       active = false;
     };

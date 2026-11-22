@@ -15,6 +15,7 @@ afterEach(() => {
 
 function Bomb({ blow }: { blow: boolean }) {
   if (blow) throw new Error("kaboom render");
+
   return <p>fine</p>;
 }
 

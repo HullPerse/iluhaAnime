@@ -2,8 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { useEffect, useRef, type ComponentProps } from "react";
-
+import { useEffect, useRef } from "react";
 import { DbScreen } from "@/components/shared/db/screen.db";
 import { SplashScreen } from "@/components/shared/splash/screen.splash";
 import { tabIdFromPath, tabPathFromId } from "@/config/settings/tabPaths.config";
@@ -12,14 +11,10 @@ import { useDiscordPresence } from "@/hooks/discordPresence.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useDayNightScheduler } from "@/hooks/schedule.hook";
 import { usePlayerPrewarm } from "@/hooks/player/prewarm.hook";
-import { useScreenshot } from "@/hooks/screenshot.hook";
 import { useEnsureAnimeIndex, usePrewarmSpellIndex } from "@/hooks/search/animeIndex.hook";
 import { useSecretCode } from "@/hooks/secretCode.hook";
 import { useSplashStages } from "@/hooks/splash.hook";
 import { prefetchStreamConstants, usePrewarmStreamHistory } from "@/hooks/stream/catalog.hook";
-import { TORRENTS_QUERY_KEY } from "@/hooks/torrent/queries.hook";
-import { useTorrents } from "@/hooks/torrent/queries.hook";
-import { useTorrentRealtime } from "@/hooks/torrent/realtime.hook";
 import { useTray } from "@/hooks/tray.hook";
 import { useVimMode } from "@/hooks/vimMode.hook";
 import { isCurrentSessionSafe } from "@/lib/core/system/report.utils";
@@ -30,28 +25,20 @@ import { resolveSecretTabAction } from "@/lib/ui/tabs.utils";
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { useAnilistCoverModeSync } from "@/routes/components/anilist/user/data.user";
-import TorrentFilePicker from "@/routes/components/search/default/picker.search";
-import { cacheAtoms } from "@/store/cache.store";
-import {
-  cancelTorrentDownload as cancelDownload,
-  confirmTorrentDownload as confirmDownload,
-  torrentAtoms,
-} from "@/store/download.store";
-import { overlayAtoms } from "@/store/overlay.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { themeAtoms } from "@/store/theme.store";
 import type { TabId } from "@/types/ui/settings";
-
 import PageFindBar from "@/components/shared/keyboard/findBar.keyboard";
 import KeyboardHintOverlay from "@/components/shared/keyboard/overlay.keyboard";
 import OfflineBanner from "@/components/shared/network/offlineBanner.component";
 import NotificationToasts from "@/components/shared/notification/toasts.notification";
 import NotificationTray from "@/components/shared/notification/tray.notification";
-import ScreenshotModal from "@/components/shared/screenshot/modal.screenshot";
 import StatusBar from "@/components/shared/status.component";
 import Tabs from "@/components/shared/tabs.component";
 import TitleBar from "@/components/shared/titlebar.component";
-import Updater from "@/components/shared/updater.component";
+import { TorrentRuntime } from "@/components/shared/shell/torrentRuntime.shell";
+import { ShellOverlays } from "@/components/shared/shell/overlays.shell";
+import { ScreenshotHost } from "@/components/shared/shell/screenshotHost.shell";
 
 const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
   anilist: () => import("@/routes/anilist.route"),
@@ -69,55 +56,6 @@ const TAB_PREFETCH: Record<TabId, () => Promise<unknown>> = {
 const TAB_WARM: Partial<Record<TabId, (client: QueryClient) => Promise<unknown>>> = {
   stream: (client) => prefetchStreamConstants(client),
 };
-
-function TorrentRuntime() {
-  const queryClient = useQueryClient();
-  const preparation = useCell(torrentAtoms.preparation);
-  const preparationPhase = preparation.phase;
-  const pendingTorrent =
-    preparationPhase.phase === "pending" || preparationPhase.phase === "confirming"
-      ? preparationPhase.pending
-      : null;
-  const preparingTorrent = preparationPhase.phase === "preparing";
-  const lastSaveDir = useCell(cacheAtoms.lastSaveDir);
-  const torrentsQuery = useTorrents();
-  useTorrentRealtime(torrentsQuery);
-
-  if (!preparingTorrent && !pendingTorrent) return null;
-
-  return (
-    <TorrentFilePicker
-      torrent={pendingTorrent}
-      loading={!!preparingTorrent && !pendingTorrent}
-      defaultSaveDir={lastSaveDir}
-      existingTorrents={torrentsQuery.data}
-      onConfirm={async (selectedIndices, saveDir, subFolder, sequential) => {
-        await confirmDownload(selectedIndices, saveDir, subFolder, sequential);
-        queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
-      }}
-      onCancel={cancelDownload}
-    />
-  );
-}
-
-function ShellOverlays({
-  update,
-  updatePromptOpen,
-  closeUpdatePrompt,
-}: {
-  update: ComponentProps<typeof Updater>["update"] | null | undefined;
-  updatePromptOpen: boolean;
-  closeUpdatePrompt: () => void;
-}) {
-  const overlays = useCell(overlayAtoms.entries);
-  if (!update || !updatePromptOpen || overlays.length > 0) return null;
-  return <Updater update={update} onClose={closeUpdatePrompt} />;
-}
-
-function ScreenshotHost() {
-  const { capture, close } = useScreenshot();
-  return capture ? <ScreenshotModal capture={capture} onClose={close} /> : null;
-}
 
 export default function App() {
   const { t } = useI18n();
@@ -138,24 +76,32 @@ export default function App() {
     if (id === "settings") {
       const tab = getLastSettingsTab();
       navigate({ to: "/settings", search: { tab: tab ?? "general" } });
+
       return;
     }
+
     navigate({ to: tabPathFromId(id) });
   };
 
   const prefetchTab = (id: TabId) => {
     if (isCurrentSessionSafe()) return;
+
     if (prefetchedTabs.current.has(id)) return;
+
     if (tabs.some((tab) => tab.id === id && tab.disabled)) return;
     prefetchedTabs.current.add(id);
     (async () => {
       const [, error] = await attempt(TAB_PREFETCH[id]());
+
       if (error) {
         prefetchedTabs.current.delete(id);
         reportBackgroundError("tab.prefetch", error);
+
         return;
       }
+
       const warm = TAB_WARM[id];
+
       if (warm) ignore(attempt(warm(queryClient)).then(() => undefined));
     })();
   };
@@ -167,11 +113,14 @@ export default function App() {
       settingsAtoms.gameTabUnlocked.get(),
       activeTab === "game"
     );
+
     if (action === "reveal") {
       patchSettings({ gameTabUnlocked: true });
       goToTab("game");
+
       return;
     }
+
     if (action === "hide") {
       patchSettings({ gameTabUnlocked: false });
     }
@@ -187,6 +136,7 @@ export default function App() {
     if (!dir) return;
     (async () => {
       const [, error] = await attempt(openPath(dir));
+
       if (error) reportBackgroundError("database.open-folder", error);
     })();
   };
@@ -199,6 +149,7 @@ export default function App() {
     markStartup("home_interactive");
     reportStartup();
   }, [fastLaunch, splash.dbFailed, splash.done]);
+
   if (!fastLaunch && !splash.done && !splash.dbFailed) {
     return (
       <SplashScreen

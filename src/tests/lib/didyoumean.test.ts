@@ -272,6 +272,7 @@ describe("search/didyoumean release names", () => {
       "Ксам'д - Позабывший невзгоды [BDRip 1080]",
       "Haikyu!! 2nd Season [BDRip 1080p HEVC 10bit FLAC]",
     ];
+
     for (const name of names) {
       expect(suggestSpellingWithReason(name, { animeIndex: INDEX }), name).toBeNull();
     }

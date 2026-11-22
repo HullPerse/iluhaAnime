@@ -10,19 +10,23 @@ import type { UserImage } from "@/types/core/userimage";
 
 export function useWallpaperImage() {
   const selectedId = useCell(settingsAtoms.selectedDitherId);
+
   return useWallpaperAt(selectedId, true);
 }
 
-export function useWallpaperAt(selectedId: string | null, keepPrevious = false) {
+function useWallpaperAt(selectedId: string | null, keepPrevious = false) {
   const effectiveId = selectedId === DITHER_PLACEHOLDER_ID ? null : selectedId;
   const query = useAppQuery("slow", {
     queryKey: queryKeys.wallpaper(effectiveId),
     queryFn: async (): Promise<UserImage | null> => {
       const image = await systemApi.getDitherImage(effectiveId ?? "");
+
       if (!image) {
         reportBackgroundError("wallpaper.load", new Error("missing dither image"));
+
         return null;
       }
+
       const result: UserImage = {
         id: image.id,
         name: image.name,
@@ -32,6 +36,7 @@ export function useWallpaperAt(selectedId: string | null, keepPrevious = false) 
         version: image.version,
         createdAt: image.createdAt,
       };
+
       return result;
     },
     enabled: effectiveId !== null,
@@ -41,5 +46,6 @@ export function useWallpaperAt(selectedId: string | null, keepPrevious = false) 
         ? (previous: UserImage | null | undefined) => previous
         : undefined,
   });
+
   return query;
 }

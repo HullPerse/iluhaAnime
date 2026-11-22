@@ -26,6 +26,7 @@ export function StudioScreen({
   if (query.isLoading) {
     return <DetailLoading />;
   }
+
   if (query.isError) {
     return <DetailError onRetry={() => query.refetch()} />;
   }

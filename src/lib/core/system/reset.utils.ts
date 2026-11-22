@@ -141,6 +141,7 @@ export function isDefaultSetting(
   fields: ResettableSetting | readonly ResettableSetting[]
 ): boolean {
   const current = getSettingsSnapshot();
+
   return toResettableSettings(fields).every(
     (field) => JSON.stringify(current[field]) === JSON.stringify(RESET_DEFAULTS[field])
   );
@@ -148,9 +149,11 @@ export function isDefaultSetting(
 
 export function resetSetting(fields: ResettableSetting | readonly ResettableSetting[]): void {
   const partial: Partial<SettingsData> = {};
+
   for (const field of toResettableSettings(fields)) {
     Object.assign(partial, { [field]: RESET_DEFAULTS[field] });
   }
+
   patchSettings(partial);
 }
 

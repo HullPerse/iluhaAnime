@@ -8,6 +8,8 @@ export function resolveDetailBack(
   fallback: (() => void) | undefined
 ): (() => void) | undefined {
   if (screenTop) return backScreen;
+
   if (trailerId != null) return closeTrailer;
+
   return fallback;
 }

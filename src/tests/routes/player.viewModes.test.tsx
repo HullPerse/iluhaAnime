@@ -66,13 +66,17 @@ const slimBarVisible = (): boolean => {
 
 const slimBarHidden = (): boolean => {
   const button = screen.queryByRole("button", { name: "Воспроизведение / пауза" });
+
   if (!button) return true;
+
   return button.closest(".transition-opacity")?.classList.contains("opacity-0") ?? false;
 };
 
 const video = (): Element => {
   const node = document.querySelector("[data-player-video]");
+
   if (!node) throw new Error("video container missing");
+
   return node;
 };
 
@@ -98,7 +102,9 @@ beforeEach(() => {
     "ResizeObserver",
     class {
       observe(): void {}
+
       unobserve(): void {}
+
       disconnect(): void {}
     }
   );

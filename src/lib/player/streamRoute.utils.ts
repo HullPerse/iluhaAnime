@@ -15,7 +15,9 @@ export function alternateProxyUrl(
   configured: string | null
 ): string | null | undefined {
   const proxy = configured?.trim() || null;
+
   if (proxy === null) return undefined;
+
   return (current ?? null) === proxy ? null : proxy;
 }
 
@@ -31,5 +33,6 @@ export function streamRouteKey(session: StreamOpen): string {
 export function streamRetryPosition(session: StreamOpen, timePos: number): number | undefined {
   const position = Number.isFinite(timePos) && timePos >= MIN_RESUME_SECONDS ? timePos : null;
   const resumed = position ?? session.resume ?? null;
+
   return resumed !== null && resumed >= MIN_RESUME_SECONDS ? resumed : undefined;
 }

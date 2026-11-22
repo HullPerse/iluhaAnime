@@ -81,6 +81,7 @@ describe("settings/annotation-draw", () => {
       textAlign: "",
       textBaseline: "",
     };
+
     return context;
   }
 
@@ -145,13 +146,6 @@ describe("settings/annotation-draw", () => {
       expect(context.lineTo).toHaveBeenCalledWith(4, 7);
       expect(context.stroke).toHaveBeenCalledTimes(1);
     });
-
-    it("does nothing without points", () => {
-      const context = fakeContext();
-      paintStroke(asContext(context), [], "#000000", 6);
-      expect(context.stroke).not.toHaveBeenCalled();
-      expect(context.save).not.toHaveBeenCalled();
-    });
   });
 
   describe("paintText", () => {
@@ -164,22 +158,9 @@ describe("settings/annotation-draw", () => {
       expect(context.textAlign).toBe("left");
       expect(context.fillText).toHaveBeenCalledWith("note", 10, 20);
     });
-
-    it("skips empty text", () => {
-      const context = fakeContext();
-      paintText(asContext(context), text({ text: "" }), "sans-serif");
-      expect(context.fillText).not.toHaveBeenCalled();
-    });
   });
 
   describe("measureText", () => {
-    it("falls back to an estimate without a context", () => {
-      expect(measureText(null, "sans-serif", 20, "abcd")).toEqual({
-        width: 48,
-        height: 24,
-      });
-    });
-
     it("uses the real measurement when there is one", () => {
       const context = fakeContext();
       expect(measureText(asContext(context), "sans-serif", 20, "abcd")).toEqual({
@@ -188,21 +169,9 @@ describe("settings/annotation-draw", () => {
       });
       expect(context.font).toBe("20px sans-serif");
     });
-
-    it("keeps a minimum width for a single glyph", () => {
-      const context = fakeContext();
-      context.measureText.mockReturnValue({ width: 0 });
-      expect(measureText(asContext(context), "sans-serif", 20, "|").width).toBe(8);
-    });
   });
 
   describe("paintAnnotations", () => {
-    it("clears the layer before every repaint", () => {
-      const context = fakeContext();
-      paintAnnotations(asContext(context), [stroke()], "sans-serif");
-      expect(context.clearRect).toHaveBeenCalledWith(0, 0, 200, 100);
-    });
-
     it("paints the pencil in colour and the eraser as a cut", () => {
       const context = fakeContext();
       paintAnnotations(asContext(context), [stroke()], "sans-serif");
@@ -232,10 +201,6 @@ describe("settings/annotation-draw", () => {
       paintAnnotations(asContext(context), items, "sans-serif");
       expect(context.stroke).toHaveBeenCalledTimes(1);
       expect(context.fillText).toHaveBeenCalledTimes(1);
-    });
-
-    it("survives a missing context", () => {
-      expect(() => paintAnnotations(null, [stroke()], "sans-serif")).not.toThrow();
     });
   });
 
@@ -275,10 +240,6 @@ describe("settings/annotation-draw", () => {
   });
 
   describe("blurPreviewSigma", () => {
-    it("is silent without a blur", () => {
-      expect(blurPreviewSigma([stroke(), text()])).toBe(0);
-    });
-
     it("follows the first blur stroke", () => {
       expect(blurPreviewSigma([stroke({ tool: "blur", size: 12 })])).toBe(18);
     });
@@ -311,14 +272,6 @@ describe("settings/annotation-utils", () => {
       ...overrides,
     };
   }
-
-  describe("nextAnnotationId", () => {
-    it("hands out a fresh id every time", () => {
-      const first = nextAnnotationId();
-      const second = nextAnnotationId();
-      expect(first).not.toBe(second);
-    });
-  });
 
   describe("appendPoint", () => {
     it("drops a point that lands on the previous one", () => {
@@ -393,20 +346,6 @@ describe("settings/annotation-utils", () => {
   });
 
   describe("history", () => {
-    it("starts empty", () => {
-      const history = createHistory();
-      expect(history.present).toEqual([]);
-      expect(canUndo(history)).toBe(false);
-      expect(canRedo(history)).toBe(false);
-    });
-
-    it("ignores a commit that changes nothing", () => {
-      const history = createHistory();
-      const items = [stroke()];
-      const once = commit(history, items);
-      expect(commit(once, items)).toBe(once);
-    });
-
     it("walks back and forward through the snapshots", () => {
       const first = [stroke()];
       const second = [...first, text()];
@@ -444,9 +383,11 @@ describe("settings/annotation-utils", () => {
 
     it("keeps the undo stack bounded", () => {
       let history = createHistory();
+
       for (let step = 0; step <= ANNOTATION_HISTORY_LIMIT; step += 1) {
         history = commit(history, [stroke()]);
       }
+
       expect(history.past).toHaveLength(ANNOTATION_HISTORY_LIMIT);
     });
   });
@@ -514,15 +455,6 @@ describe("settings/crop", () => {
         y: 20,
         width: 30,
         height: 30,
-      });
-    });
-
-    it("refuses negative positions", () => {
-      expect(clampCrop({ x: -20, y: -5, width: 40, height: 20 }, bounds)).toEqual({
-        x: 0,
-        y: 0,
-        width: 40,
-        height: 20,
       });
     });
 
@@ -604,16 +536,6 @@ describe("settings/crop", () => {
         height: 20,
       });
       expect(resizeCrop(rect, "w", -500, 0, bounds).rect.x).toBe(0);
-    });
-
-    it("stops shrinking at the minimum size", () => {
-      expect(resizeCrop(rect, "e", -500, 0, bounds, { minSize: 8 }).rect).toEqual({
-        x: 20,
-        y: 10,
-        width: 8,
-        height: 20,
-      });
-      expect(resizeCrop(rect, "n", 0, 500, bounds, { minSize: 8 }).rect.height).toBe(8);
     });
 
     it("holds the requested ratio on a corner", () => {

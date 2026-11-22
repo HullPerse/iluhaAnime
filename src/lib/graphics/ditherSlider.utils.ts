@@ -11,6 +11,7 @@ const SLIDER_BY_FIELD = DITHER_SLIDER_DEFS.reduce<
   Partial<Record<DitherSliderField, DitherSliderDef>>
 >((acc, def) => {
   acc[def.field] = def;
+
   return acc;
 }, {});
 

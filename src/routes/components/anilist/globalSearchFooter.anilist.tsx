@@ -16,6 +16,7 @@ export default function GlobalSearchFooter({
   label: string;
 }) {
   if (!global || !hasNext || count === 0) return null;
+
   return (
     <Button onClick={onLoad} disabled={loading}>
       {loading ? `${label}...` : label}

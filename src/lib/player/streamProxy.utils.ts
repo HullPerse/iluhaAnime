@@ -4,7 +4,9 @@ const KODIK_VARIANT_PREFIX = "Kodik:";
 
 export function streamProxyArgs(proxy: string | null): Record<string, string> {
   const clean = proxy?.trim();
+
   if (!clean) return {};
+
   return { proxyUrl: clean };
 }
 
@@ -30,7 +32,10 @@ export function playbackProxyUrl(
 ): string | null {
   const proxy = configured?.trim() || null;
   const remembered = mediaUrl ? readRememberedRoute(variantId, mediaUrl) : null;
+
   if (remembered === "proxy") return proxy;
+
   if (remembered === "direct") return null;
+
   return variantId.startsWith(KODIK_VARIANT_PREFIX) ? null : proxy;
 }

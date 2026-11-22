@@ -19,7 +19,9 @@ export default function DidYouMeanRow({
     correction && query
       ? splitByRanges(correction, findSubsequenceRanges(correction, query))
       : null;
+
   if (!correction || loading || resultCount > 0) return null;
+
   return (
     <button
       type="button"

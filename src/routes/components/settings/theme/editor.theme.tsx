@@ -83,11 +83,14 @@ export default function ThemeEditor({
       setPalette(found);
       setPaletteFailed(found.length === 0);
     };
+
     image.onerror = () => {
       setPalette([]);
       setPaletteFailed(true);
     };
+
     image.src = url;
+
     return () => {
       image.onload = null;
       image.onerror = null;
@@ -118,6 +121,7 @@ export default function ThemeEditor({
     setOverrides((prev) => {
       const next = { ...prev };
       delete next[key];
+
       return next;
     });
 

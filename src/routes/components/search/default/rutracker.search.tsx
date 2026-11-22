@@ -42,39 +42,43 @@ function RutrackerLoginModal({
     if (!username.trim() || !password.trim()) return;
     setLoading(true);
     setError("");
-    try {
+    await (async () => {
       const [, error] = await attempt(torrentApi.rutrackerLogin(username, password));
+
       if (error) {
         const raw = String(error);
         setError(mapError(raw, t));
+
         if (raw.trim().startsWith("blocked:")) setMode("browser");
       } else handleSuccess();
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   const handleOpenBrowser = async () => {
     setLoading(true);
     setError("");
-    try {
+    await (async () => {
       const [, error] = await attempt(torrentApi.rutrackerWebviewLogin());
+
       if (error) setError(mapError(String(error), t));
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   const handleSaveBrowserSession = async () => {
     setLoading(true);
     setError("");
-    try {
+    await (async () => {
       const [, error] = await attempt(torrentApi.rutrackerFinishWebviewLogin());
+
       if (error) setError(mapError(String(error), t));
       else handleSuccess();
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   return (

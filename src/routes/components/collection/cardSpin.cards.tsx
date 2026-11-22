@@ -1,3 +1,4 @@
+import { clamp } from "@hullperse/hp_utils/math";
 import { cn } from "cn";
 import { useCell } from "@hullperse/hp_utils/react";
 import { useEffect, useRef, useState } from "react";
@@ -7,24 +8,15 @@ import type {
   ReactNode,
 } from "react";
 
+import {
+  HOVER_TILT_X,
+  HOVER_TILT_Y,
+  SPIN_LIMIT_X,
+  SPIN_SENSITIVITY,
+} from "@/config/cards/spin.config";
+import { normalizeAngle } from "@/lib/cards/spin.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import type { CardDragState } from "@/types/ui/collection";
-
-const SPIN_SENSITIVITY = 0.5;
-const SPIN_LIMIT_X = 82;
-const HOVER_TILT_X = 8;
-const HOVER_TILT_Y = 12;
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-function normalizeAngle(degrees: number): number {
-  const wrapped = degrees % 360;
-  if (wrapped > 180) return wrapped - 360;
-  if (wrapped < -180) return wrapped + 360;
-  return wrapped;
-}
 
 export default function CardSpin({
   front,
@@ -53,6 +45,7 @@ export default function CardSpin({
   const applyRotation = (rotateX: number, rotateY: number) => {
     rotationRef.current = { x: rotateX, y: rotateY };
     const rotator = rotatorRef.current;
+
     if (rotator === null) return;
     rotator.style.setProperty("--cards-spin-x", `${rotateX.toFixed(2)}deg`);
     rotator.style.setProperty("--cards-spin-y", `${rotateY.toFixed(2)}deg`);
@@ -77,6 +70,7 @@ export default function CardSpin({
 
   const applySheen = (rect: DOMRect, clientX: number, clientY: number) => {
     const rotator = rotatorRef.current;
+
     if (rotator === null || rect.width === 0 || rect.height === 0) return;
     rotator.style.setProperty(
       "--cards-tilt-shift-x",
@@ -91,19 +85,24 @@ export default function CardSpin({
   const hoverRotation = (rect: DOMRect, clientX: number, clientY: number) => {
     const offsetX = rect.width === 0 ? 0 : (clientX - rect.left) / rect.width - 0.5;
     const offsetY = rect.height === 0 ? 0 : (clientY - rect.top) / rect.height - 0.5;
+
     return { x: -offsetY * HOVER_TILT_X, y: offsetX * HOVER_TILT_Y };
   };
 
   const settleRotation = (targetX: number, targetY: number) => {
     const rotator = rotatorRef.current;
+
     if (rotator === null) return;
     settleRef.current?.cancel();
     settleRef.current = null;
+
     if (!enableAnimations) {
       applyRotation(targetX, targetY);
       rotator.style.transition = "";
+
       return;
     }
+
     const fromX = rotationRef.current.x;
     const fromY = normalizeAngle(rotationRef.current.y);
     const toY = normalizeAngle(targetY);
@@ -126,6 +125,7 @@ export default function CardSpin({
     if (event.button !== 0) return;
     event.preventDefault();
     const rotator = rotatorRef.current;
+
     if (rotator === null) return;
     settleRef.current?.cancel();
     settleRef.current = null;
@@ -145,6 +145,7 @@ export default function CardSpin({
     const rect = event.currentTarget.getBoundingClientRect();
     applySheen(rect, event.clientX, event.clientY);
     const drag = dragRef.current;
+
     if (drag !== null) {
       drag.rotateY += (event.clientX - drag.x) * SPIN_SENSITIVITY;
       drag.rotateX = clamp(
@@ -155,8 +156,10 @@ export default function CardSpin({
       drag.x = event.clientX;
       drag.y = event.clientY;
       applyRotation(drag.rotateX, drag.rotateY);
+
       return;
     }
+
     if (!enableAnimations) return;
     const hover = hoverRotation(rect, event.clientX, event.clientY);
     applyRotation(hover.x, hover.y);
@@ -164,12 +167,15 @@ export default function CardSpin({
 
   const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
+
     if (drag === null || drag.pointerId !== event.pointerId) return;
     dragRef.current = null;
     setSpinning(false);
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+
     const rect = event.currentTarget.getBoundingClientRect();
     const inside =
       event.clientX >= rect.left &&

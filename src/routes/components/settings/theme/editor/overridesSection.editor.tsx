@@ -17,6 +17,7 @@ export function OverridesSection({
   onReset: (key: ThemeOverrideKey) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <section className="windows95-border mt-1 flex flex-col gap-1 p-1">
       <span className="windows95-text text-xs font-bold">{t("settings.theme.overrides")}</span>

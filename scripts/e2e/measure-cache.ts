@@ -2,12 +2,14 @@ import { connectCdp, findPlayerPage, invoke, mainPage, sleep, waitForReady } fro
 
 async function main() {
   const browser = await connectCdp(120_000);
+
   try {
     const page = await mainPage(browser);
     await waitForReady(page);
 
     const search = await invoke<{ items: { slugUrl: string }[] }>(page, "anime_lib_search", { input: { query: "", page: 1 } });
     const slug = search.items[0]?.slugUrl;
+
     if (!slug) throw new Error("no anime");
     const title = await invoke<{ anime: { id: string; title: string; anilistId?: number | null }; episodes: { id: string; number: number; title?: string | null }[] }>(page, "anime_lib_title", { input: { slug } });
     const episode = title.episodes[0];
@@ -40,11 +42,14 @@ async function main() {
 
     let duration = 0;
     const deadline = Date.now() + 45000;
+
     while (Date.now() < deadline) {
       duration = await invoke<number | null>(player, "player_get_property", { name: "duration", format: "double" }).catch(() => null) ?? 0;
+
       if (duration > 0) break;
       await sleep(200);
     }
+
     console.log("duration", duration);
 
     await sleep(5000);
@@ -67,6 +72,7 @@ async function main() {
     console.log("cache-duration", cacheDuration);
     console.log("fw-bytes", fwBytes);
     console.log("idle", idle);
+
     if (typeof readerPts === "number" && typeof cacheEnd === "number") {
       console.log("ahead span", cacheEnd - readerPts);
     }

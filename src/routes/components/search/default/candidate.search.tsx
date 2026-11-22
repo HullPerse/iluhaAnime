@@ -21,6 +21,7 @@ export default function CoverCandidateThumb({
 }) {
   const { t } = useI18n();
   const { cachedUrl } = useCoverCache(candidate.coverUrl);
+
   return (
     <button
       type="button"

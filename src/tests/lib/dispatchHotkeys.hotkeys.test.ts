@@ -12,6 +12,7 @@ function target(): HTMLElement {
   const node = document.createElement("div");
   document.body.append(node);
   nodes.push(node);
+
   return node;
 }
 

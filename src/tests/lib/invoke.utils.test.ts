@@ -9,6 +9,7 @@ const StatusSchema = z.object({ id: z.number().check(z.gt(0)), name: z.string() 
 
 async function invokeWith(impl: (command: string, args?: Record<string, unknown>) => unknown) {
   mockInvoke.mockImplementation(impl);
+
   return invokeValidated;
 }
 

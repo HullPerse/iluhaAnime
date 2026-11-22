@@ -20,6 +20,7 @@ export function getCachePercentages(
   const skipped = progress?.skipped ?? finished?.skipped ?? 0;
   const total = fetched + skipped;
   const cached = total > 0 ? Math.round((skipped / total) * 100) : 0;
+
   return {
     fetched,
     skipped,

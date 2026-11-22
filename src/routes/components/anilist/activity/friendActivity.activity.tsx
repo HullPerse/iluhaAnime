@@ -14,13 +14,16 @@ export function FriendActivityFeed({ friendId }: { friendId: number }) {
     queryFn: () => anilistApi.getActivity([friendId]),
     placeholderData: (previous) => previous,
   });
+
   if (isLoading) return <SmallLoader size={3} />;
   const activities = (data ?? []).slice(0, FRIEND_ACTIVITY_LIMIT);
+
   if (activities.length === 0) {
     return (
       <span className="windows95-text text-hint text-xs">{t("anilist.friends.no.activity")}</span>
     );
   }
+
   return (
     <div className="flex flex-col">
       <span className="windows95-text text-hint text-xs">{t("anilist.friends.latest")}</span>

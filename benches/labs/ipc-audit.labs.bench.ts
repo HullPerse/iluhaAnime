@@ -1,4 +1,5 @@
 import { bench, group } from "@pmndrs/labs";
+import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 import type { ApiTransport } from "../../src/types/core/transport";
 import { inflightFetch } from "@hullperse/hp_utils/lruCache";
@@ -10,11 +11,9 @@ interface CallRecord {
 }
 
 function byteSize(value: unknown): number {
-  try {
-    return JSON.stringify(value)?.length ?? 0;
-  } catch {
-    return 0;
-  }
+  const [json] = attemptSync(() => JSON.stringify(value));
+
+  return json?.length ?? 0;
 }
 
 export function createAuditTransport(
@@ -25,6 +24,7 @@ export function createAuditTransport(
   const transport: ApiTransport = {
     call: <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       const key = `${command}:${JSON.stringify(args ?? null)}`;
+
       return inflightFetch(inflight, key, () => {
         const response = handlers[command]?.(args) ?? null;
         const record = records.get(command) ?? { invokes: 0, requestBytes: 0, responseBytes: 0 };
@@ -32,10 +32,12 @@ export function createAuditTransport(
         record.requestBytes += byteSize(args ?? null);
         record.responseBytes += byteSize(response);
         records.set(command, record);
+
         return Promise.resolve(response as T);
       }) as Promise<T>;
     },
   };
+
   return {
     records,
     reset: () => {
@@ -48,15 +50,19 @@ export function createAuditTransport(
 
 function totalInvokes(records: Map<string, CallRecord>): number {
   let sum = 0;
+
   for (const record of records.values()) sum += record.invokes;
+
   return sum;
 }
 
 function totals(records: Map<string, CallRecord>): number {
   let sum = 0;
+
   for (const record of records.values()) {
     sum += record.invokes * 1_000_000 + record.requestBytes + record.responseBytes;
   }
+
   return sum;
 }
 
@@ -72,6 +78,7 @@ function auditHandlers(): Record<string, (args?: Record<string, unknown>) => unk
     useCount: 2,
     value: `Title ${i}`,
   }));
+
   return {
     get_anime_by_id: () => ({ id: 21, title: "Frieren" }),
     get_anime_full: () => ({ id: 21, episodes: 28 }),
@@ -119,6 +126,7 @@ group("ipc-audit @ipc @quick", () => {
         ctx.transport.call<unknown[]>("list_custom_field_defs"),
         ctx.transport.call<unknown[]>("list_collection_statuses"),
       ]);
+
       return (
         items.length +
         defs.length +
@@ -127,6 +135,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 
@@ -140,6 +149,7 @@ group("ipc-audit @ipc @quick", () => {
         id: 21,
         scope: "all",
       });
+
       return (
         Object.keys(full).length +
         recs.length +
@@ -148,6 +158,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 
@@ -160,6 +171,7 @@ group("ipc-audit @ipc @quick", () => {
         id: 21,
         scope: "all",
       });
+
       return (
         Object.keys(full).length +
         Object.keys(franchise).length +
@@ -167,6 +179,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 
@@ -183,6 +196,7 @@ group("ipc-audit @ipc @quick", () => {
         ctx.transport.call<unknown[]>("get_anime_staff", { id: 21 }),
       ]);
       await ctx.transport.call<null>("upsert_collection_item", { id: "c1" });
+
       return (
         cover.id.length +
         chars.length +
@@ -191,6 +205,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 
@@ -204,6 +219,7 @@ group("ipc-audit @ipc @quick", () => {
         url: "https://nyaa.si/view/1",
       });
       const magnet = await ctx.transport.call<string>("rutracker_get_magnet", { topicId: "1" });
+
       return (
         results.length +
         Object.keys(details).length +
@@ -212,6 +228,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 
@@ -228,6 +245,7 @@ group("ipc-audit @ipc @quick", () => {
       const card = await ctx.transport.call<Record<string, unknown>>("get_video_card", {
         path: "D:/video/ep01.mkv",
       });
+
       return (
         Object.keys(opened).length +
         (watch === null ? 1 : 0) +
@@ -236,6 +254,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 
@@ -248,8 +267,10 @@ group("ipc-audit @ipc @quick", () => {
         query: "friren",
         scope: "anime",
       });
+
       return rows.length + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -262,8 +283,10 @@ group("ipc-audit @ipc @quick", () => {
         query: "friren",
         scope: "anime",
       });
+
       return rows.length + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -272,12 +295,15 @@ group("ipc-audit @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let sum = 0;
+
       for (let i = 0; i < 30; i++) {
         const stats = await ctx.transport.call<Record<string, unknown>>("get_host_stats");
         sum += Object.keys(stats).length;
       }
+
       return sum + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -286,12 +312,15 @@ group("ipc-audit @ipc @quick", () => {
     const checksum = yield async () => {
       ctx.reset();
       let remaining = 0;
+
       for (let i = 0; i < 6; i++) {
         const rate = await ctx.transport.call<{ remaining: number }>("get_tmdb_rate_limit");
         remaining += rate.remaining;
       }
+
       return remaining + totalInvokes(ctx.records) * 1000 + totals(ctx.records);
     };
+
     return checksum;
   });
 
@@ -305,6 +334,7 @@ group("ipc-audit @ipc @quick", () => {
         userId: user.id,
       });
       const notes = await ctx.transport.call<unknown[]>("get_anilist_notifications");
+
       return (
         user.id +
         lists.length +
@@ -313,6 +343,7 @@ group("ipc-audit @ipc @quick", () => {
         totals(ctx.records)
       );
     };
+
     return checksum;
   });
 });

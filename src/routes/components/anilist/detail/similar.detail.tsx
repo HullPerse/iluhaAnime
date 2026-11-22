@@ -44,10 +44,14 @@ export function SimilarSection({
   });
   const items = useMemo(() => {
     const recs = recsQuery.data ?? [];
+
     if (recs.length === 0) return [];
     const excluded = new Set<number>([animeId]);
+
     for (const relation of relations) excluded.add(relation.media.id);
+
     for (const node of franchiseQuery.data?.nodes ?? []) excluded.add(node.id);
+
     return recs
       .filter((rec) => !excluded.has(rec.id))
       .sort((a, b) => b.recommendation_rating - a.recommendation_rating)
@@ -59,6 +63,7 @@ export function SimilarSection({
   );
 
   if (recsQuery.isLoading || franchiseQuery.isLoading) return null;
+
   if (recsQuery.isError || items.length === 0) return null;
 
   const isList = view === "list";
@@ -66,6 +71,7 @@ export function SimilarSection({
   const scroll = (direction: number) => {
     scroller.current?.scrollBy({ left: direction * ANILIST_SIMILAR_SCROLL_STEP });
   };
+
   const viewOptions: { value: typeof view; label: string }[] = [
     { value: "rail", label: t("anilist.details.similar.view.rail") },
     { value: "list", label: t("anilist.details.similar.view.list") },

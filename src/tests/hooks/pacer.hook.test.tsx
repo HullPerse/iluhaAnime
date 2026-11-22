@@ -136,6 +136,7 @@ describe("useDebouncedCallback", () => {
     const seenTask = (value: string) => {
       seen = value;
     };
+
     const { result, rerender } = renderHook(({ fn }) => useDebouncedCallback(fn, { wait: 200 }), {
       initialProps: { fn: seenTask },
     });

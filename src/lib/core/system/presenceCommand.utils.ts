@@ -4,6 +4,7 @@ export function reportPresenceCommand(command: Promise<void>, scope: string): vo
   attempt(command)
     .then(([, error]) => {
       if (error) reportBackgroundError(scope, error);
+
       return null;
     })
     .catch((error: unknown) => reportBackgroundError("srclibcorepresenceCommand", error));

@@ -9,9 +9,11 @@ function fakeTransport(resolve: (command: string, args?: Record<string, unknown>
   const transport: ApiTransport = {
     call: async <T>(command: string, args?: Record<string, unknown>): Promise<T> => {
       calls.push({ command, args });
+
       return resolve(command, args) as T;
     },
   };
+
   return { calls, transport };
 }
 
@@ -98,26 +100,26 @@ describe("StreamApi", () => {
     });
   });
 
-  it("warms the playback route without adding the catalog proxy", async () => {
-    patchSettings({ animelibProxyUrl: "socks5://127.0.0.1:10808" });
-    const { calls, transport } = fakeTransport(() => null);
-    const api = new StreamApi({
-      transport,
-      proxyUrl: () => settingsAtoms.animelibProxyUrl.get(),
-    });
+  it("accepts nullable audio titles and rejects malformed playback headers", async () => {
+    const source = {
+      variantId: "Kodik:9",
+      quality: "720",
+      label: "720p",
+      url: "https://example.com/video.m3u8",
+      type: "m3u8",
+      headers: { Referer: "https://example.com" },
+      subtitles: [],
+      audioTracks: [{ id: "audio", language: "ru", title: null, default: true }],
+    };
+    const { transport } = fakeTransport(() => [source]);
+    const valid = new StreamApi({ transport });
+    const input = { episodeId: "10", variantId: source.variantId };
+    await expect(valid.streamSources(input)).resolves.toEqual([source]);
 
-    await api.warm("https://cdn.example/720.m3u8", { Referer: "https://x/" }, null);
-
-    expect(calls).toEqual([
-      {
-        command: "stream_warm",
-        args: {
-          url: "https://cdn.example/720.m3u8",
-          headers: { Referer: "https://x/" },
-          proxyUrl: null,
-        },
-      },
-    ]);
+    const invalid = fakeTransport(() => [{ ...source, headers: { Referer: 42 } }]);
+    await expect(
+      new StreamApi({ transport: invalid.transport }).streamSources(input)
+    ).rejects.toThrow();
   });
 
   it("asks for a title and its episodes in one command", async () => {

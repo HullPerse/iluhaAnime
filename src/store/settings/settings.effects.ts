@@ -12,6 +12,7 @@ export function applyUiPreferences(
   if (typeof document === "undefined") return;
   document.documentElement.dataset.retroStyle = retroStyle;
   document.documentElement.dataset.uiDensity = uiDensity;
+
   if (cardEffects !== undefined) document.documentElement.dataset.cardEffects = cardEffects;
 }
 
@@ -23,10 +24,13 @@ export function applyWindowEffect(effect: SettingsData["windowEffect"]): void {
 export function applyWindowTint(opacity: number | null): void {
   if (typeof document === "undefined" || !document.documentElement) return;
   const root = document.documentElement;
+
   if (opacity === null) {
     root.style.removeProperty("--ui-window-opacity");
+
     return;
   }
+
   const clamped = Math.max(0, Math.min(1, opacity));
   root.style.setProperty("--ui-window-opacity", `${Math.round(clamped * 100)}%`, "important");
 }
@@ -42,15 +46,19 @@ export function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<Set
     partial.uiDensity ?? atoms.uiDensity.get(),
     partial.cardEffects ?? atoms.cardEffects.get()
   );
+
   if ("yorhaScanlinesEnabled" in partial) {
     applyYorhaScanlines(partial.yorhaScanlinesEnabled ?? atoms.yorhaScanlinesEnabled.get());
   }
+
   if ("windowEffect" in partial) {
     applyWindowEffect(partial.windowEffect ?? atoms.windowEffect.get());
   }
+
   if ("windowTintOpacity" in partial) {
     applyWindowTint(partial.windowTintOpacity ?? null);
   }
+
   if (
     "customTitleBarEnabled" in partial ||
     "roundedWindowCorners" in partial ||
@@ -62,8 +70,10 @@ export function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<Set
       windowEffect: partial.windowEffect ?? atoms.windowEffect.get(),
     });
   }
+
   if ("appFont" in partial) {
     const next = partial.appFont ?? null;
+
     if (next) applyFontFamily(next);
     else {
       const [, error] = attemptSync(() => {
@@ -73,10 +83,12 @@ export function applyPatchSideEffects(atoms: SettingsAtoms, partial: Partial<Set
           isRecord(parsed) && typeof parsed.fontFamily === "string"
             ? parsed.fontFamily
             : DEFAULT_FONT_FAMILY;
+
         if (typeof document !== "undefined" && document.documentElement)
           document.documentElement.style.setProperty("--font-family", css, "important");
         localStorage.removeItem("appFont");
       });
+
       if (error !== null) applyFontFamily(null);
     }
   }

@@ -69,6 +69,7 @@ export default function BrowseAnimeModal({
     const prefetchOthers = () => {
       const others = BROWSE_TABS.filter((tab) => tab.id !== activeTab);
       prefetchedRef.current = others.map((tab) => tab.id);
+
       for (const tab of others) {
         queryClient.prefetchQuery({
           queryKey: queryKeys.anilistBrowse(tab.id),
@@ -84,19 +85,24 @@ export default function BrowseAnimeModal({
         });
       }
     };
+
     let idleId: number | undefined;
     let fallback: ScheduledTask | undefined;
+
     if (typeof window.requestIdleCallback === "function") {
       idleId = window.requestIdleCallback(prefetchOthers);
     } else {
       fallback = scheduleTask("timeout", 1500, prefetchOthers);
     }
+
     return () => {
       if (idleId !== undefined) window.cancelIdleCallback(idleId);
       fallback?.cancel();
+
       for (const tabId of prefetchedRef.current) {
         queryClient.cancelQueries({ queryKey: queryKeys.anilistBrowse(tabId) });
       }
+
       prefetchedRef.current = [];
     };
   }, [activeTab, queryClient]);

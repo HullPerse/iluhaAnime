@@ -11,7 +11,9 @@ function TreeRowNumber({
   rowPath: string;
 }) {
   const number = relativeRowNumber(rows, anchorPath, rowPath);
+
   if (!number) return null;
+
   return (
     <span
       aria-hidden="true"

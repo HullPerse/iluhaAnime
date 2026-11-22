@@ -19,6 +19,7 @@ export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthSte
   if (item.jobType === "convert") {
     const cfg = item.config as ConvertConfig;
     const done = item.status === "done";
+
     return [
       {
         key: "convert",
@@ -30,6 +31,7 @@ export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthSte
       },
     ];
   }
+
   const cfg = item.config as UpscaleConfig;
   const upscaleDetail =
     cfg.aiUpscaler ?? [...(cfg.selectedShaders ?? []), cfg.quality].filter(Boolean).join(" + ");
@@ -43,11 +45,14 @@ export function queueDepthSteps(item: UpscaleQueueItem, t: TFunc): QueueDepthSte
     processing: () => Math.max(0, stageIndex(item.stage)),
   };
   const current = currentStage[item.status]?.() ?? -1;
+
   return defs.map((step, index) => {
     const settled = index < current || item.status === "done";
     let percent = 0;
+
     if (settled) percent = 100;
     else if (index === current) percent = item.progress;
+
     return {
       ...step,
       done: settled,

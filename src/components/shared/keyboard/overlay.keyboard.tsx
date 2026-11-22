@@ -23,12 +23,15 @@ export default function KeyboardHintOverlay() {
   useEffect(() => {
     if (!hints.open) {
       setLayouts([]);
+
       return;
     }
+
     const measure = () => {
       const next = resolveBadgeCollisions(measureBadgeLayouts(hints.badges, hints.pinned, t));
       setLayouts((prev) => (hintLayoutsEqual(prev, next) ? prev : next));
     };
+
     measure();
     let task: ScheduledTask | null = null;
     const schedule = () => {
@@ -38,6 +41,7 @@ export default function KeyboardHintOverlay() {
         measure();
       });
     };
+
     window.addEventListener("scroll", schedule, true);
     window.addEventListener("resize", schedule);
     const observer = new MutationObserver(schedule);
@@ -47,6 +51,7 @@ export default function KeyboardHintOverlay() {
       attributes: true,
       attributeFilter: ["class", "style"],
     });
+
     return () => {
       window.removeEventListener("scroll", schedule, true);
       window.removeEventListener("resize", schedule);
@@ -58,8 +63,10 @@ export default function KeyboardHintOverlay() {
   useEffect(() => {
     if (!hints.open || hints.pinned === null) return;
     const element = hints.badges.find((badge) => badge.label === hints.pinned)?.element;
+
     if (!element) return;
     element.classList.add("target-marked");
+
     return () => element.classList.remove("target-marked");
   }, [hints.open, hints.pinned, hints.badges]);
 

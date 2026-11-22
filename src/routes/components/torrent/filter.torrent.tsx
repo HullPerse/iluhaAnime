@@ -31,11 +31,14 @@ export default function TorrentNameFilter({
       const input = event.currentTarget;
       const caretAtEnd =
         input.selectionStart === query.length && input.selectionEnd === query.length;
+
       if (event.key === "Tab" && !event.ctrlKey && !event.shiftKey) {
         event.preventDefault();
         onQueryChange(ghost);
+
         return;
       }
+
       if (event.key === "ArrowRight" && caretAtEnd) {
         event.preventDefault();
         onQueryChange(ghost);

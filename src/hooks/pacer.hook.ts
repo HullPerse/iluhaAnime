@@ -59,8 +59,10 @@ export function useDebouncedValue<T>(
     const engine = new Debouncer<[T]>((next) => {
       const prev = box.latest;
       box.latest = next;
+
       if (prev === undefined || !box.equal(prev, next)) committed.set({ current: next });
     }, box.options);
+
     return { box, committed, engine };
   }, []);
   const { box, committed, engine } = scoped;
@@ -68,27 +70,34 @@ export function useDebouncedValue<T>(
     box.equal = equal ?? Object.is;
     box.options = { enabled, leading, maxWait, mode, trailing, wait };
     engine.setOptions(box.options);
+
     if (!box.dirty) {
       box.dirty = true;
       box.initial = value;
       box.latest = value;
       engine.maybeExecute(value);
+
       return;
     }
+
     if (!engine.isEnabled()) {
       engine.cancel();
+
       if (box.latest !== undefined && !box.equal(box.latest, value)) {
         box.latest = value;
         committed.set({ current: value });
       }
+
       return;
     }
+
     if (box.latest === undefined || !box.equal(box.latest, value)) engine.maybeExecute(value);
   }, [engine, committed, box, value, wait, leading, trailing, maxWait, enabled, mode, equal]);
   useEffect(() => () => engine.cancel(), [engine]);
   const snapshot = useCell(committed);
   const status = useCell(engine.status);
   const shown = snapshot === null ? (box.initial ?? value) : snapshot.current;
+
   return [shown, readControls(engine, status)];
 }
 
@@ -115,8 +124,10 @@ export function useThrottledValue<T>(
     const engine = new Throttler<[T]>((next) => {
       const prev = box.latest;
       box.latest = next;
+
       if (prev === undefined || !box.equal(prev, next)) committed.set({ current: next });
     }, box.options);
+
     return { box, committed, engine };
   }, []);
   const { box, committed, engine } = scoped;
@@ -124,26 +135,33 @@ export function useThrottledValue<T>(
     box.equal = equal ?? Object.is;
     box.options = { enabled, leading, mode, trailing, wait };
     engine.setOptions(box.options);
+
     if (!box.dirty) {
       box.dirty = true;
       box.initial = value;
       box.latest = value;
+
       return;
     }
+
     if (!engine.isEnabled()) {
       engine.cancel();
+
       if (box.latest !== undefined && !box.equal(box.latest, value)) {
         box.latest = value;
         committed.set({ current: value });
       }
+
       return;
     }
+
     if (box.latest === undefined || !box.equal(box.latest, value)) engine.maybeExecute(value);
   }, [engine, committed, box, value, wait, leading, trailing, enabled, mode, equal]);
   useEffect(() => () => engine.cancel(), [engine]);
   const snapshot = useCell(committed);
   const status = useCell(engine.status);
   const shown = snapshot === null ? (box.initial ?? value) : snapshot.current;
+
   return [shown, readControls(engine, status)];
 }
 
@@ -170,10 +188,12 @@ export function useDebouncedCallback<TArgs extends unknown[]>(
     pacer.setOptions({ enabled, leading, maxWait, mode, trailing, wait });
   }, [pacer, wait, leading, trailing, maxWait, enabled, mode]);
   useEffect(() => () => pacer.cancel(), [pacer]);
+
   return useMemo(() => {
     const call = (...args: TArgs): void => {
       pacer.maybeExecute(...args);
     };
+
     return Object.assign(call, {
       cancel: () => pacer.cancel(),
       flush: () => pacer.flush(),
@@ -204,10 +224,12 @@ export function useThrottledCallback<TArgs extends unknown[]>(
     pacer.setOptions({ enabled, leading, mode, trailing, wait });
   }, [pacer, wait, leading, trailing, enabled, mode]);
   useEffect(() => () => pacer.cancel(), [pacer]);
+
   return useMemo(() => {
     const call = (...args: TArgs): void => {
       pacer.maybeExecute(...args);
     };
+
     return Object.assign(call, {
       cancel: () => pacer.cancel(),
       flush: () => pacer.flush(),

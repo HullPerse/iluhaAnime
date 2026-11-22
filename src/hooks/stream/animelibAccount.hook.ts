@@ -15,10 +15,13 @@ export function useAnimelibAccount() {
 
   const refresh = useCallback(async () => {
     const [value, failure] = await attempt(streamApi.account());
+
     if (failure) {
       setError(failure.message);
+
       return;
     }
+
     setAccount(value);
   }, []);
 
@@ -31,20 +34,27 @@ export function useAnimelibAccount() {
     setWaiting(true);
     setError(null);
     const [, openFailure] = await attempt(streamApi.webviewLogin());
+
     if (openFailure) {
       setWaiting(false);
       const knownKey = ANIMELIB_LOGIN_ERRORS[openFailure.message];
       setError(knownKey ? t(knownKey) : openFailure.message);
+
       return false;
     }
+
     const [, finishFailure] = await attempt(streamApi.finishWebviewLogin());
     setWaiting(false);
+
     if (finishFailure) {
       const knownKey = ANIMELIB_LOGIN_ERRORS[finishFailure.message];
       setError(knownKey ? t(knownKey) : finishFailure.message);
+
       return false;
     }
+
     await refresh();
+
     return true;
   };
 
@@ -53,11 +63,14 @@ export function useAnimelibAccount() {
     setError(null);
     setAccount(null);
     const [, failure] = await attempt(streamApi.tokenClear());
+
     if (failure) {
       setAccount(previous);
       setError(failure.message);
+
       return false;
     }
+
     return true;
   };
 

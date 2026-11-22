@@ -13,6 +13,7 @@ function createFindBarSignalStore(): FindBarSignalStore {
   const patch = (partial: Partial<FindBarState>): void => {
     bar.set({ ...bar.get(), ...partial });
   };
+
   return {
     atoms: { bar },
     openBar: () => patch({ open: true }),

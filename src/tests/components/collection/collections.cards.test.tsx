@@ -1,7 +1,8 @@
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import AlbumCards from "@/routes/components/collection/album.cards";
+import AlbumCards from "@/routes/components/collection/album/view.album";
 import CollectionPageCards from "@/routes/components/collection/collectionPage.cards";
 import CollectionShelf from "@/routes/components/collection/collectionShelf.cards";
 import { resetCardsStore, setCardsAlbumMode } from "@/store/cards.store";
@@ -13,6 +14,7 @@ import {
 } from "@/tests/fixtures/cards/cards.fixture";
 import { mockInvoke } from "@/tests/mocks";
 import { renderWithCardsClient } from "@/tests/components/collection/render.cards";
+import type { CollectionRosterPage } from "@/types/api/cards";
 
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: ({ count }: { count: number }) => ({
@@ -37,9 +39,11 @@ beforeEach(() => {
         makeShelfItem({ animeId: 2, title: "Other anime", owned: 1 }),
       ]);
     }
+
     if (command === "cards_anime_collection") {
       return Promise.resolve(makeAnimeCollectionPage());
     }
+
     if (command === "cards_collection_roster") {
       return Promise.resolve({
         page: 2,
@@ -51,9 +55,11 @@ beforeEach(() => {
         ],
       });
     }
+
     if (command === "cards_collection") {
       return Promise.resolve(makeCollectionPage());
     }
+
     return Promise.resolve(null);
   });
 });
@@ -113,6 +119,7 @@ describe("anime collections", () => {
           })
         );
       }
+
       if (command === "cards_collection_roster") {
         return Promise.resolve({
           page: 2,
@@ -124,6 +131,7 @@ describe("anime collections", () => {
           ],
         });
       }
+
       return Promise.resolve(null);
     });
 
@@ -153,6 +161,7 @@ describe("anime collections", () => {
           makeAnimeCollectionPage({ rosterPage: 1, rosterHasMore: true, rosterTotal: 30 })
         );
       }
+
       if (command === "cards_collection_roster") {
         return Promise.resolve({
           page: 2,
@@ -164,6 +173,7 @@ describe("anime collections", () => {
           ],
         });
       }
+
       return Promise.resolve(null);
     });
 
@@ -202,5 +212,71 @@ describe("anime collections", () => {
       })
     );
     expect(await screen.findByTestId("collection-shelf")).toBeTruthy();
+  });
+
+  it("ignores an old roster response after changing the collection", async () => {
+    const oldRoster = Promise.withResolvers<CollectionRosterPage>();
+    mockInvoke.mockImplementation((command: unknown, args: unknown) => {
+      if (command === "cards_anime_collection") {
+        const first =
+          args !== null && typeof args === "object" && "animeId" in args && args.animeId === 1;
+
+        return Promise.resolve(
+          makeAnimeCollectionPage({
+            animeId: first ? 1 : 2,
+            title: first ? "First collection" : "Second collection",
+            rosterPage: 1,
+            rosterHasMore: first,
+          })
+        );
+      }
+
+      if (command === "cards_collection_roster") return oldRoster.promise;
+
+      return Promise.resolve(null);
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const collection = (id: number) => (
+      <QueryClientProvider client={client}>
+        <CollectionPageCards
+          animeId={id}
+          collectionKind="anime"
+          onBack={vi.fn()}
+          onOpenCard={vi.fn()}
+        />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(collection(1));
+    await waitFor(() =>
+      expect(mockInvoke).toHaveBeenCalledWith(
+        "cards_collection_roster",
+        expect.objectContaining({ mediaId: 1, page: 2 })
+      )
+    );
+    rerender(collection(2));
+    await screen.findByText("Second collection");
+
+    await act(async () =>
+      oldRoster.resolve({
+        page: 2,
+        total: 3,
+        hasMore: false,
+        available: true,
+        characters: [
+          {
+            entityId: 999,
+            title: "Old roster character",
+            imageUrl: null,
+            favourites: 0,
+            owned: false,
+          },
+        ],
+      })
+    );
+    expect(screen.queryByText("Old roster character")).toBeNull();
+    expect(mockInvoke).not.toHaveBeenCalledWith(
+      "cards_collection_roster",
+      expect.objectContaining({ mediaId: 2 })
+    );
   });
 });

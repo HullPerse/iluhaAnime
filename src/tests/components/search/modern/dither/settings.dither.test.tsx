@@ -30,8 +30,10 @@ vi.mock("@/components/shared/dither.component", () => {
     useEffect(() => {
       onReady?.();
     }, [onReady]);
+
     return <canvas data-testid="preview-canvas" ref={ref} />;
   }
+
   return { default: MockDitherCanvas };
 });
 
@@ -84,16 +86,20 @@ const serveLibrary = (rows: UserImageFile[]) => {
     createdAt: row.createdAt,
   }));
   const byId = new Map(rows.map((row) => [row.id, row]));
+
   return async (cmd: string, args?: { ids?: string[] }) => {
     if (cmd === "list_dither_image_meta") return metas;
+
     if (cmd === "get_dither_images")
       return (args?.ids ?? []).map((id) => byId.get(id)).filter((row) => row !== undefined);
+
     return null;
   };
 };
 
 const renderPanel = (onClose: () => void = vi.fn()) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <DitherSettings onClose={onClose} />
@@ -173,6 +179,7 @@ describe("DitherSettings database images", () => {
     const added: UserImageFile = { ...FIRST, id: "eee", name: "new.png" };
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "import_dither_image") return added;
+
       return serve(cmd, args);
     });
     await user.click(screen.getByTitle<HTMLButtonElement>("Добавить"));
@@ -195,6 +202,7 @@ describe("DitherSettings database images", () => {
         return new Promise<UserImageFile>((resolve) => {
           resolveImport = resolve;
         });
+
       return serve(cmd, args);
     });
     renderPanel();
@@ -214,6 +222,7 @@ describe("DitherSettings database images", () => {
     const serve = serveLibrary([SECOND]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "import_dither_image") throw new Error("unsupported");
+
       return serve(cmd, args);
     });
     mockOpenDialog.mockResolvedValue("C:\\fake\\bad.png");
@@ -258,6 +267,7 @@ describe("DitherSettings database images", () => {
     const serve = serveLibrary([FIRST]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "delete_dither_image") throw new Error("db locked");
+
       return serve(cmd, args);
     });
     renderPanel();
@@ -320,6 +330,7 @@ describe("DitherSettings database images", () => {
     const serve = serveLibrary([FIRST]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "update_dither_image_data") return baked;
+
       return serve(cmd, args);
     });
     HTMLCanvasElement.prototype.toDataURL = vi.fn(() => "data:image/png;base64,BAKED");
@@ -346,6 +357,7 @@ describe("DitherSettings database images", () => {
     const serve = serveLibrary([FIRST, SECOND, THIRD, FOURTH]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "get_dither_image") return FOURTH;
+
       return serve(cmd, args);
     });
     renderPanel();
@@ -362,6 +374,7 @@ describe("DitherSettings database images", () => {
     const serve = serveLibrary([FIRST]);
     mockInvoke.mockImplementation(async (cmd: string, args?: { ids?: string[] }) => {
       if (cmd === "get_dither_image") throw new Error("dither image not found");
+
       return serve(cmd, args);
     });
     renderPanel();
@@ -381,6 +394,7 @@ describe("DitherSettings database images", () => {
         return new Promise<UserImageFile>((resolve) => {
           resolveUpdate = resolve;
         });
+
       return serve(cmd, args);
     });
     HTMLCanvasElement.prototype.toDataURL = vi.fn(() => "data:image/png;base64,BAKED");

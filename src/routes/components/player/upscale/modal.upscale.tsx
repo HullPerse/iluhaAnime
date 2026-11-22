@@ -87,6 +87,7 @@ export default function UpscalePlayer({
         withFallback(invokeValidated("check_gpu_encoders", GpuEncodersSchema), ["cpu"]),
         withFallback(invokeValidated("default_anime4k_shaders", Anime4kShadersSchema), []),
       ]);
+
       return { ffmpegOk, gpuEncoders, defaultShaders };
     },
     enabled: open,
@@ -110,9 +111,11 @@ export default function UpscalePlayer({
       setAnime4kPreset(data.value);
       setQuality(data.quality);
       setSelectedShaders(data.shaders);
+
       if (data.gpuBackend === "gpu") {
         setGpuBackend((prev) => {
           if (prev !== "cpu") return prev;
+
           return availableGpu.find((b) => b !== "cpu") || "cpu";
         });
       } else {
@@ -126,6 +129,7 @@ export default function UpscalePlayer({
     (preset: string) => {
       touchedPreset.current = true;
       const data = ANIME4K_PRESETS.find((p) => p.value === preset);
+
       if (data) applyPresetData(data);
     },
     [applyPresetData]
@@ -137,6 +141,7 @@ export default function UpscalePlayer({
     setAvailableGpu(upscaleConfig.gpuEncoders);
     setSelectedShaders(upscaleConfig.defaultShaders);
     const backends = upscaleConfig.gpuEncoders;
+
     if (backends.length > 0 && backends[0] === "cpu") {
       setGpuBackend(backends.length > 1 ? backends[1] : "cpu");
     }
@@ -146,6 +151,7 @@ export default function UpscalePlayer({
     if (upscaler !== "anime4k") return;
     const wanted = !touchedPreset.current && suggestion ? suggestion.preset : anime4kPreset;
     const data = ANIME4K_PRESETS.find((p) => p.value === wanted);
+
     if (data) applyPresetData(data);
   }, [upscaler, anime4kPreset, suggestion, applyPresetData]);
 
@@ -167,8 +173,10 @@ export default function UpscalePlayer({
 
   const startUpscale = useCallback(() => {
     const noop = resolution === "original" && !fpsValue;
+
     if (noop) {
       setLocalError(t("player.upscale.select.resolution"));
+
       return;
     }
 
@@ -249,6 +257,7 @@ export default function UpscalePlayer({
       };
       addConvertItem(filePath, fileNameFromPath(filePath), config);
     }
+
     setOpen(false);
     resetState();
   }, [

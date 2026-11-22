@@ -11,6 +11,7 @@ export function VoiceActorsPreview({
   onSelect?: (voiceActor: AniVoiceActor) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-col gap-1">
       <span className="windows95-text text-title-text bg-secondary px-1">
@@ -36,6 +37,7 @@ export function VoiceActorsPreview({
             </span>
           </>
         );
+
         if (!onSelect) {
           return (
             <div key={voiceActor.id} className="flex flex-row items-center gap-1">
@@ -43,6 +45,7 @@ export function VoiceActorsPreview({
             </div>
           );
         }
+
         return (
           <Button
             key={voiceActor.id}

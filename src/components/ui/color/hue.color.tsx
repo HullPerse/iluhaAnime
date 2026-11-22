@@ -15,6 +15,7 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
   const setFromClientX = useCallback(
     (clientX: number) => {
       const rect = trackRef.current?.getBoundingClientRect();
+
       if (!rect || rect.width === 0) return;
       onChange(Math.round(clamp((clientX - rect.left) / rect.width, 0, 1) * 360));
     },
@@ -27,6 +28,7 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
     const onUp = () => setDragging(false);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -44,6 +46,7 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
       Home: 0,
     };
     const move = moves[event.key];
+
     if (move === undefined) return;
     event.preventDefault();
     onChange(Math.round(clamp(move, 0, 360)));

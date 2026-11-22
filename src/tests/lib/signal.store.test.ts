@@ -106,6 +106,7 @@ describe("derived", () => {
     let computes = 0;
     const doubled = store.derive([source], (args) => {
       computes++;
+
       return (args[0] as number) * 2;
     });
     source.set(2);
@@ -121,6 +122,7 @@ describe("derived", () => {
     let computes = 0;
     const doubled = store.derive([source], (args) => {
       computes++;
+
       return (args[0] as number) * 2;
     });
     expect(doubled.get()).toBe(2);
@@ -136,6 +138,7 @@ describe("derived", () => {
     let computes = 0;
     const bottom = store.derive([left, right], (args) => {
       computes++;
+
       return (args[0] as number) + (args[1] as number);
     });
     const seen: number[] = [];
@@ -178,6 +181,7 @@ describe("derived", () => {
     const source = store.cell(0);
     const loop = store.derive([source], () => {
       source.set(1);
+
       return 1;
     });
     loop.subscribe(() => undefined);

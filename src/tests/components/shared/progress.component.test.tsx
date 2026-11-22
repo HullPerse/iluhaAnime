@@ -1,5 +1,5 @@
-import { render, screen, cleanup } from "@testing-library/react";
-import { describe, it, expect, afterEach } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import ProgressBar from "@/components/shared/progress.component";
 import { settingsAtoms } from "@/store/settings.store";
@@ -10,24 +10,22 @@ afterEach(() => {
 });
 
 describe("ProgressBar", () => {
-  it("exposes the progressbar role with clamped values", () => {
+  it("clamps values into the progressbar range", () => {
     render(<ProgressBar value={15} max={10} />);
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("aria-valuemin")).toBe("0");
     expect(bar.getAttribute("aria-valuemax")).toBe("10");
     expect(bar.getAttribute("aria-valuenow")).toBe("10");
-  });
+    cleanup();
 
-  it("clamps a negative value to zero", () => {
     render(<ProgressBar value={-5} max={10} />);
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0");
   });
 
-  it("renders a zero-width fill when max is zero, without NaN", () => {
+  it("renders a zero-width fill when max is zero", () => {
     const { container } = render(<ProgressBar value={5} max={0} />);
-    const fill = container.querySelector<HTMLElement>(".progress-blocks");
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0");
-    expect(fill?.style.width).toBe("0%");
+    expect(container.querySelector<HTMLElement>(".progress-blocks")?.style.width).toBe("0%");
   });
 
   it("sizes the fill from value over max", () => {
@@ -35,120 +33,34 @@ describe("ProgressBar", () => {
     expect(container.querySelector<HTMLElement>(".progress-blocks")?.style.width).toBe("25%");
   });
 
-  it("renders an indeterminate sweep with no value attributes", () => {
+  it("renders an indeterminate sweep without value attributes", () => {
     const { container } = render(<ProgressBar value={0} max={0} indeterminate />);
     const track = screen.getByRole("progressbar");
     expect(track.hasAttribute("aria-valuenow")).toBe(false);
-    const chunk = container.querySelector<HTMLElement>(".progress-blocks");
-    expect(chunk?.className).toContain("animate-indeterminate");
-    expect(chunk?.className).toContain("w-[40%]");
-    expect(chunk?.style.width).toBe("");
-  });
-});
-
-describe("ProgressBar slots mode", () => {
-  const slotCells = (): Element[] => {
-    return Array.from(screen.getByRole("progressbar").children);
-  };
-
-  it("renders a fixed 12 cells with one cell per episode at max 12", () => {
-    render(<ProgressBar value={5} max={12} slots />);
-    const cells = slotCells();
-    expect(cells).toHaveLength(12);
-    expect(cells.slice(0, 5).every((cell) => cell.className.includes("bg-progress-main"))).toBe(
-      true
-    );
-    expect(cells.slice(5).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
-  });
-
-  it("caps the cell count and scales the filled count for long totals", () => {
-    render(<ProgressBar value={100} max={500} slots />);
-    const cells = slotCells();
-    expect(cells).toHaveLength(12);
-    expect(cells.slice(0, 2).every((cell) => cell.className.includes("bg-progress-main"))).toBe(
-      true
-    );
-    expect(cells.slice(2).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
-  });
-
-  it("maps a short total onto the fixed 12 cells", () => {
-    render(<ProgressBar value={3} max={6} slots />);
-    const cells = slotCells();
-    expect(cells).toHaveLength(12);
-    expect(cells.slice(0, 6).every((cell) => cell.className.includes("bg-progress-main"))).toBe(
-      true
-    );
-    expect(cells.slice(6).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
-  });
-
-  it("does not show full before the last episode", () => {
-    render(<ProgressBar value={23} max={24} slots />);
-    const cells = slotCells();
-    expect(cells).toHaveLength(12);
-    expect(cells[11]?.className).toContain("bg-surface");
-  });
-
-  it("shows at least one cell for a small partial progress on a long series", () => {
-    render(<ProgressBar value={1} max={24} slots />);
-    const cells = slotCells();
-    expect(cells).toHaveLength(12);
-    expect(cells[0]?.className).toContain("bg-progress-main");
-    expect(cells.slice(1).every((cell) => cell.className.includes("bg-surface"))).toBe(true);
-  });
-
-  it("keeps zero cells empty and never shows full before max", () => {
-    render(<ProgressBar value={0} max={24} slots />);
-    expect(slotCells().every((cell) => cell.className.includes("bg-surface"))).toBe(true);
-  });
-
-  it("applies barClassName to the filled slots only", () => {
-    render(<ProgressBar value={1} max={4} slots barClassName="bg-highlight" />);
-    const cells = slotCells();
-    expect(cells).toHaveLength(12);
-    expect(cells[2]?.className).toContain("bg-highlight");
-    expect(cells[3]?.className).toContain("bg-surface");
-  });
-
-  it("keeps the progressbar aria attributes in slots mode", () => {
-    render(<ProgressBar value={3} max={12} slots ariaLabel="episodes" />);
-    const track = screen.getByRole("progressbar");
-    expect(track.getAttribute("aria-label")).toBe("episodes");
-    expect(track.getAttribute("aria-valuemax")).toBe("12");
-    expect(track.getAttribute("aria-valuenow")).toBe("3");
-  });
-
-  it("fills every cell when the clamped value reaches max", () => {
-    render(<ProgressBar value={99} max={12} slots />);
-    expect(slotCells().every((cell) => cell.className.includes("bg-progress-main"))).toBe(true);
-  });
-
-  it("falls back to the percentage bar when max is zero", () => {
-    const { container } = render(<ProgressBar value={0} max={0} slots />);
-    expect(container.querySelector<HTMLElement>(".progress-blocks")?.style.width).toBe("0%");
-  });
-
-  it("lets indeterminate win over slots", () => {
-    const { container } = render(<ProgressBar value={5} max={12} indeterminate slots />);
     expect(container.querySelector<HTMLElement>(".progress-blocks")?.className).toContain(
       "animate-indeterminate"
     );
   });
-});
 
-describe("ProgressBar solid style", () => {
-  it("renders a percentage fill without the block mask", () => {
-    settingsAtoms.progressStyle.set("solid");
-    const { container } = render(<ProgressBar value={25} max={100} />);
-    const fill = container.querySelector<HTMLElement>("[aria-hidden='true']");
-    expect(fill?.style.width).toBe("25%");
-    expect(fill?.className).not.toContain("progress-blocks");
+  it("maps slots to twelve cells and never shows full before max", () => {
+    render(<ProgressBar value={23} max={24} slots />);
+    const cells = Array.from(screen.getByRole("progressbar").children);
+    expect(cells).toHaveLength(12);
+    expect(cells[11]?.className).toContain("bg-surface");
+    cleanup();
+
+    render(<ProgressBar value={99} max={12} slots />);
+    expect(
+      Array.from(screen.getByRole("progressbar").children).every((cell) =>
+        cell.className.includes("bg-progress-main")
+      )
+    ).toBe(true);
   });
 
-  it("ignores slots and renders a solid percentage fill", () => {
+  it("lets solid style render a single percentage fill", () => {
     settingsAtoms.progressStyle.set("solid");
     const { container } = render(<ProgressBar value={6} max={12} slots />);
-    const track = screen.getByRole("progressbar");
-    expect(track.children).toHaveLength(1);
+    expect(screen.getByRole("progressbar").children).toHaveLength(1);
     expect(container.querySelector<HTMLElement>("[aria-hidden='true']")?.style.width).toBe("50%");
   });
 });

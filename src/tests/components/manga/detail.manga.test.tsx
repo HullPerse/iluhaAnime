@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { Profiler } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import MangaDetail from "@/routes/components/manga/detail.manga";
+import MangaDetail from "@/routes/components/manga/detail/view.detail";
 import { patchSettings } from "@/store/settings.store";
 
 const details = vi.hoisted(() => vi.fn());
@@ -29,13 +30,17 @@ afterEach(() => {
 function openDetails() {
   patchSettings({ language: "ru", modalAnimation: false, animateModalContent: false });
   const close = vi.fn();
+  const commit = vi.fn();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <QueryClientProvider client={client}>
-      <MangaDetail source="mangalib" id="test" title="Test manga" nsfw={false} onClose={close} />
-    </QueryClientProvider>
+    <Profiler id="manga-detail" onRender={commit}>
+      <QueryClientProvider client={client}>
+        <MangaDetail source="mangalib" id="test" title="Test manga" nsfw={false} onClose={close} />
+      </QueryClientProvider>
+    </Profiler>
   );
-  return { dialog: within(screen.getByRole("dialog", { name: "Test manga" })), close };
+
+  return { dialog: within(screen.getByRole("dialog", { name: "Test manga" })), close, commit };
 }
 
 it("shows a dismissible loading dialog before details resolve", () => {
@@ -142,7 +147,7 @@ it("ranks translators by unique chapters and keeps missing chapters visible", as
     ],
   });
 
-  const { dialog } = openDetails();
+  const { dialog, commit } = openDetails();
   const select = await dialog.findByRole("combobox", { name: "Переводы" });
   expect(select.textContent).toContain("Команда А (2 главы)");
   const missing = dialog.getByRole("button", { name: /^Глава 3/ });
@@ -156,12 +161,15 @@ it("ranks translators by unique chapters and keeps missing chapters visible", as
     "RU - Команда А (2 главы)",
     "RU - Команда Б (1 глава)",
   ]);
+  commit.mockClear();
   act(() => patchSettings({ mangaTranslation: { "mangalib:test": "ru:Команда Б" } }));
   expect(select.textContent).toContain("Команда Б (1 глава)");
   const missingRows = dialog.getAllByRole("button", { name: /^Глава [12]$/ });
   expect(missingRows).toHaveLength(2);
+
   for (const row of missingRows) expect(row.getAttribute("aria-disabled")).toBe("true");
-  expect(dialog.getByRole("button", { name: /^Глава 3/ }).getAttribute("aria-disabled")).toBe(
-    "false"
-  );
+  const available = dialog.getByRole("button", { name: /^Глава 3/ });
+  expect(available.closest("li")).toBe(missing.closest("li"));
+  expect(available.getAttribute("aria-disabled")).toBe("false");
+  expect(commit.mock.calls.map(([, phase]) => phase)).toEqual(["update", "nested-update"]);
 });

@@ -29,6 +29,7 @@ const renderSection = (initialRecs?: AniRecommendation[]) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <SimilarSection animeId={21} relations={[]} initialRecs={initialRecs} />
@@ -39,6 +40,7 @@ const renderSection = (initialRecs?: AniRecommendation[]) => {
 const mockFranchiseOnly = () => {
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anime_franchise") return Promise.resolve({ nodes: [] });
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 };
@@ -67,7 +69,9 @@ describe("SimilarSection seeding", () => {
   it("fetches recommendations when nothing is seeded", async () => {
     invokeMock.mockImplementation((command: string) => {
       if (command === "get_anime_recommendations") return Promise.resolve([rec(9, "Fresh Rec")]);
+
       if (command === "get_anime_franchise") return Promise.resolve({ nodes: [] });
+
       return Promise.reject(new Error(`unexpected command ${command}`));
     });
     renderSection(undefined);

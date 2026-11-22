@@ -370,17 +370,6 @@ export interface ModalFiltersProps {
   onDirectionChange?: () => void;
 }
 
-export interface ResultSearchProps {
-  item: Anime;
-  source: string;
-  busy: boolean;
-  onCopyMagnet: (item: Anime) => void;
-  onOpenMagnet: (item: Anime) => void;
-  onDownload: (item: Anime) => void;
-  onOpenLink: (item: Anime) => void;
-  onOpenDetails: (item: Anime) => void;
-}
-
 export interface SelectedSearchTorrent {
   item: Anime;
   source: Source;

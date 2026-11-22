@@ -70,6 +70,7 @@ function DitherCanvas({
   const setCanvasRefs = useCallback(
     (node: HTMLCanvasElement | null) => {
       canvasRef.current = node;
+
       if (typeof ref === "function") ref(node);
       else if (ref) ref.current = node;
     },
@@ -128,6 +129,7 @@ function DitherCanvas({
 
   useEffect(() => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
     let cancelled = false;
     let task: ScheduledTask | null = null;
@@ -135,24 +137,32 @@ function DitherCanvas({
     const reportError = (message: string) => {
       console.error(message);
       const notify = onErrorRef.current;
+
       if (notify) notify(message);
       setStatus("error");
     };
+
     const markReady = () => {
       setStatus("ready");
       onReadyRef.current?.();
     };
+
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
     if (!ctx) {
       reportError("DitherCanvas: 2D context is unavailable");
+
       return;
     }
+
     const keyFor = (scale: number) => ditherCacheKey(src, scale, effectOptions);
     const fitScale = (sourceWidth: number, sourceHeight: number) => {
       let scale = effectScale;
+
       if (capToDisplay) {
         const boxWidth = canvas.clientWidth;
         const boxHeight = canvas.clientHeight;
+
         if (boxWidth > 0 && boxHeight > 0 && sourceWidth > 0 && sourceHeight > 0) {
           scale = Math.min(
             scale,
@@ -160,16 +170,20 @@ function DitherCanvas({
           );
         }
       }
+
       if (maxLongSide !== undefined && sourceWidth > 0 && sourceHeight > 0) {
         scale = Math.min(scale, maxLongSide / Math.max(sourceWidth, sourceHeight));
       }
+
       return scale;
     };
+
     const paintEntry = (entry: DitherCacheEntry) => {
       canvas.width = entry.width;
       canvas.height = entry.height;
       ctx.putImageData(new ImageData(entry.pixels, entry.width, entry.height), 0, 0);
     };
+
     const image = new Image();
     image.crossOrigin = "anonymous";
     const processSource = (
@@ -187,19 +201,24 @@ function DitherCanvas({
         work.width = width;
         work.height = height;
         const workCtx = work.getContext("2d", { willReadFrequently: true });
+
         if (!workCtx) {
           reportError("DitherCanvas: 2D context is unavailable");
+
           return;
         }
+
         workCtx.imageSmoothingEnabled = true;
         workCtx.drawImage(source, 0, 0, width, height);
         const pixels = workCtx.getImageData(0, 0, width, height).data;
         const jobId = ++nextDitherJobId;
         jobRef.current = jobId;
         const worker = getDitherWorker();
+
         if (worker) {
           const onJobMessage = (event: MessageEvent<DitherWorkerResponse>) => {
             const { id, width: jobWidth, height: jobHeight, pixels } = event.data;
+
             if (cancelled || id !== jobRef.current) return;
             const fresh: DitherCacheEntry = {
               width: jobWidth,
@@ -210,15 +229,20 @@ function DitherCanvas({
             paintEntry(fresh);
             markReady();
           };
+
           const onJobError = () => {
             resetDitherWorker();
+
             if (!cancelled) reportError(`DitherCanvas: render worker failed for ${src}`);
           };
+
           const onJobProgress = (event: MessageEvent<DitherWorkerProgress>) => {
             const { id, done, total } = event.data;
+
             if (cancelled || id !== jobRef.current) return;
             onProgressRef.current?.(done, total);
           };
+
           unsubscribeJob = subscribeWorkerJob(worker, onJobMessage, onJobError, onJobProgress);
           const request: DitherWorkerRequest = {
             type: "render",
@@ -239,9 +263,11 @@ function DitherCanvas({
           markReady();
         }
       });
+
       if (processError)
         reportError(`DitherCanvas: failed to process image ${src} (${processError.message})`);
     };
+
     const compute = (key: string | null) => {
       if (cancelled) return;
       const renderCached = (source: CanvasImageSource, sw: number, sh: number) => {
@@ -249,52 +275,71 @@ function DitherCanvas({
           const scale = fitScale(sw, sh);
           const fitKey = keyFor(scale);
           const hit = ditherRenderCache.get(fitKey);
+
           if (hit) {
             paintEntry(hit);
             markReady();
+
             return;
           }
+
           processSource(source, sw, sh, scale, fitKey);
+
           return;
         }
+
         processSource(source, sw, sh, effectScale, key);
       };
+
       const cachedBitmap = ditherDecodeCache.get(src);
+
       if (cachedBitmap) {
         renderCached(cachedBitmap, cachedBitmap.width, cachedBitmap.height);
+
         return;
       }
+
       image.onload = () => {
         if (cancelled) return;
+
         if (typeof createImageBitmap === "function") {
           (async () => {
             const [bitmap, error] = await attempt(createImageBitmap(image));
+
             if (!error && bitmap) {
               if (cancelled) {
                 bitmap.close();
+
                 return;
               }
+
               ditherDecodeCache.set(src, bitmap);
               renderCached(bitmap, bitmap.width, bitmap.height);
+
               return;
             }
+
             renderCached(image, image.naturalWidth, image.naturalHeight);
           })();
         } else {
           renderCached(image, image.naturalWidth, image.naturalHeight);
         }
       };
+
       image.onerror = () => {
         reportError(`Failed to load image: ${src}`);
       };
+
       image.src = src;
     };
+
     if (capToDisplay || maxLongSide !== undefined) {
       setStatus("loading");
       compute(null);
     } else {
       const key = keyFor(effectScale);
       const cached = ditherRenderCache.get(key);
+
       if (cached) {
         paintEntry(cached);
         markReady();
@@ -304,6 +349,7 @@ function DitherCanvas({
         compute(key);
       }
     }
+
     return () => {
       cancelled = true;
       task?.cancel();

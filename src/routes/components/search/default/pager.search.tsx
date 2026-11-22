@@ -20,6 +20,7 @@ export default function SearchPager({
   const lastPage = pageFull ? page + 1 : page;
   const from = (page - 1) * resultsPerPage + 1;
   const to = from + Math.max(shown, 1) - 1;
+
   return (
     <Pagination
       total={0}

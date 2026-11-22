@@ -17,7 +17,7 @@ export function MangaCover({
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const element = useRef<HTMLSpanElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState<boolean>(false);
   const [url, setUrl] = useState<string>();
   const remote = src?.startsWith("https://") ?? false;
   const domain = useCell(settingsAtoms.mangaLibRequestDomain);
@@ -37,15 +37,22 @@ export function MangaCover({
       observer.disconnect();
     });
     observer.observe(element.current);
+
     return () => observer.disconnect();
   }, [remote]);
   useEffect(() => {
     if (!cover.data) return;
     const next = URL.createObjectURL(cover.data);
     setUrl(next);
+
     return () => URL.revokeObjectURL(next);
   }, [cover.data]);
-  const image = remote ? (cover.data ? url : cover.isError ? src : undefined) : src;
+  let image: string | null | undefined;
+
+  if (!remote) image = src;
+  else if (cover.data) image = url;
+  else if (cover.isError) image = src;
+
   return (
     <span
       ref={element}

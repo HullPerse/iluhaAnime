@@ -18,6 +18,7 @@ export function DetailsTabPanels({
   onZoomScreenshot,
 }: DetailsTabPanelsProps) {
   const { t } = useI18n();
+
   return (
     <>
       {activeTab === "description" && (

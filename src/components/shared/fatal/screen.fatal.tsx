@@ -60,12 +60,16 @@ export function FatalScreen({
     (async () => {
       const text = formatFatalCopy(info);
       const [, pluginError] = await attempt(writeText(text));
+
       if (pluginError === null) {
         setCopied(true);
+
         return;
       }
+
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         const [, nativeError] = await attempt(navigator.clipboard.writeText(text));
+
         if (nativeError === null) setCopied(true);
       }
     })();
@@ -75,29 +79,38 @@ export function FatalScreen({
     if (updateState === "checking" || updateState === "installing") return;
     setUpdateError(null);
     const update = availableUpdateRef.current;
+
     if (update !== null) {
       setUpdateState("installing");
       (async () => {
         const [, installError] = await attempt(update.downloadAndInstall());
+
         if (installError !== null) {
           setUpdateError(installError.message);
           setUpdateState("available");
         }
       })();
+
       return;
     }
+
     setUpdateState("checking");
     (async () => {
       const [update, checkError] = await attempt(check());
+
       if (checkError !== null) {
         setUpdateError(checkError.message);
         setUpdateState("error");
+
         return;
       }
+
       if (!update) {
         setUpdateState("latest");
+
         return;
       }
+
       availableUpdateRef.current = update;
       setUpdateState("available");
     })();
@@ -122,5 +135,6 @@ export function FatalScreen({
   };
 
   const Bsod = BSOD_VARIANTS[variant];
+
   return <Bsod {...shared} />;
 }

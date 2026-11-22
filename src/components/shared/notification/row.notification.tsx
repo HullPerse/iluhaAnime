@@ -35,18 +35,22 @@ export default function NotificationRow({
 
   const handleOpen = () => {
     markRead(item.id);
+
     if (item.target) onOpen(item);
   };
 
   const handleCopy = async () => {
     const [, error] = await attempt(copyNotification(item));
+
     if (error) return;
     setCopied(true);
+
     if (copyHideRef.current === null) {
       copyHideRef.current = new Debouncer(() => setCopied(false), {
         wait: COPIED_FEEDBACK_MS,
       });
     }
+
     copyHideRef.current.maybeExecute();
   };
 

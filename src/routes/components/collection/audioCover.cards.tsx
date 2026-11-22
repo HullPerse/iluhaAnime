@@ -12,6 +12,7 @@ export default function AudioCover({ videoRef }: { videoRef: RefObject<HTMLVideo
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d", { alpha: false });
+
     if (!video || !canvas || !context) return;
 
     const { width, height } = canvas;
@@ -21,9 +22,12 @@ export default function AudioCover({ videoRef }: { videoRef: RefObject<HTMLVideo
 
     const paint = (now: number) => {
       frame = requestAnimationFrame(paint);
+
       if (now - last < MOSAIC_FRAME_MS) return;
       last = now;
+
       if (video.readyState < 2 || video.videoWidth === 0) return;
+
       if (painted && video.paused) return;
       const scale = Math.max(width / video.videoWidth, height / video.videoHeight);
       const sourceWidth = width / scale;
@@ -43,6 +47,7 @@ export default function AudioCover({ videoRef }: { videoRef: RefObject<HTMLVideo
     };
 
     frame = requestAnimationFrame(paint);
+
     return () => cancelAnimationFrame(frame);
   }, [videoRef]);
 

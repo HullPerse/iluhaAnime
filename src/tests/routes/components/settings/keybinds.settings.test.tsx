@@ -12,7 +12,9 @@ const rows = (): HTMLElement[] => {
 
 const rowWith = (text: string): HTMLElement => {
   const found = rows().find((row) => row.textContent?.includes(text));
+
   if (!found) throw new Error(`row missing: ${text}`);
+
   return found;
 };
 
@@ -201,6 +203,7 @@ describe("SettingsKeybinds editor", () => {
   it("opens the editor in a modal on double click", async () => {
     render(<SettingsKeybinds />);
     const row = rowWith("На следующую строку").closest('[role="row"]');
+
     if (!row) throw new Error("row missing");
 
     fireEvent.doubleClick(row);
@@ -268,6 +271,7 @@ describe("SettingsKeybinds editor", () => {
   it("highlights the selected row on click", async () => {
     render(<SettingsKeybinds />);
     const row = rowWith("На следующую строку").closest('[role="row"]');
+
     if (!row) throw new Error("row missing");
 
     await userEvent.click(row);

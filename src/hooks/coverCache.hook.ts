@@ -16,11 +16,14 @@ const imageDataCache = createLruCache<string, string>(COVER_CACHE_CAPACITY);
 
 async function resolveCachedImage(blobId: string): Promise<string | null> {
   const cached = imageDataCache.get(blobId);
+
   if (cached) return cached;
   const [image, error] = await attempt(systemApi.getUserImage(blobId));
+
   if (error) return null;
   const url = assetUrl(image.path);
   imageDataCache.set(blobId, url);
+
   return url;
 }
 
@@ -34,8 +37,10 @@ export function resetCoverCache(): void {
 
 function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<string | null> {
   const cached = coverCache.get(remoteUrl);
+
   if (cached) return Promise.resolve(cached.url);
   const previousId = coverCorrectionsAtoms.blobs.get()[remoteUrl] ?? null;
+
   return inflightFetch(inflightCoverDownloads, remoteUrl, () =>
     invokeTyped<UserImageFile>("download_remote_image", {
       url: remoteUrl,
@@ -47,6 +52,7 @@ function downloadCover(remoteUrl: string, proxyUrl: string | null): Promise<stri
         const url = assetUrl(img.path);
         coverCache.set(remoteUrl, { url, blobId: img.id });
         setCoverBlob(remoteUrl, img.id);
+
         return url;
       })
       .catch(() => null)
@@ -70,58 +76,78 @@ export function useCoverCache(
     const fromRemote = () => {
       if (!remoteUrl) {
         setCoverUrl(null);
+
         return;
       }
+
       const cached = coverCache.get(remoteUrl);
+
       if (cached) {
         setCoverUrl(cached.url);
+
         return;
       }
+
       if (isDirectImageSrc(remoteUrl)) {
         setCoverUrl(remoteUrl);
+
         return;
       }
+
       const persistedId = coverCorrectionsAtoms.blobs.get()[remoteUrl];
+
       if (!persistedId) {
         downloadCover(remoteUrl, null)
           .then((downloaded) => {
             if (!cancelled && downloaded) setCoverUrl(downloaded);
+
             return null;
           })
           .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
+
         return;
       }
+
       resolveCachedImage(persistedId)
         .then((url) => {
           if (cancelled) return null;
+
           if (url) {
             coverCache.set(remoteUrl, { url, blobId: persistedId });
             setCoverUrl(url);
+
             return null;
           }
+
           return downloadCover(remoteUrl, null)
             .then((downloaded) => {
               if (!cancelled && downloaded) setCoverUrl(downloaded);
+
               return null;
             })
             .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
         })
         .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
     };
+
     if (blobId) {
       resolveCachedImage(blobId)
         .then((resolved) => {
           if (cancelled) return null;
+
           if (resolved) {
             setCoverUrl(resolved);
+
             return null;
           }
+
           return fromRemote();
         })
         .catch((error: unknown) => reportBackgroundError("srchookscollectioncache", error));
     } else {
       fromRemote();
     }
+
     return () => {
       cancelled = true;
     };
@@ -131,7 +157,9 @@ export function useCoverCache(
     if (!remoteUrl || isDirectImageSrc(remoteUrl)) {
       return null;
     }
+
     const cached = coverCache.get(remoteUrl);
+
     if (cached) return cached.blobId;
     const [img, error] = await attempt(
       invokeTyped<UserImageFile>("download_remote_image", {
@@ -141,11 +169,13 @@ export function useCoverCache(
         previousId: coverCorrectionsAtoms.blobs.get()[remoteUrl] ?? null,
       })
     );
+
     if (error) return null;
     const url = assetUrl(img.path);
     coverCache.set(remoteUrl, { url, blobId: img.id });
     setCoverBlob(remoteUrl, img.id);
     setCoverUrl(url);
+
     return img.id;
   }, [remoteUrl]);
 

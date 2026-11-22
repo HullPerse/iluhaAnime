@@ -52,6 +52,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
     ignore(
       seekTo(time, mode).then(() => {
         if (!wasPaused) setPaused(false);
+
         return undefined;
       })
     );
@@ -60,6 +61,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
   const onSeekPercent = useCallback(
     (percent: number) => {
       const total = effectivePlaybackDuration();
+
       if (total <= 0) return;
       onSeekTo(total * (percent / 10));
     },
@@ -73,8 +75,10 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
       effectivePlaybackDuration(),
       hasNext
     );
+
     if (!skip) return;
     onSkipChapter(skip.target);
+
     if (skip.nextEpisode) onFileNext();
   }, [hasNext, onFileNext, onSkipChapter]);
 
@@ -89,6 +93,7 @@ export function useSeekHandlers({ hasPrev, hasNext, onFileNext }: SeekDeps) {
         direction,
         step: SEEK_STEP,
       });
+
       if (jump.kind === "seek") onSeekTo(jump.time);
     },
     [hasPrev, hasNext, onSeekTo]

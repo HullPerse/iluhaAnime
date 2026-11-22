@@ -20,6 +20,7 @@ export function TorrentProblem({
   const { t } = useI18n();
   const [pendingRecreate, setPendingRecreate] = useState<boolean>(false);
   const problem = describeTorrentProblem(error, missing);
+
   return (
     <div className="mt-1 flex items-start gap-1">
       <div className="flex min-w-0 flex-col">

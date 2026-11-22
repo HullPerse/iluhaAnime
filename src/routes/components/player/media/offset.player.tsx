@@ -88,10 +88,13 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
     timerRef.current?.cancel();
     timerRef.current = scheduleTask("timeout", OSD_TIMEOUT, () => {
       const osdElement = osdElementRef.current;
+
       if (!animateRef.current || osdElement === null) {
         setVisible(false);
+
         return;
       }
+
       const animation = osdElement.animate([{ opacity: 1 }, { opacity: 0 }], {
         duration: OSD_FADE_MS,
         easing: "ease-out",
@@ -102,6 +105,7 @@ function OsdOverlay({ alwaysOnTop }: { alwaysOnTop: boolean }) {
           reportBackgroundError("srcroutescomponentsplayermediaoffset.player", error)
         );
     });
+
     return () => {
       timerRef.current?.cancel();
       timerRef.current = null;

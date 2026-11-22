@@ -19,19 +19,25 @@ async function resolveMagnet(
   setLoadingMagnet: (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => void
 ): Promise<Result<string>> {
   const key = item.link;
+
   if (item.magnet) return ok(item.magnet);
   const cached = magnets[key];
+
   if (cached) return ok(cached);
 
   return inflightFetch(magnetInflight, key, async () => {
     setLoadingMagnet((prev) => ({ ...prev, [key]: true }));
     const fetched = await attemptResult(torrentApi.rutrackerGetMagnet(item.category));
     setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
+
     if (!fetched.ok) {
       addNotification(tr("common.error"), "error", tr("magnet.error"));
+
       return fetched;
     }
+
     setMagnets((prev) => ({ ...prev, [key]: fetched.value }));
+
     return fetched;
   });
 }
@@ -43,6 +49,7 @@ export async function copyMagnet(
   setLoadingMagnet: (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => void
 ) {
   const magnet = await resolveMagnet(item, magnets, setMagnets, setLoadingMagnet);
+
   if (magnet.ok) writeText(magnet.value);
 }
 
@@ -53,8 +60,10 @@ export async function openMagnet(
   setLoadingMagnet: (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => void
 ) {
   const magnet = await resolveMagnet(item, magnets, setMagnets, setLoadingMagnet);
+
   if (!magnet.ok) return;
   const opened = await attemptResult(invokeTyped("open_magnet", { magnet: magnet.value }));
+
   if (!opened.ok) {
     addNotification(tr("common.error"), "error", tr("magnet.open.error"));
   }
@@ -74,7 +83,9 @@ async function fetchTorrentBytes(
       : torrentApi.rutrackerGetTorrentBytes(item.category)
   );
   setLoadingMagnet((prev) => ({ ...prev, [key]: false }));
+
   if (!fetched.ok) return fetched;
+
   return fetched.value.length === 0 ? err("torrent source returned no bytes") : fetched;
 }
 
@@ -86,14 +97,18 @@ export async function downloadMagnet(
   source?: string
 ) {
   const bytes = await fetchTorrentBytes(item, setLoadingMagnet, source);
+
   if (bytes.ok) {
     await prepareTorrentDownloadFromBytes(bytes.value, {
       seeders: item.seeders,
       origin: source ? { source, url: item.link } : undefined,
     });
+
     return;
   }
+
   const magnet = await resolveMagnet(item, magnets, setMagnets, setLoadingMagnet);
+
   if (magnet.ok)
     await prepareTorrentDownload(magnet.value, {
       seeders: item.seeders,

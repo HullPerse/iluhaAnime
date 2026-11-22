@@ -24,5 +24,6 @@ export function useThemeComponents(): ResolvedThemeComponents {
     name: current,
     patch: patches[current],
   });
+
   return resolveThemeComponents(theme);
 }

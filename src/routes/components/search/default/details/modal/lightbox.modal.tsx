@@ -10,8 +10,10 @@ export function DetailsLightbox({ url }: { url: string }) {
   const { t } = useI18n();
   const openImage = async () => {
     const [, openError] = await attempt(openUrl(url));
+
     if (openError) reportBackgroundError("details.open-image", openError);
   };
+
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <div className="flex justify-end">

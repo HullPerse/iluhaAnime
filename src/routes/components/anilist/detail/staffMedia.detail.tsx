@@ -23,6 +23,7 @@ export function StaffMediaSection({
       ),
     [query.data]
   );
+
   return (
     <CreditSection
       header={t("anilist.characters.anime.of", {

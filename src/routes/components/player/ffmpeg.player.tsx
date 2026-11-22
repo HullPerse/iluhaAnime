@@ -40,10 +40,12 @@ function FFMPEG({
     setRemoveError(null);
     setSystemFfmpeg(false);
     const [, error] = await attempt(systemApi.downloadFfmpeg(settingsAtoms.ffmpegSource.get()));
+
     if (error) {
       setDlError(error.message);
       setStatus("missing");
     } else setStatus("ok");
+
     if (!aliveRef.current && settingsAtoms.notifyModelDownloads.get()) {
       if (error) addNotification(t("notification.downloads.failed"), "error", "FFmpeg");
       else addNotification(t("notification.downloads.done"), "success", "FFmpeg");
@@ -58,10 +60,13 @@ function FFMPEG({
     const [removed, error] = await attempt(systemApi.removeFfmpeg());
     removingRef.current = false;
     setRemoving(false);
+
     if (error) {
       setRemoveError(error.message);
+
       return;
     }
+
     if (removed) setStatus("missing");
     else setSystemFfmpeg(true);
   }, [setStatus]);
@@ -103,6 +108,7 @@ function FFMPEG({
         {t("player.ffmpeg.checking")}
       </div>
     );
+
   if (status === "downloading")
     return (
       <div className="windows95-text flex min-w-0 flex-1 flex-row items-stretch gap-1 px-1 py-1">
@@ -125,6 +131,7 @@ function FFMPEG({
         </div>
       </div>
     );
+
   if (status === "missing")
     return (
       <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">
@@ -145,6 +152,7 @@ function FFMPEG({
         </Button>
       </div>
     );
+
   if (status === "ok")
     return (
       <div className="windows95-text flex min-w-0 flex-1 flex-row items-center gap-1 px-1">

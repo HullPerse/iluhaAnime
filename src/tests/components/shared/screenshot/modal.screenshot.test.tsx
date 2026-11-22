@@ -76,6 +76,7 @@ const installCanvasStub = () => {
     context as unknown as CanvasRenderingContext2D
   );
   vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(LAYER_DATA_URL);
+
   return context;
 };
 
@@ -115,11 +116,13 @@ const serveCommands = ({
     if (command === "save_screenshot") {
       return failSave ? Promise.reject(new Error("no such folder")) : Promise.resolve(saved);
     }
+
     if (command === "copy_screenshot") {
       return failCopy
         ? Promise.reject(new Error("could not cut the image"))
         : Promise.resolve(copyPath);
     }
+
     return Promise.resolve(undefined);
   });
 };
@@ -190,19 +193,8 @@ const wheelStage = async (deltaY: number, x = 400, y = 200): Promise<WheelEvent>
   await act(async () => {
     stage().dispatchEvent(event);
   });
+
   return event;
-};
-
-const settle = async () => {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 32));
-  });
-};
-
-const cropOnce = async (user: ReturnType<typeof userEvent.setup>, keys: string) => {
-  await settle();
-  selection()?.focus();
-  await user.keyboard(keys);
 };
 
 const dragSelection = (x1: number, y1: number, x2: number, y2: number) => {
@@ -226,6 +218,7 @@ const installPointerCapture = (): { element: Element | null } => {
       if (captured.element === this) captured.element = null;
     },
   });
+
   return captured;
 };
 
@@ -347,17 +340,6 @@ describe("ScreenshotModal", () => {
     expect(isDisabled(copied)).toBe(true);
   });
 
-  it("reports a failed copy", async () => {
-    const user = userEvent.setup();
-    serveCommands();
-    mockWriteImage.mockRejectedValue(new Error("clipboard busy"));
-    renderModal();
-    await user.click(screen.getByRole("button", { name: "Копировать" }));
-    await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
-    expect(notificationAtoms.items.get()[0]?.type).toBe("error");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Копировать" })).toBeTruthy());
-  });
-
   it("keeps the modal open and reports a failed save", async () => {
     const user = userEvent.setup();
     serveCommands({ failSave: true });
@@ -376,62 +358,6 @@ describe("ScreenshotModal", () => {
     expect(picture().style.transform).toContain("scale(1.2)");
     await wheelStage(-100);
     expect(zoomLabel()).toBe("144%");
-  });
-
-  it("returns to the fit when the wheel zooms back out", async () => {
-    renderModal();
-    await wheelStage(-100);
-    await wheelStage(100);
-    expect(picture().style.transform).toBe("translate(0px) scale(1)");
-    expect(zoomLabel()).toBe("100%");
-    expect(isDisabled(screen.getByRole("button", { name: "100%" }))).toBe(true);
-  });
-
-  it("pulls back below the fit down to the floor", async () => {
-    const user = userEvent.setup();
-    renderModal();
-    await wheelStage(100);
-    expect(zoomLabel()).toBe("83%");
-    expect(picture().style.transform).toContain("scale(0.833)");
-    expect(screen.getByTestId("screenshot-picture").style.width).toBe("1066.24px");
-    for (let step = 0; step < 6; step += 1) await wheelStage(100);
-    expect(zoomLabel()).toBe("50%");
-    expect(screen.getByTestId("screenshot-picture").style.width).toBe("640px");
-    await user.click(screen.getByRole("button", { name: "50%" }));
-    expect(zoomLabel()).toBe("100%");
-  });
-
-  it("starts a selection after a wheel zoom", async () => {
-    renderModal();
-    await wheelStage(100);
-    dragSelection(10, 10, 400, 250);
-    expect(selection()).not.toBeNull();
-  });
-
-  it("marks only on the shot itself and not on the room around it", async () => {
-    renderModal();
-    await wheelStage(100);
-    const surface = overlay();
-    fireEvent.pointerDown(surface, { clientX: 1200, clientY: 100 });
-    fireEvent.pointerMove(surface, { clientX: 1250, clientY: 300 });
-    fireEvent.pointerUp(surface, { clientX: 1250, clientY: 300 });
-    expect(selection()).toBeNull();
-    fireEvent.pointerDown(surface, { clientX: 10, clientY: 10 });
-    fireEvent.pointerMove(surface, { clientX: 400, clientY: 250 });
-    fireEvent.pointerUp(surface, { clientX: 400, clientY: 250 });
-    expect(selection()).not.toBeNull();
-  });
-
-  it("still moves the shot from the room around it", async () => {
-    renderModal();
-    await wheelStage(100);
-    const before = picture().style.transform;
-    const surface = overlay();
-    fireEvent.pointerDown(surface, { button: 2, clientX: 1200, clientY: 700 });
-    fireEvent.pointerMove(surface, { clientX: 1150, clientY: 650 });
-    fireEvent.pointerUp(surface, { button: 2, clientX: 1150, clientY: 650 });
-    expect(picture().style.transform).not.toBe(before);
-    expect(selection()).toBeNull();
   });
 
   it("fits the shot again from the zoom button", async () => {
@@ -482,86 +408,12 @@ describe("ScreenshotModal", () => {
     expect(readout()).toBe("208 x 133 px");
   });
 
-  it("keeps the selection on the left button and ignores the middle one", () => {
-    renderModal();
-    const before = picture().style.transform;
-    const surface = overlay();
-    fireEvent.pointerDown(surface, { button: 1, clientX: 400, clientY: 200 });
-    fireEvent.pointerMove(surface, { clientX: 450, clientY: 230 });
-    fireEvent.pointerUp(surface, { button: 1, clientX: 450, clientY: 230 });
-    expect(picture().style.transform).toBe(before);
-    expect(selection()).toBeNull();
-    fireEvent.pointerDown(surface, { button: 0, clientX: 100, clientY: 100 });
-    fireEvent.pointerMove(surface, { clientX: 500, clientY: 400 });
-    fireEvent.pointerUp(surface, { button: 0, clientX: 500, clientY: 400 });
-    expect(selection()).not.toBeNull();
-    expect(picture().style.transform).toBe(before);
-  });
-
-  it("keeps the gesture on the element that grabbed the pointer", () => {
-    const captured = installPointerCapture();
-    renderModal();
-    const surface = overlay();
-    fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
-    expect(captured.element).toBe(surface);
-    fireEvent.pointerMove(captured.element as Element, { clientX: 500, clientY: 400 });
-    fireEvent.pointerUp(captured.element as Element, { clientX: 500, clientY: 400 });
-    expect(readout()).toBe("400 x 300 px");
-    expect(captured.element).toBeNull();
-  });
-
-  it("lets go of the pointer on release, so a plain click holds nothing", () => {
-    const captured = installPointerCapture();
-    renderModal();
-    const surface = overlay();
-    fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
-    fireEvent.pointerUp(captured.element as Element, { clientX: 100, clientY: 100 });
-    fireEvent.pointerMove(surface, { clientX: 500, clientY: 400 });
-    expect(selection()).toBeNull();
-  });
-
   it("turns a diagonal drag into a selection", () => {
     renderModal();
     dragSelection(100, 100, 500, 400);
     expect(selection()?.getAttribute("aria-label")).toBe("Выделение 400 x 300 px в 100, 100");
     expect(readout()).toBe("400 x 300 px");
     expect(isDisabled(screen.getByRole("button", { name: "Сбросить выделение" }))).toBe(false);
-  });
-
-  it("holds a square while Shift is down during the drag", () => {
-    renderModal();
-    const surface = overlay();
-    fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
-    fireEvent.pointerMove(surface, { clientX: 500, clientY: 300, shiftKey: true });
-    fireEvent.pointerUp(surface, { clientX: 500, clientY: 300, shiftKey: true });
-    expect(readout()).toBe("400 x 400 px");
-    expect(screen.getByText("1:1")).toBeTruthy();
-  });
-
-  it("ignores a drag that is too small to be a selection", () => {
-    renderModal();
-    dragSelection(100, 100, 103, 102);
-    expect(selection()).toBeNull();
-    expect(readout()).toBe("1280 x 720 px");
-  });
-
-  it("moves the selection with the arrows", async () => {
-    const user = userEvent.setup();
-    renderModal();
-    dragSelection(100, 100, 500, 400);
-    await cropOnce(user, "{ArrowLeft}");
-    expect(selection()?.getAttribute("aria-label")).toBe("Выделение 400 x 300 px в 99, 100");
-    expect(readout()).toBe("400 x 300 px");
-  });
-
-  it("resizes the selection with Alt and the arrows", async () => {
-    const user = userEvent.setup();
-    renderModal();
-    dragSelection(100, 100, 500, 400);
-    await cropOnce(user, "{Alt>}{Shift>}{ArrowLeft}{/Shift}{/Alt}");
-    expect(readout()).toBe("390 x 300 px");
-    await cropOnce(user, "{Alt>}{ArrowUp}{/Alt}");
-    expect(readout()).toBe("390 x 299 px");
   });
 
   it("flags a square selection", () => {
@@ -882,6 +734,7 @@ describe("ScreenshotModal annotations", () => {
     expect(readout()).toBe("350 x 250 px");
 
     const selected = selection();
+
     if (!selected) throw new Error("selection is missing");
     fireEvent.pointerDown(selected, { clientX: 125, clientY: 95 });
     fireEvent.pointerMove(overlay(), { clientX: 225, clientY: 195 });

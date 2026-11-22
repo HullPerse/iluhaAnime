@@ -24,6 +24,7 @@ function Harness({
   hasFile?: boolean;
 }) {
   const cabinet = usePlayerScreen(ready, settings, hasFile);
+
   return <span>{cabinet ?? "none"}</span>;
 }
 

@@ -18,3 +18,9 @@ export interface DiscordPresenceDetail {
   id: number;
   title: string;
 }
+
+export interface DiscordPresenceReading {
+  title: string;
+  chapter: string;
+  startedAt: number;
+}

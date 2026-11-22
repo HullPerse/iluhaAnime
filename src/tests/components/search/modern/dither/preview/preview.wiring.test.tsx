@@ -44,23 +44,32 @@ const installCanvasHarness = (source: Uint8ClampedArray) => {
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
     context as unknown as CanvasRenderingContext2D
   );
+
   function FakeImageData(data: Uint8ClampedArray, width: number, height: number) {
     return { data, width, height };
   }
+
   vi.stubGlobal("ImageData", FakeImageData as unknown);
 };
 
 const installImageHarness = (naturalWidth: number, naturalHeight: number) => {
   const instances: Array<{ fireLoad: () => void }> = [];
+
   class MockImage {
     naturalWidth = naturalWidth;
+
     naturalHeight = naturalHeight;
+
     onload: (() => void) | null = null;
+
     onerror: (() => void) | null = null;
+
     #src = "";
+
     get src(): string {
       return this.#src;
     }
+
     set src(value: string) {
       this.#src = value;
       instances.push({
@@ -70,7 +79,9 @@ const installImageHarness = (naturalWidth: number, naturalHeight: number) => {
       });
     }
   }
+
   vi.stubGlobal("Image", MockImage as unknown);
+
   return instances;
 };
 
@@ -167,6 +178,7 @@ describe("DitherPreviewModal save wiring under StrictMode", () => {
     vi.useFakeTimers();
     ditherRenderCache.clear();
     ditherDecodeCache.clear();
+
     try {
       let resolveUpdate!: (value: UserImageFile) => void;
       mockInvoke.mockImplementation(

@@ -84,7 +84,7 @@ const search = {
   "search.erai.err.proxy.invalid":
     "Некорректный прокси для erai-raws. Формат: http://host:port или socks5://host:port.",
   "search.erai.err.proxy.socks5.auth":
-    "WebView2 не поддерживает SOCKS5 с логином и паролем. Укажите HTTP-прокси или SOCKS5 без авторизации.",
+    "WebView2 не поддерживает SOCKS5 с логином. Укажите HTTP-прокси или SOCKS5 без пароля.",
   "search.erai.err.unknown": "Не удалось войти в Erai-Raws. Попробуйте ещё раз.",
   "search.erai.err.webview.not.found":
     "Окно встроенного браузера не открыто. Сначала откройте его.",
@@ -105,7 +105,7 @@ const search = {
   "search.retry": "Повторить",
   "search.rutracker.browser.tab": "Встроенный браузер",
   "search.rutracker.err.blocked":
-    "Rutracker блокирует приложение (анти-бот). Используйте встроенный браузер или включите VPN.",
+    "Rutracker блокирует приложение. Используйте встроенный браузер или VPN.",
   "search.rutracker.err.cookies.invalid":
     "Cookies недействительны или истекли. Войдите в браузере и скопируйте новые.",
   "search.rutracker.err.cookies.parse": "Не удалось разобрать вставленные cookies.",
@@ -117,7 +117,7 @@ const search = {
   "search.rutracker.err.proxy.invalid":
     "Некорректный прокси для rutracker. Формат: http://host:port или socks5://host:port.",
   "search.rutracker.err.proxy.socks5.auth":
-    "WebView2 не поддерживает SOCKS5 с логином и паролем. Укажите HTTP-прокси или SOCKS5 без авторизации.",
+    "WebView2 не поддерживает SOCKS5 с логином. Укажите HTTP-прокси или SOCKS5 без пароля.",
   "search.rutracker.err.session.failed":
     "Вход прошёл, но сессия не сохранилась. Попробуйте ещё раз или вставьте cookies.",
   "search.rutracker.err.unknown": "Вход не удался. Попробуйте ещё раз во встроенном браузере.",

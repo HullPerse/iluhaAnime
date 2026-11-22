@@ -27,6 +27,7 @@ function isValidFriend(
   friend: unknown
 ): friend is Record<string, unknown> & { id: number; name: string } {
   if (!isRecord(friend)) return false;
+
   return (
     typeof friend.id === "number" &&
     Number.isInteger(friend.id) &&
@@ -38,6 +39,7 @@ function isValidFriend(
 
 function isAniUserProfile(value: unknown): value is AniUserProfile {
   if (!isRecord(value)) return false;
+
   return (
     typeof value.id === "number" &&
     Number.isInteger(value.id) &&
@@ -64,13 +66,16 @@ function normalizeFriend(friend: unknown): AniListFriendsStore["friends"] {
       ? { profile_fetched_at: friend.profile_fetched_at }
       : {}),
   };
+
   return [base];
 }
 
 function normalizeRelease(release: unknown): AniListRelease | null {
   if (!isRecord(release)) return null;
   const mediaId = release.mediaId;
+
   if (typeof mediaId !== "number" || !(mediaId > 0)) return null;
+
   return {
     mediaId,
     title: typeof release.title === "string" ? release.title : "",
@@ -98,6 +103,7 @@ function normalizeObservation(obs: unknown): AniListObservation {
       nextAiringAt: null,
     };
   }
+
   return {
     signature: typeof obs.signature === "string" ? obs.signature : "",
     status: typeof obs.status === "string" ? obs.status : "",
@@ -112,9 +118,11 @@ function normalizeObservation(obs: unknown): AniListObservation {
 function migrateObservationsV2(state: Record<string, unknown>): Partial<AniListNotificationsStore> {
   const rawObservations = isRecord(state.observations) ? state.observations : {};
   const migrated: Record<string, AniListObservation> = {};
+
   for (const [key, obs] of Object.entries(rawObservations)) {
     migrated[key] = normalizeObservation(obs);
   }
+
   return { initialized: state.initialized === true, observations: migrated };
 }
 
@@ -122,6 +130,7 @@ export function migrateFriendsData(persistedState: unknown): {
   friends: AniListFriendsStore["friends"];
 } {
   if (!isRecord(persistedState)) return { friends: [] };
+
   return {
     friends: Array.isArray(persistedState.friends)
       ? persistedState.friends.flatMap(normalizeFriend)
@@ -143,8 +152,10 @@ export function migrateNotificationsData(
       siteMaxSeenId: 0,
     };
   }
+
   if (version < 2) {
     const base = migrateObservationsV2(persistedState);
+
     return {
       initialized: base.initialized ?? false,
       observations: base.observations ?? {},
@@ -154,17 +165,22 @@ export function migrateNotificationsData(
       siteMaxSeenId: 0,
     };
   }
+
   const rawObservations = isRecord(persistedState.observations) ? persistedState.observations : {};
   const observations: Record<string, AniListObservation> = {};
+
   for (const [id, obs] of Object.entries(rawObservations)) {
     observations[id] = normalizeObservation(obs);
   }
+
   const releases = Array.isArray(persistedState.releases)
     ? persistedState.releases.flatMap((item) => {
         const normalized = normalizeRelease(item);
+
         return normalized ? [normalized] : [];
       })
     : [];
+
   return {
     initialized: persistedState.initialized === true,
     observations,
@@ -189,11 +205,15 @@ function readLegacyEnvelope(
   legacyKey: string
 ): { state: unknown; version: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem(legacyKey));
+
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
   if (parseError !== null || !isRecord(parsed)) return null;
+
   return {
     state: isRecord(parsed.state) ? parsed.state : parsed,
     version: typeof parsed.version === "number" ? parsed.version : 0,
@@ -209,7 +229,9 @@ export function createFriendsSignalStore(options: SignalStoreOptions = {}): Frie
     debounceMs: options.debounceMs,
     onFallback: (get) => {
       const legacy = readLegacyEnvelope(get, "anilistFriends");
+
       if (!legacy) return null;
+
       return {
         data: { ...migrateFriendsData(legacy.state) },
         schemaVersion: ANILIST_FRIENDS_SCHEMA_VERSION,
@@ -285,7 +307,9 @@ export function createAnilistNotificationsSignalStore(
     debounceMs: options.debounceMs,
     onFallback: (get) => {
       const legacy = readLegacyEnvelope(get, "anilistReleaseObservations");
+
       if (!legacy) return null;
+
       return {
         data: { ...migrateNotificationsData(legacy.state, legacy.version) },
         schemaVersion: ANILIST_NOTIFICATIONS_SCHEMA_VERSION,
@@ -314,11 +338,13 @@ export function createAnilistNotificationsSignalStore(
       const key = String(mediaId);
       const observations = atoms.observations.get();
       const prev = observations[key];
+
       if (!prev || prev.status === status) return;
       atoms.observations.set({ ...observations, [key]: { ...prev, status } });
     },
     addRelease: (release) => {
       const releases = atoms.releases.get();
+
       if (
         releases.some(
           (item) => item.mediaId === release.mediaId && item.episode === release.episode
@@ -332,12 +358,16 @@ export function createAnilistNotificationsSignalStore(
       let changed = false;
       const next = releases.map((item) => {
         const cover = covers[item.mediaId];
+
         if (typeof cover !== "string" || cover.length === 0 || item.coverUrl === cover) {
           return item;
         }
+
         changed = true;
+
         return { ...item, coverUrl: cover };
       });
+
       if (changed) atoms.releases.set(next);
     },
     markReleasesRead: () => {
@@ -349,12 +379,14 @@ export function createAnilistNotificationsSignalStore(
       const readNotificationIds = atoms.readNotificationIds.get();
       const known = new Set(readNotificationIds);
       let changed = false;
+
       for (const id of ids) {
         if (!known.has(id)) {
           known.add(id);
           changed = true;
         }
       }
+
       if (!changed) return;
       atoms.readNotificationIds.set([...known].slice(-500));
     },

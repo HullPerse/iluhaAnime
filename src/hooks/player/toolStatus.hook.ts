@@ -51,9 +51,11 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
     attempt(invokeTyped<boolean>(CHECK_COMMAND[tool]))
       .then(([ok, err]) => {
         if (alive) setStatus(ok && !err ? "ok" : "missing");
+
         return null;
       })
       .catch((error: unknown) => reportBackgroundError("srchooksplayertoolStatus", error));
+
     return () => {
       alive = false;
     };
@@ -83,16 +85,19 @@ export function useUpscaleToolStatus(tool: UpscaleTool) {
     setStatus("downloading");
     setDlError(null);
     const [, err] = await attempt(invokeTyped<string>(DOWNLOAD_COMMAND[tool]));
+
     if (err) {
       setDlError(t(DOWNLOAD_ERROR_KEY[tool], { message: err.message }));
       setStatus("missing");
     } else {
       setStatus("ok");
     }
+
     if (!aliveRef.current && settingsAtoms.notifyModelDownloads.get()) {
       if (err) addNotification(t("notification.downloads.failed"), "error", TOOL_LABEL[tool]);
       else addNotification(t("notification.downloads.done"), "success", TOOL_LABEL[tool]);
     }
+
     busyRef.current = false;
   }, [t, tool]);
 

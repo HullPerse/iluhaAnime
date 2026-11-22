@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import MangaStatuses from "@/routes/components/manga/statuses.manga";
+import MangaStatuses from "@/routes/components/manga/status/view.status";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 
 const manageStatus = vi.hoisted(() => vi.fn<() => Promise<void>>(async () => undefined));
@@ -38,6 +38,7 @@ it("moves, edits and deletes of a custom manga status", async () => {
   expect(dialog.queryByRole("button", { name: "Изменить: В планах" })).toBeNull();
 
   let finishMove = () => {};
+
   manageStatus.mockImplementationOnce(
     () =>
       new Promise<void>((resolve) => {

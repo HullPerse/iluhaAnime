@@ -13,6 +13,7 @@ export function dispatchClick(element: Element, variant: ClickVariant): MouseEve
     metaKey: modified,
   });
   element.dispatchEvent(event);
+
   return event;
 }
 

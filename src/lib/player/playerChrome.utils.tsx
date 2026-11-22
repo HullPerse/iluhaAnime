@@ -20,6 +20,7 @@ export const barClass = ({
   hidden: boolean;
 }): string => {
   if (!immersive) return "z-20 shrink-0 bg-primary";
+
   return cn(
     "bg-primary/90 absolute inset-x-0 z-20 shrink-0 transition-opacity duration-300",
     position === "top" ? "top-0" : "bottom-0",
@@ -29,6 +30,7 @@ export const barClass = ({
 
 export const videoSectionClass = (immersive: boolean): string => {
   if (immersive) return "relative min-h-0 flex-1 overflow-hidden";
+
   return "relative m-1 min-h-0 flex-1 overflow-hidden windows95-active-border";
 };
 
@@ -44,6 +46,7 @@ export const navigationAvailability = ({
   playlistIndex: number;
 }): { hasNext: boolean; hasPrev: boolean } => {
   if (stream) return { hasNext: hasNextEpisode, hasPrev: false };
+
   return {
     hasNext: playlistCount > 0 && playlistIndex < playlistCount - 1,
     hasPrev: playlistIndex > 0,
@@ -58,7 +61,9 @@ export const shouldReleaseStreamPin = (state: {
   currentUrl: string | null;
 }): boolean => {
   if (state.streamResume === null || state.loadingFile) return false;
+
   if (state.pinnedUrl !== null && state.currentUrl === state.pinnedUrl) return false;
+
   return Math.abs(state.playbackTime - state.streamResume) <= 2;
 };
 
@@ -135,8 +140,11 @@ export const playerWindowTitle = ({
     const episode = stream.episodeTitle
       ? t("player.title.episode.colon", { title: stream.episodeTitle })
       : t("player.title.episode", { n: stream.episodeNumber });
+
     return `${stream.mediaTitle} - ${episode}`;
   }
+
   if (!path) return t("player.media.title");
+
   return parseTitlesPlayer ? formatParsedTitle(path, t) : fileNameFromPath(path);
 };

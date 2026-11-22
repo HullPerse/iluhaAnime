@@ -35,7 +35,6 @@ const KeybindsDataSchema = z.object({
   OFFSET_STEP_FINE: z.number(),
   PLAYER_HOTKEYS: z.array(ResolvedHotkeySchema),
   SEEK_STEP: z.number(),
-  VIEW_MODE_DIGITS: z.array(z.number()),
 });
 
 const parsed = KeybindsDataSchema.parse(data);
@@ -46,8 +45,6 @@ export const OFFSET_STEP_FINE = parsed.OFFSET_STEP_FINE;
 export const OFFSET_LIMIT = parsed.OFFSET_LIMIT;
 
 export const DIGIT_KEYS = parsed.DIGIT_KEYS as unknown as readonly [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-export const VIEW_MODE_DIGITS = parsed.VIEW_MODE_DIGITS as readonly number[];
 
 export const KEYBINDS = parsed.KEYBINDS as KeybindDef[];
 

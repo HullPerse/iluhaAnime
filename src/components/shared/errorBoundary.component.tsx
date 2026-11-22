@@ -24,6 +24,7 @@ interface FatalBoundaryState extends ErrorBoundaryState {
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundaryState> {
   state: FatalBoundaryState = { error: null, info: null, live: null, retries: 0 };
+
   private stopLive: (() => void) | null = null;
 
   static getDerivedStateFromError(error: Error): Partial<FatalBoundaryState> {
@@ -57,11 +58,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
 
   private reload(safe: boolean): void {
     if (safe) requestSafeMode();
+
     if (this.props.onResetCache) {
       const [, cacheError] = attemptSync(() => this.props.onResetCache?.());
+
       if (cacheError !== null) console.error("Fatal cache reset failed:", cacheError);
     }
+
     clearFatal();
+
     if (this.props.onReloadPage) this.props.onReloadPage();
     else window.location.reload();
   }
@@ -84,6 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
         }),
         retryCount: this.state.retries,
       } satisfies FatalInfo);
+
     return (
       <FatalScreen
         info={fatal}

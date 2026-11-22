@@ -17,9 +17,11 @@ function altDigitEntries(): KeybindManifestEntry[] {
 
 function screenshotHistoryEntries(): KeybindManifestEntry[] {
   const primary = new Map<string, (typeof SCREENSHOT_HISTORY_DEFS)[number]>();
+
   for (const def of SCREENSHOT_HISTORY_DEFS) {
     if (!primary.has(def.id)) primary.set(def.id, def);
   }
+
   return [...primary.values()].map((def) => ({
     id: `screenshot.history.${def.id}`,
     chord: def.chord,

@@ -24,12 +24,15 @@ function textOf(key: TranslationKey): string {
 
 function scoreTokenIn(token: string, text: string): number | null {
   const direct = normalizeText(text).indexOf(token);
+
   return direct === -1 ? null : direct;
 }
 
 function rangesFor(text: string, tokens: readonly string[]): HighlightRange[] {
   const out: HighlightRange[] = [];
+
   for (const token of tokens) out.push(...findSubsequenceRanges(text, token));
+
   return out;
 }
 
@@ -39,20 +42,26 @@ export function searchSettingsFind(query: string): SettingsFindHit[] {
   const tokens = normalizeText(query)
     .split(/\s+/u)
     .filter((token) => token.length > 0);
+
   if (tokens.length === 0) return [];
   const hits: SettingsFindHit[] = [];
+
   for (const entry of SETTINGS_FIND_ENTRIES) {
     const label = textOf(entry.key);
     let score = 0;
     let matched = true;
+
     for (const token of tokens) {
       const tokenScore = scoreTokenIn(token, label);
+
       if (tokenScore === null) {
         matched = false;
         break;
       }
+
       score += tokenScore;
     }
+
     if (!matched) continue;
     hits.push({
       entry,
@@ -61,19 +70,27 @@ export function searchSettingsFind(query: string): SettingsFindHit[] {
       rangesRu: rangesFor(label, tokens),
     });
   }
+
   const tabRank = new Map<SettingsFindTab, number>(
     SETTINGS_FIND_TAB_ORDER.map((tab, index) => [tab, index])
   );
   hits.sort((a, b) => {
     const tabDelta = (tabRank.get(a.entry.tab) ?? 0) - (tabRank.get(b.entry.tab) ?? 0);
+
     if (tabDelta !== 0) return tabDelta;
     const kindDelta = KIND_ORDER[a.entry.kind] - KIND_ORDER[b.entry.kind];
+
     if (kindDelta !== 0) return kindDelta;
+
     if (a.score !== b.score) return a.score - b.score;
+
     if (a.entry.key < b.entry.key) return -1;
+
     if (a.entry.key > b.entry.key) return 1;
+
     return 0;
   });
+
   return hits;
 }
 

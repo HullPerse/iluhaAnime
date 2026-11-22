@@ -18,8 +18,10 @@ export function BulkTrackerModal({
 }) {
   const { t } = useI18n();
   const [tracker, setTracker] = useState<string>("");
+
   if (!open) return null;
   const trimmed = tracker.trim();
+
   return (
     <Modal header={t("torrent.bulk.trackers.title")} onClose={onClose} className="w-lg">
       <div className="flex flex-col gap-2 p-1">

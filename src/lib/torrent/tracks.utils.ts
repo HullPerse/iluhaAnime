@@ -6,14 +6,18 @@ import type { TrackDisplay } from "@/types/torrent/tracks";
 
 function langCodeOf(track: MpvTrack): string {
   const raw = track.lang?.trim() ?? "";
+
   if (!raw || normalizeLangCode(raw) === "") return "";
+
   return raw;
 }
 
 function channelsOf(track: MpvTrack): string {
   if (track.type !== "audio") return "";
   const raw = track["demux-channels"]?.trim() ?? "";
+
   if (!raw || raw.toLowerCase().startsWith("unknown")) return "";
+
   return raw;
 }
 
@@ -21,6 +25,7 @@ export function trackMainLabel(track: MpvTrack): string {
   const parts: string[] = [];
   const code = langCodeOf(track);
   const title = track.title?.trim() ?? "";
+
   if (title) {
     const withCode =
       code && !title.toLowerCase().includes(code.toLowerCase()) ? `${title} [${code}]` : title;
@@ -28,15 +33,22 @@ export function trackMainLabel(track: MpvTrack): string {
   } else if (code) {
     parts.push(code);
   }
+
   const codec = track.codec?.trim() ?? "";
+
   if (codec) parts.push(codec.toUpperCase());
   const channels = channelsOf(track);
+
   if (channels) parts.push(channels);
   const flags: string[] = [];
+
   if (track.default) flags.push("[default]");
+
   if (track.forced) flags.push("[forced]");
+
   if (track.external) flags.push("[external]");
   const main = parts.length > 0 ? parts.join(" - ") : `#${track.id}`;
+
   return flags.length > 0 ? `${main} ${flags.join(" ")}` : main;
 }
 
@@ -50,6 +62,7 @@ export function toTrackDisplay(track: MpvTrack): TrackDisplay {
 
 export function trackLabel(track: MpvTrack): string {
   const display = toTrackDisplay(track);
+
   return display.language ? `${display.main} - ${display.language}` : display.main;
 }
 
@@ -60,11 +73,15 @@ export function findTrackByPreference(
 ): MpvTrack | null {
   const wantedCode = normalizeLangCode(language);
   const wantedText = language.trim().toLowerCase();
+
   if (!wantedCode && !wantedText) return null;
+
   return (
     tracks.find((track) => {
       if (track.type !== kind) return false;
+
       if (wantedCode && normalizeLangCode(track.lang) === wantedCode) return true;
+
       return Boolean(wantedText) && track.title?.trim().toLowerCase() === wantedText;
     }) ?? null
   );
@@ -76,23 +93,30 @@ export function selectableTracks(tracks: MpvTrack[], kind: "audio" | "sub"): Mpv
 
 export function nextTrackId(tracks: MpvTrack[], kind: "audio" | "sub"): number | null {
   const list = selectableTracks(tracks, kind);
+
   if (list.length === 0) return null;
   const current = list.findIndex((track) => track.selected);
   const next = current === -1 ? 0 : (current + 1) % list.length;
+
   return list.at(next)?.id ?? null;
 }
 
 export function sortTracksByLanguage(tracks: MpvTrack[]): MpvTrack[] {
   const names = tracks.map((track) => trackLanguageName(track));
+
   return tracks
     .map((track, index) => ({ index, track }))
     .sort((left, right) => {
       const leftName = names[left.index];
       const rightName = names[right.index];
+
       if (!leftName && !rightName) return left.index - right.index;
+
       if (!leftName) return 1;
+
       if (!rightName) return -1;
       const compared = leftName.localeCompare(rightName, "en");
+
       return compared !== 0 ? compared : left.index - right.index;
     })
     .map((entry) => entry.track);
@@ -101,6 +125,7 @@ export function sortTracksByLanguage(tracks: MpvTrack[]): MpvTrack[] {
 export function trackOptions(tracks: MpvTrack[]): DropdownOption[] {
   return tracks.map((track) => {
     const display = toTrackDisplay(track);
+
     return {
       value: String(track.id),
       main: display.main,

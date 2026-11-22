@@ -21,10 +21,13 @@ const TAB_SET = [
 
 async function ensureStartingScreen(page: Parameters<typeof clickTabByAnyOf>[0]): Promise<void> {
   const active = page.locator('[role="tab"][aria-selected="true"]').first();
+
   if ((await active.count()) > 0) {
     const label = (await active.textContent()) ?? "";
+
     if (/search|поиск/i.test(label)) return;
   }
+
   await clickTabByAnyOf(page, TAB.search);
 }
 
@@ -32,6 +35,7 @@ function peakOf(samples: RecordedSample[]): number | null {
   const values = samples
     .map((sample) => sample.workingSetBytes)
     .filter((value): value is number => value !== null);
+
   return values.length === 0 ? null : Math.max(...values);
 }
 
@@ -42,6 +46,7 @@ function summary(
 ): string {
   const peak = peakOf(samples);
   const latest = samples.at(-1) ?? null;
+
   return [
     "# Navigation and idle memory report",
     "",
@@ -67,6 +72,7 @@ function csv(samples: RecordedSample[]): string {
   const rows = [
     "phase,cycle,sampled_at,process_count,working_set_bytes,private_bytes,cpu_percent_one_core,threads,handles",
   ];
+
   for (const sample of samples) {
     rows.push(
       [
@@ -82,6 +88,7 @@ function csv(samples: RecordedSample[]): string {
       ].join(",")
     );
   }
+
   return rows.join("\n");
 }
 
@@ -100,6 +107,7 @@ export const navigation: Scenario = {
       previous = sample;
       const recorded = { ...sample, phase, cycle };
       samples.push(recorded);
+
       return recorded;
     };
 
@@ -109,6 +117,7 @@ export const navigation: Scenario = {
         await ensureStartingScreen(page);
         await sleep(500);
         baseline = await take("baseline", 0);
+
         if (baseline.processes.length === 0) throw new Error("process tree is empty");
       });
 
@@ -119,6 +128,7 @@ export const navigation: Scenario = {
             await sleep(500);
             await waitForReady(page);
             const tabs = await tabLabels(page);
+
             if (tabs.length === 0) throw new Error(`no tabs after opening ${name}`);
             await take(`tab:${name}`, cycle);
           }
@@ -129,11 +139,13 @@ export const navigation: Scenario = {
         await ensureStartingScreen(page);
         await sleep(750);
         afterTabs = await take("after-tabs", cycles);
+
         if (afterTabs.processes.length === 0) throw new Error("process tree disappeared");
       });
 
       await step(`idle for ${idleSeconds}s`, async () => {
         if (idleSeconds === 0) return;
+
         for (let second = 1; second <= idleSeconds; second += 1) {
           await sleep(1000);
           await take(`idle:${second}s`, 0);

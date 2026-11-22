@@ -48,6 +48,7 @@ export default function AniListResultsHost({
         onToggleListCollapsed={onToggleListCollapsed}
       />
     );
+
   return (
     <AniListResults
       entries={pagedEntries}

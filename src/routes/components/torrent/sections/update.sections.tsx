@@ -55,13 +55,17 @@ export default function UpdateCheck({
       torrentApi.getTorrentDetails(origin.source, origin.url, proxy)
     );
     setChecking(false);
+
     if (error || !details) {
       if (error) showError(t("torrent.files.update.error"), error.message);
+
       return;
     }
+
     const added = findUpdatedFiles(files, details.files);
     const replaced =
       Boolean(details.infoHash) && details.infoHash.toLowerCase() !== item.info_hash.toLowerCase();
+
     if (added.length === 0 && !replaced) return;
     setUpdate({ added, details, replaced });
     setPicked(new Set(added.map((file) => file.name)));
@@ -70,8 +74,10 @@ export default function UpdateCheck({
   const togglePicked = (name: string) => {
     setPicked((prev) => {
       const next = new Set(prev);
+
       if (next.has(name)) next.delete(name);
       else next.add(name);
+
       return next;
     });
   };
@@ -80,6 +86,7 @@ export default function UpdateCheck({
     if (!update) return;
     const added = update.added.filter((file) => picked.has(file.name));
     setUpdate(null);
+
     if (added.length === 0) return;
     onUpdateRequest({ added, details: update.details });
   };

@@ -127,11 +127,15 @@ describe("StreamToolbar", () => {
             : { tokenSaved: false, authorized: false, login: null }
         );
       }
+
       if (command === "animelib_webview_login") return Promise.resolve("ok");
+
       if (command === "animelib_finish_webview_login") {
         signedIn = true;
+
         return Promise.resolve("ok");
       }
+
       return Promise.resolve(null);
     });
 
@@ -160,10 +164,13 @@ describe("StreamToolbar", () => {
             : { tokenSaved: false, authorized: false, login: null }
         );
       }
+
       if (command === "animelib_token_clear") {
         signedIn = false;
+
         return Promise.resolve(null);
       }
+
       return Promise.resolve(null);
     });
 

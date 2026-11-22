@@ -15,6 +15,7 @@ export default function SearchResultsSummary({
   resultsPerPage: number;
 }) {
   const { t } = useI18n();
+
   return (
     <span className="windows95-text px-1 text-xs">
       {isPagedSource

@@ -7,10 +7,13 @@ export function resolveAnimeTitle(
 ): string {
   if (!titles) return "";
   const order: AniTitleLanguage[] = [pref ?? "english", "english", "romaji", "native"];
+
   for (const language of order) {
     const value = titles[language]?.trim();
+
     if (value) return value;
   }
+
   return "";
 }
 
@@ -20,6 +23,7 @@ export function animeTitleFields(
   const romaji = media.title_romaji?.trim() ?? "";
   const english = media.title_english?.trim() ?? "";
   const native = media.title_native?.trim() ?? "";
+
   return {
     english,
     native,

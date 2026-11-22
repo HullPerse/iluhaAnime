@@ -45,6 +45,7 @@ const makeAnime = (): AniMedia => {
 
 const renderControls = (scoreFormat: string, score: number | null = null) => {
   const client = new QueryClient();
+
   return render(
     <QueryClientProvider client={client}>
       <AniListActionControls
@@ -119,21 +120,26 @@ const renderEditable = (
       />
     </QueryClientProvider>
   );
+
   return { client };
 };
 
 const cachedEntry = (client: QueryClient) => {
   const data = client.getQueryData(["anilist_data"]);
+
   if (!data) return null;
   const typed = data as {
     lists: {
       entries: { media: { id: number }; progress: number | null; list_status: string }[];
     }[];
   };
+
   for (const list of typed.lists) {
     const found = list.entries.find((entry) => entry.media.id === MEDIA_ID);
+
     if (found) return found;
   }
+
   return null;
 };
 
@@ -243,6 +249,7 @@ describe("AniListActionControls save diagnostics", () => {
     mockInvoke.mockImplementation((command: unknown) => {
       if (command === "save_anilist_entry")
         return Promise.reject(new Error("429 Too Many Requests"));
+
       return Promise.resolve(null);
     });
     renderControls("POINT_10");
@@ -399,6 +406,7 @@ describe("AniListActionControls delete", () => {
       favourites: [],
       people: { staff: [], characters: [] },
     });
+
     return render(
       <QueryClientProvider client={client}>
         <AniListActionControls

@@ -11,6 +11,7 @@ function normalize(value: string | undefined): string {
  */
 export function trackIdentity(track: MpvTrack): string {
   const external = normalize(track["external-filename"]);
+
   if (external) return `external:${track.type}:${external}`;
   const metadata = [
     normalize(track.lang),
@@ -21,6 +22,7 @@ export function trackIdentity(track: MpvTrack): string {
   ]
     .filter(Boolean)
     .join("|");
+
   return metadata ? `${track.type}:${metadata}` : "";
 }
 
@@ -32,7 +34,9 @@ export function resolveTrackId(
 ): number | undefined {
   if (identity) {
     const match = tracks.find((track) => track.type === kind && trackIdentity(track) === identity);
+
     if (match) return match.id;
   }
+
   return id;
 }

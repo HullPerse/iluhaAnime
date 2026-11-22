@@ -20,6 +20,7 @@ export function usePlayerMargins(immersive: boolean) {
 
   const readMargins = useCallback((): VideoMargins => {
     const rect = videoRef.current?.getBoundingClientRect();
+
     return computeVideoMargins(window.innerWidth || 1, window.innerHeight || 1, rect ?? undefined);
   }, []);
 
@@ -32,14 +33,18 @@ export function usePlayerMargins(immersive: boolean) {
     if (!force && lastMarginsRef.current && marginsCloseEnough(lastMarginsRef.current, next)) {
       return;
     }
+
     if (!playbackAtoms.ready.get()) {
       lastMarginsRef.current = null;
+
       return;
     }
+
     ignore(
       setVideoMarginRatio(next)
         .then(() => {
           lastMarginsRef.current = next;
+
           return null;
         })
         .catch((error: unknown) => {
@@ -66,9 +71,11 @@ export function usePlayerMargins(immersive: boolean) {
 
   useEffect(() => {
     const element = videoRef.current;
+
     if (!element || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => syncMargins());
     observer.observe(element);
+
     return () => observer.disconnect();
   }, [syncMargins]);
 
@@ -76,6 +83,7 @@ export function usePlayerMargins(immersive: boolean) {
     const onResize = () => syncMargins();
     window.addEventListener("resize", onResize);
     syncMargins();
+
     return () => window.removeEventListener("resize", onResize);
   }, [syncMargins]);
 

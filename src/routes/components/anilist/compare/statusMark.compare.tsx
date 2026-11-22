@@ -5,10 +5,12 @@ import { toLocaleKey } from "@/lib/locale/key.utils";
 
 export function StatusMark({ status }: { status: string }) {
   const { t } = useI18n();
+
   if (!status) return <span className="size-2 shrink-0" aria-hidden />;
   const normalized = status.toUpperCase();
   const key = listStatusLabels[normalized];
   const label = key ? t(toLocaleKey(key)) : status;
+
   return (
     <span
       role="img"

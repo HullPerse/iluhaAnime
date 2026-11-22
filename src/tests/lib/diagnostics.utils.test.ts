@@ -27,7 +27,9 @@ const settings = {
 
 function probe(id: string): DiagnosticProbe {
   const found = DIAGNOSTIC_PROBES.find((entry) => entry.id === id);
+
   if (!found) throw new Error(`missing probe ${id}`);
+
   return found;
 }
 
@@ -121,25 +123,21 @@ describe("diagnostics proxy resolver", () => {
 describe("diagnostics status mapping", () => {
   it("maps verdicts to readable statuses", () => {
     expect(probeStatus(run(probe("anilist-graphql"), "direct", diagnosis("ok", 120)))).toBe("ok");
-    expect(
-      probeStatus(run(probe("anilist-graphql"), "direct", diagnosis("ok", 2500)))
-    ).toBe("slow");
+    expect(probeStatus(run(probe("anilist-graphql"), "direct", diagnosis("ok", 2500)))).toBe(
+      "slow"
+    );
     expect(
       probeStatus(run(probe("anilist-graphql"), "direct", diagnosis("tcp_failed", 0, null)))
     ).toBe("tcp");
     expect(
-      probeStatus(
-        run(probe("anilist-graphql"), "direct", diagnosis("http_status", 20, 401))
-      )
+      probeStatus(run(probe("anilist-graphql"), "direct", diagnosis("http_status", 20, 401)))
     ).toBe("auth");
     expect(
       probeStatus(run(probe("anilist-graphql"), "direct", diagnosis("request_failed", 0, null)))
     ).toBe("timeout");
-    expect(
-      probeStatus(
-        run(probe("anilist-graphql"), "proxy", null, { error: "bad proxy" })
-      )
-    ).toBe("proxy");
+    expect(probeStatus(run(probe("anilist-graphql"), "proxy", null, { error: "bad proxy" }))).toBe(
+      "proxy"
+    );
   });
 });
 

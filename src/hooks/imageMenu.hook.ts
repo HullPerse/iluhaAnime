@@ -29,6 +29,7 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
       ignore(
         attempt(writeText(source)).then(([, error]) => {
           if (error) showError(t("common.error"), t("screenshot.copy.error"));
+
           return null;
         })
       );
@@ -39,14 +40,18 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
         attempt(fetchRemoteImageSource(source)).then(([path, fetchError]) => {
           if (fetchError || path === null) {
             showError(t("common.error"), t("screenshot.copy.error"));
+
             return null;
           }
+
           ignore(
             attempt(writeImage(path)).then(([, writeError]) => {
               if (writeError) showError(t("common.error"), t("screenshot.copy.error"));
+
               return null;
             })
           );
+
           return null;
         })
       );
@@ -57,8 +62,10 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
         attempt(fetchRemoteImageSource(source)).then(([path, fetchError]) => {
           if (fetchError || path === null) {
             showError(t("common.error"), t("screenshot.save.error"));
+
             return null;
           }
+
           const cachedPath = path;
           ignore(
             (async () => {
@@ -69,14 +76,19 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
                   filters: [{ name: `${extension.toUpperCase()} images`, extensions: [extension] }],
                 })
               );
+
               if (dialogError || !picked) {
                 if (dialogError) showError(t("common.error"), t("screenshot.save.error"));
+
                 return;
               }
+
               const [, saveError] = await attempt(systemApi.saveCachedImage(cachedPath, picked));
+
               if (saveError) showError(t("common.error"), t("screenshot.save.error"));
             })()
           );
+
           return null;
         })
       );
@@ -89,16 +101,20 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
             attempt(posterPngBlob(source)).then(([blob, fetchError]) => {
               if (fetchError || !blob) {
                 showError(t("common.error"), t("screenshot.copy.error"));
+
                 return;
               }
+
               ignore(
                 attempt(navigator.clipboard.write([new ClipboardItem({ "image/png": blob })])).then(
                   ([, writeError]) => {
                     if (writeError) showError(t("common.error"), t("screenshot.copy.error"));
+
                     return null;
                   }
                 )
               );
+
               return null;
             })
           );
@@ -111,8 +127,10 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
             attempt(posterPngBlob(source)).then(([blob, fetchError]) => {
               if (fetchError || !blob) {
                 showError(t("common.error"), t("screenshot.save.error"));
+
                 return;
               }
+
               const bytes = blob;
               ignore(
                 (async () => {
@@ -122,19 +140,24 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
                       filters: [{ name: "PNG images", extensions: ["png"] }],
                     })
                   );
+
                   if (dialogError || !picked) {
                     if (dialogError) showError(t("common.error"), t("screenshot.save.error"));
+
                     return;
                   }
+
                   const [, saveError] = await attempt(
                     systemApi.savePosterBytes(
                       [...new Uint8Array(await bytes.arrayBuffer())],
                       picked
                     )
                   );
+
                   if (saveError) showError(t("common.error"), t("screenshot.save.error"));
                 })()
               );
+
               return null;
             })
           );
@@ -156,6 +179,7 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
         onSelect: copyImage,
       },
     ];
+
     if (canCopyPosterUrl(source)) {
       entries.push({
         kind: "item",
@@ -165,17 +189,20 @@ export function useImageMenuEntries(src: string | null, viaCache = false): Conte
         onSelect: copyUrl,
       });
     }
+
     return entries;
   }, [src, t, viaCache]);
 }
 
 function fileExtensionOf(path: string): string {
   const extension = path.split(".").pop()?.toLowerCase() ?? "";
+
   return /^[a-z0-9]{1,5}$/u.test(extension) ? extension : "png";
 }
 
 function exportNameOf(url: string, extension: string): string {
   const segment = url.split("?")[0]?.split("/").pop()?.trim() ?? "";
   const stem = segment.replace(/\.[a-z0-9]{1,5}$/iu, "") || "image";
+
   return `${stem}.${extension}`;
 }

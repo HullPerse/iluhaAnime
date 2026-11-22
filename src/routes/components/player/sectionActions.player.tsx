@@ -13,6 +13,7 @@ export default function SectionActions({
   saveDir: string;
 }) {
   const { t } = useI18n();
+
   return (
     <>
       <Button size="icon" className="size-5" title={t("player.files.refresh")} onClick={onRefresh}>

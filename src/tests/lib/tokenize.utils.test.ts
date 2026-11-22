@@ -51,7 +51,7 @@ describe("tokenizeMediaName", () => {
   });
 
   it("normalizes the en-dash into a split point", () => {
-    expect(tokenizeMediaName("Yoru no Kurage wa Oyogenai – 05").map((t) => t.value)).toEqual([
+    expect(tokenizeMediaName("Yoru no Kurage wa Oyogenai \u2013 05").map((t) => t.value)).toEqual([
       "Yoru",
       "no",
       "Kurage",

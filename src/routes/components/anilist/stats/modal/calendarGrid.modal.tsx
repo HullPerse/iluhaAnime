@@ -26,12 +26,14 @@ export function CalendarGrid({
 }) {
   const totalCells = firstDay + daysInMonth;
   const rows = Math.ceil(totalCells / 7);
+
   return (
     <div className="windows95-border bg-field overflow-hidden">
       <CalendarDayHeader />
       <div className="grid grid-cols-7">
         {Array.from({ length: rows * 7 }).map((_, idx) => {
           const day = idx - firstDay + 1;
+
           if (day < 1 || day > daysInMonth) {
             return (
               <div
@@ -40,6 +42,7 @@ export function CalendarGrid({
               />
             );
           }
+
           return (
             <CalendarDayCell
               key={day}

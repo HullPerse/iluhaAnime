@@ -487,6 +487,40 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn disconnected_manager_retains_only_the_latest_activity_during_backoff() {
+        let mut manager = Manager::new();
+        manager.apply(Command::Configure { enabled: true }).await;
+        manager.last_sent = Some(activity("old chapter"));
+        manager.last_sent_at = Some(Instant::now());
+        manager.drop_client();
+        let retry_at = manager.next_retry;
+        for chapter in ["chapter 2", "chapter 3"] {
+            manager
+                .apply(Command::Set {
+                    source: PresenceSource::Main,
+                    activity: activity(chapter),
+                })
+                .await;
+        }
+        manager.pump().await;
+
+        assert!(manager.client.is_none());
+        assert!(manager.last_sent.is_none());
+        assert_eq!(manager.next_retry, retry_at);
+        assert_eq!(manager.main, Some(activity("chapter 3")));
+        assert!(is_update_due(
+            manager.last_sent.as_ref(),
+            manager.last_sent_at,
+            &activity("chapter 3"),
+            Instant::now(),
+        ));
+
+        manager.apply(Command::Configure { enabled: false }).await;
+        assert!(manager.main.is_none());
+        assert!(manager.player.is_none());
+    }
+
     #[test]
     fn the_first_activity_is_sent_immediately() {
         let now = Instant::now();

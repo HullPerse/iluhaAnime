@@ -3,7 +3,9 @@ const HOTKEY_IGNORE_SELECTOR =
 
 export function shouldIgnoreHotkeys(target: EventTarget | null): boolean {
   const element = target instanceof HTMLElement ? target : null;
+
   if (!element) return false;
+
   return Boolean(element.closest(HOTKEY_IGNORE_SELECTOR));
 }
 
@@ -12,7 +14,9 @@ const TEXT_ENTRY_SELECTOR =
 
 export function isTextEntryTarget(target: EventTarget | null): boolean {
   const element = target instanceof HTMLElement ? target : null;
+
   if (!element) return false;
+
   return Boolean(element.closest(TEXT_ENTRY_SELECTOR));
 }
 
@@ -25,16 +29,23 @@ const PLAYER_ACTIVATION_CODES = new Set(["Space", "Enter", "NumpadEnter"]);
  */
 export function shouldIgnorePlayerHotkeys(event: KeyboardEvent): boolean {
   const element = event.target instanceof HTMLElement ? event.target : null;
+
   if (!element) return false;
+
   if (
     element.closest('[role="slider"]') &&
     /^(Arrow|Home$|End$|PageUp$|PageDown$)/.test(event.code)
   )
     return true;
   const inRange = element.closest('input[type="range"]');
+
   if (inRange && event.code.startsWith("Arrow")) return false;
+
   if (isTextEntryTarget(event.target)) return true;
+
   if (element.closest("[data-no-hotkeys], [data-hotkeys-disabled]")) return true;
+
   if (element.closest("button") && PLAYER_ACTIVATION_CODES.has(event.code)) return true;
+
   return false;
 }

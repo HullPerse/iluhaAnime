@@ -8,6 +8,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { useStreamHistoryRecent } from "@/hooks/stream/catalog.hook";
 
 import { HistoryRow } from "@/routes/components/stream/historyRow.stream";
+import { StreamError } from "@/routes/components/stream/states/error.states";
 
 export default function StreamHistoryModal({
   open,
@@ -20,12 +21,13 @@ export default function StreamHistoryModal({
 }) {
   const { t } = useI18n();
   const query = useStreamHistoryRecent(open);
+
   if (!open) return null;
 
   const rows = query.data ?? [];
   const loading = query.isPending;
-  const empty = !loading && rows.length === 0;
-  const ready = !loading && !empty;
+  const failed = query.isError && rows.length === 0;
+  const empty = query.isSuccess && rows.length === 0;
   const clear = () => {
     streamApi
       .historyClear()
@@ -54,10 +56,11 @@ export default function StreamHistoryModal({
       }
     >
       {loading && <div className="windows95-border bg-field h-40" aria-busy="true" />}
+      {failed && <StreamError onRetry={() => query.refetch()} />}
       {empty && (
         <p className="text-hint windows95-text p-3 text-center">{t("stream.history.empty")}</p>
       )}
-      {ready && (
+      {rows.length > 0 && (
         <div
           role="list"
           className="windows95-border bg-field flex max-h-100 min-h-0 flex-col overflow-y-auto p-0.5"

@@ -24,12 +24,14 @@ export default function FramesReveal({
   const { t } = useI18n();
   const [openSlot, setOpenSlot] = useState<number | null>(null);
   const openFrame = openSlot === null ? undefined : frames.find((frame) => frame.slot === openSlot);
+
   return (
     <section className="daily-reveal">
       <div className="daily-frames-grid">
         {Array.from({ length: maxAttempts }, (_, slot) => {
           const frame = frames.find((item) => item.slot === slot);
           const label = t("collection.game.frames.preview", { slot: slot + 1 });
+
           return (
             <button
               key={slot}

@@ -45,6 +45,7 @@ const renderModal = (friends: AniFriend[], onAddMany: (friends: unknown[]) => vo
     onTag: () => undefined,
     onGenre: () => undefined,
   };
+
   return render(
     <AniListFriendsModal
       friends={friends}
@@ -85,6 +86,7 @@ beforeEach(() => {
         total: 2,
       });
     }
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 });

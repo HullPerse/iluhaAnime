@@ -31,6 +31,7 @@ export function useTorrentInAppPlayer(
         trackExts,
         extraFullPaths
       );
+
       if (!playlist) return;
       ignore(
         (async () => {

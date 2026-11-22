@@ -13,6 +13,7 @@ let indexChain: Promise<unknown> = Promise.resolve();
 
 export function readStoredSyncKey(): string | null {
   const [value] = attemptSync(() => localStorage.getItem(ANIME_SYNC_KEY_STORAGE));
+
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
@@ -31,14 +32,19 @@ export function animeIndexSyncKey(
   const mix = (text: string): void => {
     for (const char of text) hash = Math.trunc(Math.imul(hash, 31) + (char.codePointAt(0) ?? 0));
   };
+
   mix(`profile:${profileId ?? 0}|n:${animeIndex.length}`);
+
   for (const anime of animeIndex) {
     mix(
       `#${anime.id}|${anime.title}|${anime.status}|${anime.score ?? 0}|${anime.favourite ? 1 : 0}`
     );
+
     for (const alias of anime.aliases) mix(`@${alias}`);
+
     for (const typed of anime.typedTitles ?? []) mix(`:${typed.kind}=${typed.title}`);
   }
+
   return `${animeIndex.length}:${hash}`;
 }
 
@@ -54,14 +60,18 @@ export function syncUnifiedIndex(entries: UnifiedIndexEntryInput[]): Promise<boo
         const batch = entries.slice(offset, offset + INDEX_BATCH_SIZE);
         await unifiedIndexApi.upsertUnifiedIndex(batch);
       }
+
       if (entries.length > 100) await unifiedIndexApi.optimizeUnifiedIndex();
+
       return true;
     })
     .catch((error: unknown) => {
       reportBackgroundError("index.upsert", error);
+
       return false;
     });
   indexChain = run;
+
   return run;
 }
 
@@ -123,7 +133,9 @@ export function buildAnimeIndex(
 
 export async function dropUnifiedScope(scope: string, label: string): Promise<void> {
   const [, error] = await attempt(unifiedIndexApi.clearUnifiedIndexScope(scope));
+
   if (error === null) return;
   const [, pruneError] = await attempt(unifiedIndexApi.pruneUnifiedIndexScope(scope, []));
+
   if (pruneError !== null) reportBackgroundError(label, pruneError);
 }

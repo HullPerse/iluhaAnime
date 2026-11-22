@@ -27,6 +27,7 @@ const renderAt = (href: string) => {
       <RouterProvider router={router} />
     </QueryClientProvider>
   );
+
   return router;
 };
 
@@ -50,6 +51,7 @@ beforeEach(() => {
     ) {
       return Promise.resolve([]);
     }
+
     return Promise.resolve(null);
   });
   mockListen.mockResolvedValue(vi.fn());

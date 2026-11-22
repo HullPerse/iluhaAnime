@@ -12,6 +12,7 @@ export default function OutletComponent() {
   useEffect(() => {
     if (!isPlayerWindow) return;
     document.documentElement.dataset.playerWindow = "on";
+
     return () => {
       delete document.documentElement.dataset.playerWindow;
     };

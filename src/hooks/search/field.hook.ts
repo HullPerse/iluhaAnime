@@ -79,11 +79,14 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     (spanIndex?: number) => {
       if (!spellCheck) return;
       const span = spanIndex == null ? undefined : spellCheck.spans?.[spanIndex];
+
       if (!span) {
         setQuery(spellCheck.correction);
         recordSelect(spellCheck.correction, spellCheck.reason);
+
         return;
       }
+
       const next = query.slice(0, span.start) + span.corrected + query.slice(span.end);
       setQuery(next);
       recordSelect(next, spellCheck.reason);
@@ -105,6 +108,7 @@ export function useSearchField(params: SearchFieldParams): SearchField {
   const applySpellCorrectionAt = useCallback(
     (correction: string) => {
       const trimmed = correction.trim();
+
       if (!trimmed) return;
       recordSelect(trimmed, trimmed === spellCheck?.correction ? spellCheck.reason : undefined);
       setQuery(trimmed);
@@ -122,10 +126,13 @@ export function useSearchField(params: SearchFieldParams): SearchField {
 
   const handleSubmit = useCallback(() => {
     const trimmed = query.trim();
+
     if (!trimmed) return;
+
     if (inlineCompletion && trimmed.toLocaleLowerCase() !== inlineCompletion.toLocaleLowerCase()) {
       recordIgnore(inlineCompletion);
     }
+
     addQuery(trimmed, historyScope ?? scope);
     onSubmit?.(trimmed);
   }, [query, inlineCompletion, recordIgnore, historyScope, scope, onSubmit]);
@@ -134,8 +141,10 @@ export function useSearchField(params: SearchFieldParams): SearchField {
     (value: string) => {
       recordSelect(value);
       setQuery(value);
+
       if (submitOnSelect) {
         const trimmed = value.trim();
+
         if (!trimmed) return;
 
         addQuery(trimmed, historyScope ?? scope);

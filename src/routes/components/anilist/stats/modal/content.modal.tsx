@@ -45,17 +45,21 @@ export function StatsModalContent({
 }: StatsModalContentProps) {
   const { t } = useI18n();
   const season = currentAnimeSeason();
+
   if (drill != null) {
     return <MediaRows rows={drillRows} scoreFormat={scoreFormat} onOpen={onOpenDetail} />;
   }
+
   if (tab === "overview") {
     return (
       <StatsOverview userId={userId} scoreFormat={scoreFormat} lists={lists} onDrill={onDrill} />
     );
   }
+
   if (tab === "released") {
     return <StatsReleases onAnimeClick={onOpenDetail} lists={lists} />;
   }
+
   if (selectedDay != null) {
     return (
       <div className="flex flex-col gap-2">
@@ -63,6 +67,7 @@ export function StatsModalContent({
       </div>
     );
   }
+
   return (
     <div className="flex flex-col">
       <div className="mb-1 flex flex-wrap items-center gap-1">

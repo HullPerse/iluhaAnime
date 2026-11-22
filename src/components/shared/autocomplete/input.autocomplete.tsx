@@ -135,12 +135,15 @@ export function InlineAutocompleteInput({
 
   useEffect(() => {
     const input = inputRef.current;
+
     if (!input) return;
     const update = () => setMenuWidth(input.offsetWidth);
     update();
+
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(update);
     observer.observe(input);
+
     return () => observer.disconnect();
   }, []);
 
@@ -160,8 +163,10 @@ export function InlineAutocompleteInput({
       if (suggestion.kind === "spell") {
         onApplySpellCorrectionAt?.(suggestion.value);
         setActiveIndex(-1);
+
         return;
       }
+
       onSelectSuggestion?.(suggestion.value);
       onAcceptCompletion?.(suggestion.value);
       setActiveIndex(-1);
@@ -181,17 +186,21 @@ export function InlineAutocompleteInput({
       setDismissed(true);
       setActiveIndex(-1);
       onDismissCompletion?.();
+
       return true;
     },
     onUnhandled: (event) => {
       if (event.key === "Tab" && !event.shiftKey && ghostValue && onAcceptCompletion) {
         event.preventDefault();
         onAcceptCompletion(ghostValue);
+
         return;
       }
+
       if (handleSpellTab(event, spellCheck, onApplySpellCorrection)) {
         return;
       }
+
       onKeyDown?.(event);
     },
   });
@@ -200,6 +209,7 @@ export function InlineAutocompleteInput({
     if (handleSpellSaveTab(event, spellCheck, onAddWordToDictionary)) {
       return;
     }
+
     listNavigationHandler(event);
   };
 

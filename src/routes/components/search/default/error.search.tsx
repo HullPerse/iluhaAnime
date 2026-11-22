@@ -11,6 +11,7 @@ export default function SearchErrorBar({
   onRetry: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <section
       className="windows95-border bg-surface text-destructive flex items-center gap-2 px-2 py-1"

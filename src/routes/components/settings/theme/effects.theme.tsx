@@ -10,6 +10,7 @@ import { SettingResetButton } from "@/routes/components/settings/resetSetting.se
 export function EffectsCheckbox({ label, field }: { label: string; field: keyof SettingsData }) {
   const value = useCell(settingsAtoms[field] as Cell<boolean>);
   const { t } = useI18n();
+
   return (
     <div className="group grid grid-cols-[140px_1fr] gap-x-3 gap-y-0.5">
       <span className="windows95-text text-text flex items-center text-xs font-bold">{label}</span>

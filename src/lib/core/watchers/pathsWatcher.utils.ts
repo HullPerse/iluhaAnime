@@ -11,6 +11,7 @@ export function samePath(a: string, b: string): boolean {
 export function isSameOrInside(ancestor: string, descendant: string): boolean {
   const root = normalizePath(ancestor);
   const path = normalizePath(descendant);
+
   return path === root || path.startsWith(`${root}/`);
 }
 

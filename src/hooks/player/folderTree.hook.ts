@@ -27,8 +27,10 @@ export function useFolderTree({
   const toggle = useCallback((path: string) => {
     setOpen((previous) => {
       const next = new Set(previous);
+
       if (next.has(path)) next.delete(path);
       else next.add(path);
+
       return next;
     });
   }, []);
@@ -43,6 +45,7 @@ export function useFolderTree({
       !hideRoot || depth > 0
         ? [{ path: node.path, depth, kind: "folder", expanded: open.has(node.path) }]
         : [];
+
     return [
       ...header,
       ...flatItems.map((item) =>

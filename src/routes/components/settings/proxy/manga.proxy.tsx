@@ -4,7 +4,7 @@ import { mangaSources, testMangaSourceProxy } from "@/api/manga.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { effectiveProxyUrl } from "@/lib/core/system/proxy.utils";
-import MangaLibDomains from "@/routes/components/manga/domains.manga";
+import MangaLibDomains from "@/routes/components/manga/sources/domains.sources";
 import { ProxyField } from "@/routes/components/settings/proxy/proxyField.settings";
 import { SectionResetButton } from "@/routes/components/settings/reset.settings";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
@@ -41,6 +41,7 @@ export default function MangaProxySettings() {
             placeholder={t("settings.manga.proxy.inherit")}
             onChange={(next) => {
               const nextProxies = { ...overrides };
+
               if (next === null) delete nextProxies[id];
               else nextProxies[id] = next;
               patchSettings({ mangaSourceProxies: nextProxies });

@@ -16,6 +16,7 @@ const EXTENSIONS = ["mkv"];
 
 function entry(path: string): VideoFileEntry {
   const name = path.replaceAll("\\", "/").split("/").pop() as string;
+
   return { path, name, size: 1 };
 }
 
@@ -91,9 +92,11 @@ describe("scanBus", () => {
     expect(walkEveryRoot).toHaveBeenCalledTimes(1);
     const outcome = await patched;
     expect(outcome.kind).toBe("full");
+
     if (outcome.kind === "full") {
       expect(sorted(outcome.entries)).toEqual(["C:/A/ep1.mkv", "C:/A/Season 2/ep2.mkv"].sort());
     }
+
     expect(sorted(await walked)).toEqual(["C:/A/ep1.mkv", "C:/A/Season 2/ep2.mkv"].sort());
   });
 
@@ -150,6 +153,7 @@ describe("scanBus", () => {
 
     const [full, point] = await settled;
     expect(full?.status).toBe("rejected");
+
     if (full?.status === "rejected") expect(full.reason).toEqual(new Error("walk failed"));
     expect(point?.status).toBe("fulfilled");
   });

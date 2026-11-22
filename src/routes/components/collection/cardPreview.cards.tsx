@@ -33,9 +33,11 @@ export default function CardPreview({
   const savedImageUrl = preferredUrl ?? card.imageUrl;
   const slides = useMemo(() => {
     if (galleryImages.length === 0) return [];
+
     if (savedImageUrl && !galleryImages.some((image) => image.url === savedImageUrl)) {
       return [{ url: savedImageUrl, thumbUrl: savedImageUrl }, ...galleryImages];
     }
+
     return galleryImages;
   }, [galleryImages, savedImageUrl]);
   const savedIndex = Math.max(

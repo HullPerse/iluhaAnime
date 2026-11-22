@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Unlisten = () => Promise<void>;
+
 type TauriEvent = { payload: unknown };
 
 const tauri = vi.hoisted(() => {
@@ -14,6 +15,7 @@ const tauri = vi.hoisted(() => {
     resolve: () => void;
     reject: (error: unknown) => void;
   }
+
   const calls: Call[] = [];
 
   const listen = (event: string, handler: (event: TauriEvent) => void): Promise<Unlisten> => {
@@ -34,6 +36,7 @@ const tauri = vi.hoisted(() => {
       rejectFn = (error: unknown) => reject(error);
     });
     calls.push(call);
+
     return promise;
   };
 
@@ -169,14 +172,17 @@ describe("useTauriEvent", () => {
   });
 
   it("unlistens a listener that resolves after unmount (no leak)", async () => {
-    const { unmount } = renderHook(() => useTauriEvent("leaky-event", () => {}));
+    const handler = vi.fn();
+    const { unmount } = renderHook(() => useTauriEvent("leaky-event", handler));
     const call = tauri.last();
     await act(async () => {
       unmount();
     });
     await act(async () => {
+      call?.handler({ payload: "late" });
       call?.resolve();
     });
+    expect(handler).not.toHaveBeenCalled();
     expect(call?.unlistenCount).toBe(1);
   });
 });

@@ -6,6 +6,7 @@ import { StatePanel } from "@/routes/components/stream/states/panel.states";
 
 export function StreamOffline() {
   const { t } = useI18n();
+
   return (
     <StatePanel
       icon={<WifiOff className="text-hint size-8" aria-hidden />}

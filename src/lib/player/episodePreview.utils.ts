@@ -12,5 +12,6 @@ export function previewPosition(
   const maxTop = Math.max(PREVIEW_GAP, viewport.height - PREVIEW_HEIGHT - PREVIEW_GAP);
   const rowCenter = (rect.top + rect.bottom) / 2;
   const top = Math.min(Math.max(PREVIEW_GAP, rowCenter - PREVIEW_HEIGHT / 2), maxTop);
+
   return { left, top };
 }

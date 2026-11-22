@@ -36,6 +36,7 @@ export function ScreenFooter({
   const info = runtime.info;
   const running = runtime.status === "running";
   let statusLabel = t("game.status.idle");
+
   if (runtime.status === "starting") statusLabel = t("game.status.starting");
   else if (info !== null) statusLabel = `${info.name} - ${t(GAME_PLATFORM_LABELS[info.platform])}`;
 
@@ -65,11 +66,11 @@ export function ScreenFooter({
         <Slider
           label={t("game.volume")}
           min={0}
-          max={1}
-          step={0.05}
-          value={volume}
+          max={100}
+          step={5}
+          value={Math.round(volume * 100)}
           suffix="%"
-          onChange={onVolumeChange}
+          onChange={(value) => onVolumeChange(value / 100)}
         />
       </div>
       <Button

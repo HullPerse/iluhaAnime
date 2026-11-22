@@ -1,10 +1,12 @@
 import { useCell } from "@hullperse/hp_utils/react";
 import { SkipForward } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { RefObject } from "react";
 
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
+import { PACK_INTRO_MS } from "@/config/cards/pack.config";
+import { usePackIntroAnimation } from "@/hooks/cards/packIntro.hook";
+import { packImageUrls } from "@/lib/cards/pack.utils";
 import { useCardsImageProxy } from "@/hooks/cards/imageProxy.hook";
 import { useCardTilt } from "@/hooks/cards/tilt.hook";
 import {
@@ -20,73 +22,12 @@ import type { PackOpeningPhase } from "@/types/ui/collection";
 import PackArt from "@/routes/components/collection/packArt.cards";
 import Reveal from "@/routes/components/collection/reveal.cards";
 
-const INTRO_MS = 3_200;
-
-function packImageUrls(cards: readonly OpenedCard[]): string[] {
-  const urls: string[] = [];
-  for (const card of cards) {
-    if (card.imageUrl) urls.push(card.imageUrl);
-    if (card.collectionCoverUrl) urls.push(card.collectionCoverUrl);
-    for (const cover of card.collage) {
-      if (cover) urls.push(cover);
-    }
-  }
-  return urls;
-}
-
-function usePackIntroAnimation(
-  enableAnimations: boolean,
-  introMs: number,
-  packRef: RefObject<HTMLButtonElement | null>,
-  setIntroFinished: (finished: boolean) => void
-) {
-  useEffect(() => {
-    setIntroFinished(false);
-    if (!enableAnimations) {
-      setIntroFinished(true);
-      return;
-    }
-    const pack = packRef.current;
-    if (pack === null || typeof pack.animate !== "function") {
-      setIntroFinished(true);
-      return;
-    }
-    let cancelled = false;
-    const animation = pack.animate(
-      [
-        { offset: 0, opacity: 0, transform: "translateY(-140%) rotate(-5deg) scale(0.85)" },
-        { offset: 0.08, opacity: 1, transform: "translateY(0) rotate(0deg) scale(1)" },
-        { offset: 0.16, transform: "translateX(-5px) rotate(-1deg)" },
-        { offset: 0.22, transform: "translateX(5px) rotate(1deg)" },
-        { offset: 0.28, transform: "translateX(-4px) rotate(-0.5deg)" },
-        { offset: 0.34, transform: "translateX(0) rotate(0deg)" },
-        { offset: 0.46, transform: "scale(1.03)" },
-        { offset: 0.56, transform: "scale(0.98)" },
-        { offset: 0.64, opacity: 1, transform: "scale(1.1)" },
-        { offset: 0.72, opacity: 0, transform: "scale(1.4)" },
-        { offset: 1, opacity: 0, transform: "scale(1.4)" },
-      ],
-      { duration: introMs, easing: "ease-in-out" }
-    );
-    animation.finished
-      .then(() => {
-        if (!cancelled) setIntroFinished(true);
-        return null;
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-      animation.cancel();
-    };
-  }, [enableAnimations, introMs, packRef, setIntroFinished]);
-}
-
 export default function PackOpen({
   cards,
   packKind = "default",
   value = 0,
   onClose,
-  introMs = INTRO_MS,
+  introMs = PACK_INTRO_MS,
   chosenSlot = null,
   claiming = false,
   choiceError = false,
@@ -108,10 +49,11 @@ export default function PackOpen({
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
   const tilt = useCardTilt(enableAnimations);
   const [phase, setPhase] = useState<PackOpeningPhase>("intro");
-  const [introFinished, setIntroFinished] = useState(false);
-  const [imagesReady, setImagesReady] = useState(false);
+  const [introFinished, setIntroFinished] = useState<boolean>(false);
+  const [imagesReady, setImagesReady] = useState<boolean>(false);
   const [flipped, setFlipped] = useState<ReadonlySet<number>>(() => new Set());
   const [pendingChoice, setPendingChoice] = useState<number | null>(null);
+  const choiceInFlight = useRef<boolean>(false);
   const packRef = useRef<HTMLButtonElement>(null);
   const images = useMemo(() => packImageUrls(cards), [cards]);
 
@@ -122,9 +64,11 @@ export default function PackOpen({
     prefetchRemoteImages(images, imageProxy)
       .then(() => {
         if (!cancelled) setImagesReady(true);
+
         return null;
       })
       .catch(() => undefined);
+
     return () => {
       cancelled = true;
       setRemoteImageScope(null);
@@ -145,27 +89,33 @@ export default function PackOpen({
   }, [cards, chosenSlot]);
 
   useEffect(() => {
-    if (choiceError) setPendingChoice(null);
+    if (!choiceError) return;
+    choiceInFlight.current = false;
+    setPendingChoice(null);
   }, [choiceError]);
 
   const flip = (index: number) => {
     if (choosing && chosenSlot === null) {
-      if (claiming) return;
+      if (claiming || choiceInFlight.current) return;
+      choiceInFlight.current = true;
       setFlipped(new Set(cards.map((_, cardIndex) => cardIndex)));
       setPendingChoice(index);
       onChoose?.(index);
+
       return;
     }
+
     setFlipped((current) => {
       if (current.has(index)) return current;
       const next = new Set(current);
       next.add(index);
+
       return next;
     });
   };
 
   const skipIntro = () => {
-    packRef.current?.getAnimations().forEach((animation) => animation.cancel());
+    packRef.current?.getAnimations?.().forEach((animation) => animation.cancel());
     setIntroFinished(true);
     setPhase("reveal");
   };
@@ -173,8 +123,10 @@ export default function PackOpen({
   const skip = () => {
     if (phase === "intro") {
       skipIntro();
+
       return;
     }
+
     setFlipped(new Set(cards.map((_, index) => index)));
   };
 
@@ -187,6 +139,7 @@ export default function PackOpen({
   const card = (item: OpenedCard, index: number, sourcePlacement: "above" | "below") => {
     const discarded = activeChoice !== null && activeChoice !== index;
     const picked = activeChoice === index;
+
     return (
       <div
         className="cards-reveal-card"
@@ -240,9 +193,6 @@ export default function PackOpen({
           >
             <PackArt packKind={packKind} size={cards.length} />
           </button>
-          <p className="windows95-text text-hint m-0 text-center">
-            {t("collection.open.intro.hint")}
-          </p>
         </div>
       )}
 

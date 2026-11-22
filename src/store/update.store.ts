@@ -4,6 +4,7 @@ import type { UpdateSignalStore } from "@/types/core/update";
 function createUpdateSignalStore(): UpdateSignalStore {
   const store = createSignalStore();
   const promptOpen = store.atom("promptOpen", false);
+
   return {
     atoms: { promptOpen },
     openPrompt: () => promptOpen.set(true),

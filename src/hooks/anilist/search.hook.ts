@@ -22,6 +22,7 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
     case "global": {
       return anilistApi.search(request.params);
     }
+
     case "season": {
       return anilistApi.search({
         adult: settingsAtoms.anilistAdultContent.get() ? null : false,
@@ -45,15 +46,19 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
         yearTo: null,
       });
     }
+
     case "studio": {
       return anilistApi.searchByStudio(request.studioId);
     }
+
     case "tag": {
       return anilistApi.searchByTag(request.tag);
     }
+
     case "genre": {
       return anilistApi.searchByGenre(request.genre);
     }
+
     default: {
       return assertNever(request);
     }
@@ -62,6 +67,7 @@ async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia
 
 function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearchParams {
   const settings = getSettingsSnapshot();
+
   return searchFiltersToParams(
     filters,
     query.trim() || null,
@@ -77,6 +83,7 @@ export function useProfileRecs(user: AniUser | null, showRecs: boolean) {
     queryFn: () => anilistApi.getProfileRecommendations(userId ?? 0),
     enabled: showRecs && userId !== null,
   });
+
   return { recs: query.data ?? [], recsLoading: query.isLoading };
 }
 
@@ -96,6 +103,7 @@ export function useAnilistSearch() {
     queryKey: queryKeys.anilistSearch(request),
     queryFn: () => {
       if (request === null) throw new Error("AniList search request is missing");
+
       return runSearchRequest(request);
     },
     enabled: request !== null && !isGlobalRequest,
@@ -115,9 +123,12 @@ export function useAnilistSearch() {
         typeof params.perPage === "number" && params.perPage > 0
           ? params.perPage
           : settingsAtoms.anilistPageSize.get();
+
       if (lastPage.media.length < perPage) return undefined;
       const loaded = allPages.reduce((count, page) => count + page.media.length, 0);
+
       if (loaded >= lastPage.total) return undefined;
+
       return (lastPageParam as number) + 1;
     },
     enabled: isGlobalRequest,
@@ -129,6 +140,7 @@ export function useAnilistSearch() {
 
   const handleGlobal = useCallback(() => {
     const terms = searchTerms.trim();
+
     if (terms) addSearchQuery(terms, "anilist");
     setGlobal(true);
     setSearchTag(null);
@@ -203,6 +215,7 @@ export function useAnilistSearch() {
   const applyFilters = useCallback(
     (filters: AniListFilters) => {
       setSearchFilters(filters);
+
       if (global && request?.kind === "global") {
         setRequest({
           kind: "global",

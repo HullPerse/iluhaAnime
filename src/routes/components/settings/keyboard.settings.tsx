@@ -8,6 +8,7 @@ import { SectionResetButton } from "@/routes/components/settings/reset.settings"
 export function KeyboardSettings() {
   const vimMode = useCell(settingsAtoms.vimMode);
   const { t } = useI18n();
+
   return (
     <section className="ui-panel" data-find-section="general.keyboard">
       <div className="ui-titlebar group flex items-center justify-between gap-1">

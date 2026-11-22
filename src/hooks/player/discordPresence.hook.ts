@@ -29,6 +29,7 @@ export function usePlayerDiscordPresence(): void {
 
   const activity = useMemo(() => {
     if (!enabled) return null;
+
     return buildPlayerActivity(
       {
         stream,
@@ -49,14 +50,19 @@ export function usePlayerDiscordPresence(): void {
   useEffect(() => {
     if (!enabled) {
       lastSentRef.current = null;
+
       return;
     }
+
     if (activity === null) {
       lastSentRef.current = null;
       reportPresenceCommand(discordApi.clear("player"), "discord.presence.player.clear");
+
       return;
     }
+
     const previous = lastSentRef.current;
+
     if (
       previous === null ||
       !samePresenceCard(previous, activity) ||

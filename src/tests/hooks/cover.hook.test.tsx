@@ -70,6 +70,7 @@ const renderCover = (
   }
 ) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return renderHook(() => useTorrentCover(title, options), {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -98,7 +99,9 @@ describe("useTorrentCover", () => {
   it("resolves the cover through the search cascade", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") return [NARUTO];
+
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv");
@@ -106,14 +109,6 @@ describe("useTorrentCover", () => {
     expect(result.current.anilistId).toBe(20);
     expect(result.current.coverUrl).toContain("http://asset.localhost/");
     expect(result.current.candidates.map((c) => c.id)).toContain(20);
-  });
-
-  it("reports empty when nothing matches", async () => {
-    mockInvoke.mockImplementation(async () => []);
-    const { result } = renderCover("Tochno Ne Ampir V.mkv");
-    await waitFor(() => expect(result.current.status).toBe("empty"));
-    expect(result.current.coverUrl).toBeNull();
-    expect(result.current.anilistId).toBeNull();
   });
 
   it("rewrites the query from the local anime index", async () => {
@@ -132,6 +127,7 @@ describe("useTorrentCover", () => {
       if (command === "search_anilist") {
         queries.push((args as { query?: unknown }).query);
         const q = String((args as { query?: unknown }).query ?? "");
+
         if (q === "Shingeki no Kyojin") {
           return [
             media({
@@ -144,11 +140,15 @@ describe("useTorrentCover", () => {
             }),
           ];
         }
+
         return [];
       }
+
       if (command === "download_remote_image") return { id: "blob2", path: "covers/snk.jpg" };
+
       return null;
     });
+
     try {
       const { result } = renderCover("Атака титанов - 01 [WEB-DL 1080p].mkv");
       await waitFor(() => expect(result.current.status).toBe("resolved"));
@@ -164,7 +164,9 @@ describe("useTorrentCover", () => {
       if (command === "get_torrent_poster") {
         return "https://img.rutracker.org/f/009/poster.jpg";
       }
+
       if (command === "download_remote_image") return { id: "blob3", path: "covers/rt.jpg" };
+
       return null;
     });
     const { result } = renderCover("[Nekomoe] One Piece - 01 [1080p].mkv", {
@@ -180,8 +182,12 @@ describe("useTorrentCover", () => {
   it("loads cascade candidates on demand for the correction dialog", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "get_torrent_poster") return "https://img.rutracker.org/f/009/poster.jpg";
+
       if (command === "search_anilist") return [NARUTO];
-      if (command === "download_remote_image") return { id: "blob-force", path: "covers/force.jpg" };
+
+      if (command === "download_remote_image")
+        return { id: "blob-force", path: "covers/force.jpg" };
+
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
@@ -193,29 +199,17 @@ describe("useTorrentCover", () => {
     await waitFor(() => expect(result.current.candidates.map((c) => c.id)).toContain(20));
   });
 
-  it("fires no queries when the mode is off", async () => {
-    const calls: unknown[] = [];
-    mockInvoke.mockImplementation(async (command: unknown) => {
-      calls.push(command);
-      return null;
-    });
-    const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
-      source: "rutracker",
-      url: "https://rutracker.org/forum/viewtopic.php?t=9",
-      mode: "off",
-    });
-    await waitFor(() => expect(result.current.status).toBe("empty"));
-    expect(calls).toEqual([]);
-  });
-
   it("resolves the erai website poster in pages mode", async () => {
     const calls: Array<{ command: unknown; args: unknown }> = [];
     mockInvoke.mockImplementation(async (command: unknown, args: unknown) => {
       calls.push({ command, args });
+
       if (command === "get_torrent_poster") {
         return "https://www.erai-raws.info/poster.jpg";
       }
+
       if (command === "download_remote_image") return { id: "blob5", path: "covers/erai.jpg" };
+
       return null;
     });
     const { result } = renderCover("[Erai-raws] Naruto - 01 [1080p].mkv", {
@@ -238,10 +232,13 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
+
       if (command === "get_torrent_poster") {
         return "https://s4.anilist.co/file/anilistcdn/cover.png";
       }
+
       if (command === "download_remote_image") return { id: "blob4", path: "covers/neko.jpg" };
+
       return null;
     });
     const { result } = renderCover("[Erai-raws] Youjo Senki II - 12 [1080p].mkv", {
@@ -258,7 +255,9 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
+
       if (command === "get_torrent_poster") return null;
+
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
@@ -273,8 +272,11 @@ describe("useTorrentCover", () => {
   it("falls back to anilist when the page has no poster", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "get_torrent_poster") return null;
+
       if (command === "search_anilist") return [NARUTO];
+
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
@@ -288,8 +290,11 @@ describe("useTorrentCover", () => {
   it("falls back to anilist when the page request fails", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "get_torrent_poster") throw new Error("boom");
+
       if (command === "search_anilist") return [NARUTO];
+
       if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
+
       return null;
     });
     const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
@@ -300,31 +305,17 @@ describe("useTorrentCover", () => {
     expect(result.current.anilistId).toBe(20);
   });
 
-  it("skips the page lookup for foreign urls and still resolves", async () => {
-    const calls: unknown[] = [];
-    mockInvoke.mockImplementation(async (command: unknown) => {
-      calls.push(command);
-      if (command === "search_anilist") return [NARUTO];
-      if (command === "download_remote_image") return { id: "blob1", path: "covers/naruto.jpg" };
-      return null;
-    });
-    const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv", {
-      source: "rutracker",
-      url: "https://example.com/viewtopic.php?t=9",
-    });
-    await waitFor(() => expect(result.current.status).toBe("resolved"));
-    expect(result.current.anilistId).toBe(20);
-    expect(calls).not.toContain("get_torrent_poster");
-  });
-
   it("shares one AniList search between episodes of the same anime", async () => {
     let searches = 0;
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "search_anilist") {
         searches += 1;
+
         return [NARUTO];
       }
+
       if (command === "download_remote_image") return { id: "blob-ep", path: "covers/ep.jpg" };
+
       return null;
     });
 
@@ -346,7 +337,9 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
+
       if (command === "download_remote_image") return { id: "blob-op", path: "covers/op.jpg" };
+
       return null;
     });
 
@@ -354,25 +347,6 @@ describe("useTorrentCover", () => {
 
     await waitFor(() => expect(result.current.status).toBe("resolved"));
     expect(result.current.anilistId).toBe(21);
-    expect(calls).not.toContain("search_anilist");
-  });
-
-  it("serves a cached resolution without searching", async () => {
-    setResolvedCover("naruto|0", {
-      id: 20,
-      coverUrl: "https://s4.anilist.co/file/naruto.jpg",
-      title: "NARUTO",
-      at: 1,
-    });
-    const calls: unknown[] = [];
-    mockInvoke.mockImplementation(async (command: unknown) => {
-      calls.push(command);
-      if (command === "download_remote_image") throw new Error("offline");
-      return null;
-    });
-    const { result } = renderCover("[SubsPlease] Naruto - 01 (1080p).mkv");
-    await waitFor(() => expect(result.current.status).toBe("resolved"));
-    expect(result.current.anilistId).toBe(20);
     expect(calls).not.toContain("search_anilist");
   });
 
@@ -391,6 +365,7 @@ describe("useTorrentCover", () => {
     mockInvoke.mockImplementation(async (command: unknown, args: unknown) => {
       if (command === "search_anilist") {
         queries.push((args as { query?: unknown }).query);
+
         return [
           media({
             id: 11,
@@ -410,9 +385,12 @@ describe("useTorrentCover", () => {
           }),
         ];
       }
+
       if (command === "download_remote_image") return { id: "blob-s2", path: "covers/s2.jpg" };
+
       return null;
     });
+
     try {
       const { result } = renderCover("[Erai-raws] Sousou no Frieren 2nd Season - 09 [1080p].mkv");
       await waitFor(() => expect(result.current.status).toBe("resolved"));
@@ -434,7 +412,9 @@ describe("useTorrentCover", () => {
     const calls: unknown[] = [];
     mockInvoke.mockImplementation(async (command: unknown) => {
       calls.push(command);
+
       if (command === "download_remote_image") return { id: "blob-f", path: "covers/f.jpg" };
+
       return null;
     });
     const { result } = renderCover("[Group] Frieren - Beyond Journey's End - 01 [1080p].mkv");

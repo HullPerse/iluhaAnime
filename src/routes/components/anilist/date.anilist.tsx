@@ -15,16 +15,20 @@ function CardListDate({
 }) {
   const { t, locale } = useI18n();
   const time = entryListTime(entry) ?? fuzzyDateToTime(fallback);
+
   if (!time) {
     if (!entry) return null;
     const old = t("anilist.card.old.entry");
+
     return (
       <span className="text-muted ml-auto" title={old}>
         {old}
       </span>
     );
   }
+
   const absolute = new Date(time).toLocaleDateString(locale, { timeZone: LOCAL_TIME_ZONE });
+
   return (
     <span className="text-muted ml-auto" title={absolute}>
       {formatDistanceToNowOwn(time, locale)}

@@ -12,6 +12,7 @@ const TOKEN_CLASS: Record<"error" | "warn" | "match", string> = {
 export const HighlightTokenSpan = memo(({ text, highlighted, kind }: HighlightToken) => {
   if (!highlighted) return <span className="text-text">{text}</span>;
   const severity = spellSeverityOf(kind);
+
   return (
     <span data-spell={severity} className={TOKEN_CLASS[severity ?? "match"]}>
       {text}

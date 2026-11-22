@@ -19,6 +19,7 @@ export function computeNodeDimensions(nodeCount: number) {
   const scale = NODE_SCALE_TIERS.find((tier) => nodeCount > tier.above)?.scale ?? 1;
   const imgH = Math.round(IMG_H * scale);
   const barH = Math.max(16, Math.round((NODE_H - IMG_H) * scale));
+
   return {
     h: imgH + barH,
     imgH,
@@ -30,6 +31,7 @@ export function computeNodeDimensions(nodeCount: number) {
 export function computeGraphMetrics(nodeCount: number) {
   const totalH = Math.max(300, Math.min(1400, nodeCount * 80));
   const displayH = Math.max(300, Math.min(totalH, 600));
+
   return { displayH, totalH };
 }
 
@@ -54,9 +56,11 @@ function getClusterX(
   if (nodeId === rootId) return containerW / 2;
 
   const rel = relationMap.get(nodeId);
+
   if (!rel) return containerW / 2;
 
   const ratio = RELATION_X[rel] ?? 0.5;
+
   return containerW * ratio + jitter;
 }
 
@@ -72,6 +76,7 @@ function getNodeYearY(
   if (node.year != null && !Number.isNaN(minYear)) {
     return 20 + ((node.year - minYear) / yearRange) * (totalH - nodeH - 40);
   }
+
   return 20 + (index / count) * (totalH - nodeH - 40);
 }
 
@@ -89,6 +94,7 @@ function getNodeJitter(
   const count = groupCount.get(relation) ?? 1;
   const index = groupIndex.get(relation) ?? 0;
   groupIndex.set(relation, index + 1);
+
   return count > 1 ? -(count - 1) * nodeW * 0.7 + index * nodeW * 1.4 : 0;
 }
 
@@ -110,11 +116,13 @@ export function buildSimNodes(
   const yearRange = maxYear - minYear || 1;
   const groupCount = new Map<string, number>();
   const groupIndex = new Map<string, number>();
+
   for (const node of values) {
     if (node.id === rootId || mainlineIds.has(node.id)) continue;
     const relation = relationMap.get(node.id) ?? "UNKNOWN";
     groupCount.set(relation, (groupCount.get(relation) ?? 0) + 1);
   }
+
   for (const [index, node] of values.entries()) {
     const y = getNodeYearY(node, index, values.length, minYear, yearRange, totalH, dims.h);
     const jitter = getNodeJitter(
@@ -140,6 +148,7 @@ export function buildSimNodes(
       })
     );
   }
+
   return { initialPositions: initPos, simNodes: nodes };
 }
 
@@ -152,6 +161,7 @@ function readPositions(
   dims: { w: number; h: number }
 ): Map<number, FranchiseNodePosition> {
   const pos = new Map<number, FranchiseNodePosition>();
+
   for (const n of sim.nodes()) {
     pos.set(
       n.id,
@@ -163,6 +173,7 @@ function readPositions(
       })
     );
   }
+
   return pos;
 }
 
@@ -181,6 +192,7 @@ export function runFranchiseSimulation(
   sim
     .on("tick", () => {
       const now = Date.now();
+
       if (now - lastForward < SIM_TICK_MS) return;
       lastForward = now;
       onTick(readPositions(sim, containerW, totalH, dims));

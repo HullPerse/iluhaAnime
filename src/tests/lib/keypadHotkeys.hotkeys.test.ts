@@ -11,6 +11,7 @@ function press(
 ): KeyboardEvent {
   const event = new KeyboardEvent(type, { bubbles: true, cancelable: true, code, ...init });
   target.dispatchEvent(event);
+
   return event;
 }
 

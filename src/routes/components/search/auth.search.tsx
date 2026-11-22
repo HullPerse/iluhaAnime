@@ -21,6 +21,7 @@ export default function SearchAuthButtons({
   const titlebar = layout === "titlebar";
   const iconButtonClass = titlebar ? "size-4" : undefined;
   const iconClass = titlebar ? "size-3" : undefined;
+
   return (
     <>
       {source === "erai-raws" && !eraiAuth && (
@@ -55,7 +56,9 @@ export default function SearchAuthButtons({
           className={iconButtonClass}
           onClick={() => {
             if (source === "rutracker") return onLogout();
+
             if (source === "nekobt") return onNekoBtLogout();
+
             return onEraiLogout();
           }}
         >

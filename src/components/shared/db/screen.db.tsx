@@ -58,12 +58,16 @@ export function DbScreen({
   const copyDetails = (): void => {
     (async () => {
       const [, pluginError] = await attempt(writeText(`[database] ${error}`));
+
       if (pluginError === null) {
         setCopied(true);
+
         return;
       }
+
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         const [, nativeError] = await attempt(navigator.clipboard.writeText(error));
+
         if (nativeError === null) setCopied(true);
       }
     })();

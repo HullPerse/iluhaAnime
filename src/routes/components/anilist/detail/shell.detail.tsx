@@ -32,6 +32,7 @@ function useDetailEntryContext(props: DetailProps) {
     [props.entryLookup, self.lists]
   );
   const entryLookup = props.entryLookup ?? fallbackLookup;
+
   return {
     entryLookup,
     listEntry: props.listEntry ?? entryLookup?.get(props.animeId),
@@ -56,6 +57,7 @@ export function AnimeDetailShell({
       onFinally: () => setFavoriteLoading(false),
     });
   };
+
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
   const queryClient = useQueryClient();
   const { entryLookup, listEntry, scoreFormat } = useDetailEntryContext(props);
@@ -108,6 +110,7 @@ export function AnimeDetailShell({
     props.onBack
   );
   let body: ReactNode;
+
   if (screenTop) body = <OverlayScreens current={screenTop} context={screenContext} />;
   else if (trailerId != null)
     body = <TrailerEmbed youtubeId={trailerId} title={t("anilist.details.trailer")} />;
@@ -129,6 +132,7 @@ export function AnimeDetailShell({
         onPushScreen={pushScreen}
       />
     );
+
   return (
     <>
       {render({

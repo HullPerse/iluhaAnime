@@ -107,6 +107,7 @@ function DraggableFolderView({
     {
       ignore: (event) => {
         const target = event.target instanceof HTMLElement ? event.target : null;
+
         return !target || !rootRef.current?.contains(target);
       },
       onAction: (id) => {

@@ -32,6 +32,7 @@ function reportBandProgress(
   height: number
 ): void {
   if (onBand === undefined) return;
+
   if (doneRows % DITHER_BAND_ROWS === 0 || doneRows === height) onBand(doneRows);
 }
 
@@ -39,18 +40,22 @@ function grayRampTargets(levels: number): DitherRGB[] {
   const steps = Math.max(2, Math.floor(levels));
   const step = 255 / (steps - 1);
   const ramp: DitherRGB[] = [];
+
   for (let i = 0; i < steps; i++) {
     const v = Math.round(i * step);
     ramp.push([v, v, v]);
   }
+
   return ramp;
 }
 
 function applyContrastInPlace(image: Uint8ClampedArray, contrast: number): void {
   const c = Math.max(-1, Math.min(1, contrast));
+
   for (let i = 0; i < image.length; i += 4) {
     for (let channel = 0; channel < 3; channel++) {
       const t = image[i + channel] / 255;
+
       if (c >= 0) {
         const s = t * t * (3 - 2 * t);
         image[i + channel] = (t + (s - t) * c) * 255;
@@ -68,6 +73,7 @@ function applyGrainInPlace(
   grain: number
 ): void {
   const amplitude = Math.max(0, Math.min(1, grain)) * 60;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const n = hashNoise(x * DITHER_GRAIN_FREQUENCY, y * DITHER_GRAIN_FREQUENCY) * amplitude;
@@ -86,8 +92,10 @@ function applyVignetteInPlace(
   vignette: number
 ): void {
   const amount = Math.max(0, Math.min(1, vignette));
+
   for (let y = 0; y < height; y++) {
     const ny = (y / Math.max(1, height - 1) - 0.5) * 2;
+
     for (let x = 0; x < width; x++) {
       const nx = (x / Math.max(1, width - 1) - 0.5) * 2;
       const d = Math.min(1, Math.hypot(nx, ny) / Math.SQRT2);
@@ -114,11 +122,13 @@ function applyGeometry(
   const maxRadius = Math.max(1, Math.hypot(cx, cy));
   const shift = Math.max(0, Math.min(1, chromatic)) * DITHER_CHROMATIC_SHIFT;
   const barrelAmount = Math.max(0, barrel) * DITHER_BARREL_STRENGTH;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       let sx = x;
       let sy = y;
+
       if (barrelAmount !== 0) {
         const nx = (x - cx) / Math.max(1, cx);
         const ny = (y - cy) / Math.max(1, cy);
@@ -126,6 +136,7 @@ function applyGeometry(
         sx = cx + (x - cx) * zoom;
         sy = cy + (y - cy) * zoom;
       }
+
       if (shift !== 0) {
         const radius = Math.hypot(x - cx, y - cy) / maxRadius;
         const s = shift * radius;
@@ -141,6 +152,7 @@ function applyGeometry(
       }
     }
   }
+
   return output;
 }
 
@@ -151,8 +163,10 @@ function applyScanlinesInPlace(
   scanlines: number
 ): void {
   const amount = Math.max(0, Math.min(1, scanlines));
+
   for (let y = 1; y < height; y += 2) {
     const k = 1 - amount * DITHER_SCANLINE_DEPTH;
+
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       image[i] *= k;
@@ -192,12 +206,14 @@ function applyOrderedDither(
       let r = image[i];
       let g = image[i + 1];
       let b = image[i + 2];
+
       if (monochrome) {
         const l = luminance(r, g, b);
         r = l;
         g = l;
         b = l;
       }
+
       const t = matrixThreshold(x, y, options.matrix) * step * strength;
       const rd = r + t;
       const gd = monochrome
@@ -222,6 +238,7 @@ function applyOrderedDither(
         image[i + 2] = bq;
       }
     }
+
     reportBandProgress(onBand, y + 1, height);
   }
 }
@@ -252,10 +269,13 @@ function diffuseImageBuffer(
   if (width <= 0 || height <= 0) return;
   const kernel = options.mode === "atkinson" ? ATKINSON_KERNEL : FLOYD_STEINBERG_KERNEL;
   const errorScale = Math.max(0, Math.min(2, options.strength));
+
   if (options.palette.length > 0 && options.paletteMix > 0) {
     diffuseToPalette(image, width, height, options.palette, kernel, errorScale, onBand);
+
     return;
   }
+
   diffuseLuminance(image, width, height, options.levels, kernel, errorScale, onBand);
 }
 
@@ -271,16 +291,19 @@ function diffuseToPalette(
   onBand?: (doneRows: number) => void
 ): void {
   const work = new Float32Array(width * height * 3);
+
   for (let i = 0; i < width * height; i++) {
     const o = i * 4;
     work[i * 3] = image[o];
     work[i * 3 + 1] = image[o + 1];
     work[i * 3 + 2] = image[o + 2];
   }
+
   for (let y = 0; y < height; y++) {
     const mirrored = y % 2 === 1;
     const x0 = mirrored ? width - 1 : 0;
     const xStep = mirrored ? -1 : 1;
+
     for (let x = x0; mirrored ? x >= 0 : x < width; x += xStep) {
       const w = (y * width + x) * 3;
       const pick = nearestPaletteIndex(work[w], work[w + 1], work[w + 2], palette);
@@ -292,9 +315,11 @@ function diffuseToPalette(
       image[o] = target[0];
       image[o + 1] = target[1];
       image[o + 2] = target[2];
+
       for (const [dx, dy, weight] of kernel) {
         const nx = mirrored ? x - dx : x + dx;
         const ny = y + dy;
+
         if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
         const n = (ny * width + nx) * 3;
         work[n] += errorR * weight;
@@ -302,6 +327,7 @@ function diffuseToPalette(
         work[n + 2] += errorB * weight;
       }
     }
+
     reportBandProgress(onBand, y + 1, height);
   }
 }
@@ -317,14 +343,17 @@ function diffuseLuminance(
 ): void {
   const ramp = grayRampTargets(levels);
   const luma = new Float32Array(width * height);
+
   for (let i = 0; i < width * height; i++) {
     const o = i * 4;
     luma[i] = luminance(image[o], image[o + 1], image[o + 2]);
   }
+
   for (let y = 0; y < height; y++) {
     const mirrored = y % 2 === 1;
     const x0 = mirrored ? width - 1 : 0;
     const xStep = mirrored ? -1 : 1;
+
     for (let x = x0; mirrored ? x >= 0 : x < width; x += xStep) {
       const index = y * width + x;
       const value = luma[index];
@@ -335,13 +364,16 @@ function diffuseLuminance(
       image[o] = target[0];
       image[o + 1] = target[1];
       image[o + 2] = target[2];
+
       for (const [dx, dy, weight] of kernel) {
         const nx = mirrored ? x - dx : x + dx;
         const ny = y + dy;
+
         if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
         luma[ny * width + nx] += error * weight;
       }
     }
+
     reportBandProgress(onBand, y + 1, height);
   }
 }
@@ -349,14 +381,17 @@ function diffuseLuminance(
 function nearestRampIndex(value: number, ramp: readonly DitherRGB[]): number {
   let best = 0;
   let bestDistance = Infinity;
+
   for (let i = 0; i < ramp.length; i++) {
     const entry = ramp[i];
     const distance = Math.abs(value - entry[0]);
+
     if (distance < bestDistance) {
       bestDistance = distance;
       best = i;
     }
   }
+
   return best;
 }
 
@@ -368,17 +403,20 @@ function nearestPaletteIndex(
 ): number {
   let best = 0;
   let bestDistance = Infinity;
+
   for (let i = 0; i < palette.length; i++) {
     const entry = palette[i];
     const dr = r - entry[0];
     const dg = g - entry[1];
     const db = b - entry[2];
     const distance = dr * dr + dg * dg + db * db;
+
     if (distance < bestDistance) {
       bestDistance = distance;
       best = i;
     }
   }
+
   return best;
 }
 
@@ -386,9 +424,12 @@ function halftoneCoverage(distance2: number, radius: number, soft: number): numb
   if (soft <= 0) return distance2 <= radius * radius ? 1 : 0;
   const inner = Math.max(0, radius - soft);
   const outer = radius + soft;
+
   if (distance2 <= inner * inner) return 1;
+
   if (distance2 >= outer * outer) return 0;
   const t = (Math.sqrt(distance2) - inner) / (outer - inner);
+
   return 1 - t * t * (3 - 2 * t);
 }
 
@@ -404,6 +445,7 @@ export function applyHalftoneDots(
   const cell = Math.max(1, size);
   const soft = Math.max(0, softness);
   const cover = cell * Math.SQRT1_2;
+
   for (let originY = 0; originY < height; originY += cell) {
     for (let originX = 0; originX < width; originX += cell) {
       const endX = Math.min(width, originX + cell);
@@ -412,6 +454,7 @@ export function applyHalftoneDots(
       let sumG = 0;
       let sumB = 0;
       let count = 0;
+
       for (let y = originY; y < endY; y++) {
         for (let x = originX; x < endX; x++) {
           const o = (y * width + x) * 4;
@@ -421,11 +464,13 @@ export function applyHalftoneDots(
           count += 1;
         }
       }
+
       if (count === 0) continue;
       const dot: [number, number, number] = [sumR / count, sumG / count, sumB / count];
       const radius = (1 - luminance(dot[0], dot[1], dot[2]) / 255) * cover;
       const centerX = originX + (endX - originX) / 2;
       const centerY = originY + (endY - originY) / 2;
+
       for (let y = Math.round(originY); y < endY; y++) {
         for (let x = Math.round(originX); x < endX; x++) {
           const o = (y * width + x) * 4;
@@ -439,6 +484,7 @@ export function applyHalftoneDots(
       }
     }
   }
+
   return output;
 }
 
@@ -460,6 +506,7 @@ export function applyGlyphOverlay(
 ): Uint8ClampedArray<ArrayBuffer> {
   const output = new Uint8ClampedArray(image);
   const strength = Math.max(0, Math.min(1, options.glyphs));
+
   if (strength === 0 || width <= 0 || height <= 0) return output;
   const cell = Math.max(2, Math.floor(options.glyphSize));
   const pad = Math.min(DITHER_GLYPH_PAD, cell >> 1);
@@ -470,14 +517,17 @@ export function applyGlyphOverlay(
       : ([255, 255, 255] satisfies DitherRGB);
   const cols = Math.ceil(width / cell);
   const rows = Math.ceil(height / cell);
+
   for (let cy = 0; cy < rows; cy++) {
     const startY = cy * cell;
     const endY = Math.min(height, startY + cell);
+
     for (let cx = 0; cx < cols; cx++) {
       const startX = cx * cell;
       const endX = Math.min(width, startX + cell);
       let sum = 0;
       let count = 0;
+
       for (let py = startY; py < endY; py++) {
         for (let px = startX; px < endX; px++) {
           const i = (py * width + px) * 4;
@@ -485,6 +535,7 @@ export function applyGlyphOverlay(
           count += 1;
         }
       }
+
       if (count === 0) continue;
       const density = sum / count / 255;
       const index = Math.max(
@@ -492,24 +543,30 @@ export function applyGlyphOverlay(
         Math.min(DITHER_GLYPH_RAMP.length - 1, Math.trunc(density * DITHER_GLYPH_RAMP.length))
       );
       const mask = GLYPH_MASKS[DITHER_GLYPH_RAMP[index] ?? ""];
+
       if (mask === undefined) continue;
       const drawnRows = Math.min(inner, endY - startY - pad);
       const drawnCols = Math.min(inner, endX - startX - pad);
+
       if (drawnRows <= 0 || drawnCols <= 0) continue;
       const alpha = Math.min(1, strength * (0.35 + 0.65 * density) * DITHER_GLYPH_ALPHA);
+
       for (let gy = 0; gy < drawnRows; gy++) {
         const rowIndex = Math.min(
           DITHER_GLYPH_HEIGHT - 1,
           Math.trunc((gy * DITHER_GLYPH_HEIGHT) / drawnRows)
         );
         const row = mask[rowIndex];
+
         if (row === undefined) continue;
         const oy = startY + pad + gy;
+
         for (let gx = 0; gx < drawnCols; gx++) {
           const maskX = Math.min(
             DITHER_GLYPH_WIDTH - 1,
             Math.trunc((gx * DITHER_GLYPH_WIDTH) / drawnCols)
           );
+
           if (row[maskX] !== "1") continue;
           const o = (oy * width + startX + pad + gx) * 4;
           output[o] = lerp(output[o], ink[0], alpha);
@@ -519,6 +576,7 @@ export function applyGlyphOverlay(
       }
     }
   }
+
   return output;
 }
 
@@ -529,6 +587,7 @@ function applyHalftonePass(
   options: DitherEffectOptions
 ): Uint8ClampedArray<ArrayBuffer> {
   const amount = Math.max(0, Math.min(1, options.halftone));
+
   if (amount <= 0 || options.dotSize <= 0) return image;
   const paper =
     options.palette.length > 0
@@ -542,8 +601,11 @@ function applyHalftonePass(
     options.dotSoftness,
     paper
   );
+
   if (amount >= 1) return dotted;
+
   for (let i = 0; i < image.length; i++) dotted[i] = lerp(image[i], dotted[i], amount);
+
   return dotted;
 }
 
@@ -555,33 +617,35 @@ export function renderDitherImage(
   onBand?: (doneRows: number) => void
 ): Uint8ClampedArray<ArrayBuffer> {
   let work: Uint8ClampedArray<ArrayBuffer> = new Uint8ClampedArray(source);
+
   if (options.barrel !== 0 || options.chromatic !== 0) {
     work = applyGeometry(work, width, height, options.barrel, options.chromatic);
   }
+
   if (options.contrast !== 0) applyContrastInPlace(work, options.contrast);
+
   if (options.grain > 0) applyGrainInPlace(work, width, height, options.grain);
+
   if (options.vignette > 0) applyVignetteInPlace(work, width, height, options.vignette);
+
   if (options.mode === "ordered") {
     applyOrderedDither(work, width, height, options, onBand);
   } else {
     diffuseImageBuffer(work, width, height, options, onBand);
   }
+
   work = applyHalftonePass(work, width, height, options);
+
   if (options.glyphs > 0) work = applyGlyphOverlay(work, width, height, options);
+
   if (options.scanlines > 0) applyScanlinesInPlace(work, width, height, options.scanlines);
+
   return work;
 }
 
 export {
   clampChannel,
-  hashNoise,
   lerp,
-  linearChannelToSrgb,
-  luminance,
   matrixThreshold,
   nearestPaletteColor,
-  nearestPaletteIndexLinear,
-  sampleChannel,
-  smoothNoise,
-  srgbChannelToLinear,
 } from "@/lib/graphics/ditherColor.utils";

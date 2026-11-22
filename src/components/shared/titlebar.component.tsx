@@ -26,6 +26,7 @@ export default function TitleBar({ title, children }: { title: string; children?
         .isMaximized()
         .then((value) => {
           if (!disposed) setMaximized(value);
+
           return null;
         })
         .catch((error) => reportBackgroundError("titlebar.maximized", error));
@@ -37,6 +38,7 @@ export default function TitleBar({ title, children }: { title: string; children?
       .then((cleanup) => {
         if (disposed) cleanup();
         else unlisten = cleanup;
+
         return null;
       })
       .catch((error) => reportBackgroundError("titlebar.resized", error));

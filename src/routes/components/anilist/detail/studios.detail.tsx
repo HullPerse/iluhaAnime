@@ -14,6 +14,7 @@ export function StudiosSection({
   onClose?: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <Section header={t("anilist.details.studios")} className="bg-field flex flex-wrap gap-1">
       {studios.map((s) => (

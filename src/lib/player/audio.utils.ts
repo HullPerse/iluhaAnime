@@ -26,12 +26,14 @@ function createWavetableBuzzer(context: AudioContext, gain: GainNode): Wavetable
   const restart = (): void => {
     const previous = source;
     source = null;
+
     if (previous) {
       attemptSync(() => {
         previous.stop();
         previous.disconnect();
       });
     }
+
     if (!buffer) return;
     const next = context.createBufferSource();
     next.buffer = buffer;
@@ -54,20 +56,26 @@ function createWavetableBuzzer(context: AudioContext, gain: GainNode): Wavetable
         sample !== null &&
         sample.length === pattern.length &&
         sample.every((byte, index) => byte === pattern[index]);
+
       if (samePattern && pitchHz === pitch) return;
       sync();
       pitch = pitchHz;
+
       if (samePattern) {
         if (source) source.playbackRate.value = pitch / context.sampleRate;
+
         return;
       }
+
       sample = pattern.slice();
       buffer = context.createBuffer(1, PATTERN_BITS, context.sampleRate);
       const data = buffer.getChannelData(0);
+
       for (let bit = 0; bit < PATTERN_BITS; bit += 1) {
         const on = (pattern[bit >> 3] & (0x80 >> (bit & 7))) !== 0;
         data[bit] = on ? 1 : -1;
       }
+
       restart();
     },
     reset() {
@@ -80,6 +88,7 @@ function createWavetableBuzzer(context: AudioContext, gain: GainNode): Wavetable
       source = null;
       buffer = null;
       sample = null;
+
       if (previous) {
         attemptSync(() => {
           previous.stop();
@@ -113,16 +122,21 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
   const createNodes = (): typeof nodes => {
     if (nodes) return nodes;
     const [context, error] = attemptSync(() => new AudioContext());
+
     if (error !== null || !context) return null;
     const gain = context.createGain();
     gain.gain.value = 0;
     gain.connect(context.destination);
+
     if (mode === "wavetable") {
       const buzzer = createWavetableBuzzer(context, gain);
+
       if (pending) buzzer.set(pending.pitchHz, pending.pattern);
       nodes = { context, gain, buzzer, disposeSource: () => buzzer.dispose() };
+
       return nodes;
     }
+
     const oscillator = context.createOscillator();
     oscillator.type = "square";
     oscillator.frequency.value = BEEP_HZ;
@@ -137,6 +151,7 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
         oscillator.disconnect();
       },
     };
+
     return nodes;
   };
 
@@ -144,12 +159,16 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
     setActive(next) {
       if (next === active) return;
       active = next;
+
       if (next) {
         const created = createNodes();
+
         if (!created) {
           active = false;
+
           return;
         }
+
         if (created.context.state === "suspended") {
           attemptSync(() => {
             created.context
@@ -160,10 +179,12 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
       } else {
         nodes?.buzzer?.reset();
       }
+
       apply();
     },
     setVolume(next) {
       const clamped = Math.min(1, Math.max(0, next));
+
       if (clamped === volume) return;
       volume = clamped;
       apply();
@@ -177,6 +198,7 @@ export function createGameAudio(mode: GameAudioMode = "beep"): GameAudio {
       active = false;
       const current = nodes;
       nodes = null;
+
       if (!current) return;
       attemptSync(() => {
         current.disposeSource();

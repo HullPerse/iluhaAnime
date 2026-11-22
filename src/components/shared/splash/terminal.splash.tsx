@@ -10,6 +10,7 @@ export function TerminalSplash({
   onToggleFastLaunch,
 }: SplashVariantProps) {
   const progress = splashProgress(stages);
+
   return (
     <div
       role="status"

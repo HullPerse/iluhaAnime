@@ -7,6 +7,7 @@ const MAX_ERROR_CHARS = 160;
 
 function trimmedError(error: string | null): string {
   if (!error) return "";
+
   return error.length > MAX_ERROR_CHARS ? `${error.slice(0, MAX_ERROR_CHARS)}...` : error;
 }
 
@@ -29,11 +30,13 @@ export function FatalUpdateButton({
 }) {
   const busy = state === "checking" || state === "installing";
   let label = texts.checkUpdate;
+
   if (state === "checking") label = texts.checkingUpdate;
   else if (state === "installing") label = texts.installingUpdate;
   else if (state === "available") label = texts.update;
 
   let note: string | null = null;
+
   if (state === "latest") note = texts.updateLatest;
   else if (error) note = `${texts.updateFailed}: ${trimmedError(error)}`;
 

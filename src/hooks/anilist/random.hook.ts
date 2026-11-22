@@ -15,8 +15,10 @@ export function useAnilistRandom(
       currentList === ALL_LISTS_ID
         ? collectAllEntries(lists)
         : (lists.find((l) => l.name === currentList)?.entries ?? []);
+
     if (entries.length === 0) return;
     const entry = entries[Math.floor(Math.random() * entries.length)];
+
     if (!entry) return;
     const info = entryLookup.get(entry.media.id);
     showDetail(
@@ -35,5 +37,6 @@ export function useAnilistRandom(
       false
     );
   }, [entryLookup, lists, currentList, showDetail]);
+
   return { handleRandomFromList };
 }

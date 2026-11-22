@@ -34,6 +34,7 @@ export function ScrubBar() {
   const seekAt = useCallback(
     (clientX: number) => {
       const rect = barRef.current?.getBoundingClientRect();
+
       if (!rect || rect.width === 0) return;
       seekToTime(((clientX - rect.left) / rect.width) * duration);
     },
@@ -43,8 +44,10 @@ export function ScrubBar() {
   const timeAt = useCallback(
     (clientX: number) => {
       const rect = barRef.current?.getBoundingClientRect();
+
       if (!rect || rect.width === 0) return null;
       const t = ((clientX - rect.left) / rect.width) * duration;
+
       return Math.max(0, Math.min(duration, t));
     },
     [duration]
@@ -71,11 +74,13 @@ export function ScrubBar() {
         const t = timeAt(event.clientX);
         setHoverTime(t);
         const rect = barRef.current?.getBoundingClientRect();
+
         if (rect) setHoverX(event.clientX - rect.left);
       }}
       onMouseLeave={() => setHoverTime(null)}
       onKeyDown={(event) => {
         if (event.key === "ArrowRight") seekToTime(display + 5);
+
         if (event.key === "ArrowLeft") seekToTime(display - 5);
       }}
     >

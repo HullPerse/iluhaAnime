@@ -45,7 +45,9 @@ export function TitleRow({
       diffKind={diffKind}
     />
   );
+
   if (!onAnimeClick) return <div className={className}>{content}</div>;
+
   return (
     <button
       type="button"

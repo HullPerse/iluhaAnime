@@ -84,6 +84,7 @@ function SearchDefault() {
     if (didYouMean && searchParams === submittedQuery) {
       return [{ start: 0, end: searchParams.length }];
     }
+
     return parseTorrentTags(searchParams).tags.map((tag) => ({
       start: tag.start,
       end: tag.end,
@@ -91,6 +92,7 @@ function SearchDefault() {
   }, [didYouMean, searchParams, submittedQuery]);
   const openLink = useCallback(async (item: Anime) => {
     const [, error] = await attempt(openUrl(item.link));
+
     if (error) console.warn("openUrl failed", error);
   }, []);
   const openDetails = useCallback(

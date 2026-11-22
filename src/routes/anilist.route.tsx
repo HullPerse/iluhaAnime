@@ -102,6 +102,7 @@ function AnilistRoute() {
     if (!user) return;
     anilistApi.syncFranchiseToIndex().catch((error: unknown) => {
       reportBackgroundError("franchise.sync", error);
+
       if (settingsAtoms.notifyScanErrors.get())
         showErrorOnce(
           "franchise-sync",
@@ -165,6 +166,7 @@ function AnilistRoute() {
     setCurrentList((prev) => {
       if (prev) return prev;
       const first = lists.find((c) => c.entries.length > 0);
+
       return first?.name ?? "";
     });
   }, [lists]);
@@ -206,6 +208,7 @@ function AnilistRoute() {
     (name: string) => {
       setCurrentList(name);
       clearLocalFilter();
+
       if (global) handleReset();
     },
     [global, handleReset, clearLocalFilter]
@@ -230,6 +233,7 @@ function AnilistRoute() {
       ignore: (event) => ignoreTabCycle(event),
       onAction: (id) => {
         const next = stepTabId(listIds, currentList, id === "tab-next" ? 1 : -1);
+
         if (next) handleSelectList(next);
       },
     }
@@ -246,6 +250,7 @@ function AnilistRoute() {
     setCurrentList("");
     setViewedFriend(null);
     const [, error] = await attempt(anilistApi.logout());
+
     if (error) reportBackgroundError("anilist.logout", error);
   }, [queryClient]);
 
@@ -324,6 +329,7 @@ function AnilistRoute() {
       setPage(1);
       setSearchTerms("");
       clearLocalFilter();
+
       if (global) handleReset();
     },
     [global, handleReset, setSearchTerms, handleCloseModal, clearLocalFilter]
@@ -338,10 +344,13 @@ function AnilistRoute() {
   const handleSelectAnime = useCallback(
     (anime: AniListAnime) => {
       if (!anime) return;
+
       if (source.mode === "friend") {
         openAnimeFromLookup(anime.animeId);
+
         return;
       }
+
       showDetail(anime, detailFromFilters);
     },
     [detailFromFilters, openAnimeFromLookup, showDetail, source.mode]
@@ -434,17 +443,22 @@ function AnilistRoute() {
 
   useEffect(() => {
     const current = searchAtoms.anilistSearchQuery.get();
+
     if (current) {
       setSearchTerms(current);
       setAnilistSearchQuery(null);
     }
+
     let prev = searchAtoms.anilistSearchQuery.get();
+
     return subscribeSearch(() => {
       const cur = searchAtoms.anilistSearchQuery.get();
+
       if (cur && !prev) {
         setSearchTerms(cur);
         setAnilistSearchQuery(null);
       }
+
       prev = cur;
     });
   }, [setSearchTerms]);

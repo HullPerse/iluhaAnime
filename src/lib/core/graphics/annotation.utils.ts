@@ -14,6 +14,7 @@ let sequence = 0;
 
 export function nextAnnotationId(): string {
   sequence += 1;
+
   return `mark-${sequence}`;
 }
 
@@ -23,6 +24,7 @@ export function createHistory(): AnnotationHistory {
 
 export function commit(history: AnnotationHistory, present: AnnotationItem[]): AnnotationHistory {
   if (present === history.present) return history;
+
   return {
     past: [...history.past, history.present].slice(-ANNOTATION_HISTORY_LIMIT),
     present,
@@ -32,7 +34,9 @@ export function commit(history: AnnotationHistory, present: AnnotationItem[]): A
 
 export function undo(history: AnnotationHistory): AnnotationHistory {
   const previous = history.past.at(-1);
+
   if (previous === undefined) return history;
+
   return {
     past: history.past.slice(0, -1),
     present: previous,
@@ -42,7 +46,9 @@ export function undo(history: AnnotationHistory): AnnotationHistory {
 
 export function redo(history: AnnotationHistory): AnnotationHistory {
   const [next, ...rest] = history.future;
+
   if (next === undefined) return history;
+
   return {
     past: [...history.past, history.present],
     present: next,
@@ -64,7 +70,9 @@ export function appendPoint(
   spacing = ANNOTATION_POINT_SPACING
 ): CropPoint[] {
   const last = points.at(-1);
+
   if (last && Math.hypot(point.x - last.x, point.y - last.y) < spacing) return points;
+
   return [...points, point];
 }
 
@@ -90,7 +98,9 @@ export function blurSigmaFor(size: number): number {
 
 export function withDraft(items: AnnotationItem[], draft: AnnotationItem | null): AnnotationItem[] {
   if (!draft) return items;
+
   if (!items.some((item) => item.id === draft.id)) return [...items, draft];
+
   return items.map((item) => (item.id === draft.id ? draft : item));
 }
 
@@ -118,8 +128,10 @@ export function hitTestText(
 ): TextItem | null {
   for (let index = items.length - 1; index >= 0; index -= 1) {
     const item = items[index];
+
     if (!item || item.kind !== "text") continue;
     const bounds = textBounds(item, padding);
+
     if (
       point.x >= bounds.left &&
       point.x <= bounds.right &&
@@ -129,6 +141,7 @@ export function hitTestText(
       return item;
     }
   }
+
   return null;
 }
 

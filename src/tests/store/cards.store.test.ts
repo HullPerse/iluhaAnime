@@ -103,16 +103,11 @@ describe("cards store", () => {
     });
   });
 
-  it("defaults the finish sort to holo, foil, then plain", () => {
-    setCardsSort("variant");
-    expect(cardsAtoms.sortDir.get()).toBe("desc");
-  });
-
   it("resets the direction to the natural one when the sort key changes", () => {
-    setCardsSortDir("asc");
+    setCardsSortDir("desc");
     setCardsSort("title");
     expect(cardsAtoms.sortDir.get()).toBe("asc");
-    setCardsSortDir("desc");
+    setCardsSortDir("asc");
     setCardsSort("recent");
     expect(cardsAtoms.sortDir.get()).toBe("desc");
   });

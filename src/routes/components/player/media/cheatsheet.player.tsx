@@ -25,7 +25,9 @@ function Cheatsheet() {
     <div className="flex flex-col gap-2">
       {CATEGORIES.map((category) => {
         const rows = KEYBINDS.filter((keybind) => keybind.category === category);
+
         if (rows.length === 0) return null;
+
         return (
           <div key={category} className="flex flex-col gap-0.5">
             <span className="text-hint text-xs font-bold tracking-wide uppercase">

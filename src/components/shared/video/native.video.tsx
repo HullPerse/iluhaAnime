@@ -10,6 +10,7 @@ export default function NativeVideo({ src, title }: { src: string; title?: strin
     },
     [setMedia]
   );
+
   return (
     <video
       src={src}

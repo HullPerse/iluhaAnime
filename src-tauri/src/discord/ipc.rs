@@ -198,6 +198,58 @@ fn next_nonce() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::net::windows::named_pipe::ServerOptions;
+
+    #[tokio::test]
+    async fn named_pipe_handshake_activity_and_clear() {
+        let path = format!(r"\\.\pipe\iluhaanime-discord-test-{}", next_nonce());
+        let mut server = ServerOptions::new()
+            .first_pipe_instance(true)
+            .create(&path)
+            .unwrap();
+        let pipe = ClientOptions::new().open(&path).unwrap();
+        let server_task = async {
+            server.connect().await.unwrap();
+            let (opcode, handshake) = read_frame(&mut server).await.unwrap();
+            assert_eq!(opcode, OP_HANDSHAKE);
+            assert_eq!(handshake, json!({ "v": 1, "client_id": "test" }));
+            write_frame(&mut server, OP_PING, &json!({"ping": true}))
+                .await
+                .unwrap();
+            assert_eq!(
+                read_frame(&mut server).await.unwrap(),
+                (OP_PONG, json!({"ping": true}))
+            );
+            write_frame(&mut server, OP_FRAME, &json!({"evt": "READY"}))
+                .await
+                .unwrap();
+            let (opcode, update) = read_frame(&mut server).await.unwrap();
+            assert_eq!(opcode, OP_FRAME);
+            assert_eq!(update["cmd"], "SET_ACTIVITY");
+            assert_eq!(update["args"]["activity"]["details"], "chapter 3");
+            let (_, clear) = read_frame(&mut server).await.unwrap();
+            assert_eq!(clear["cmd"], "SET_ACTIVITY");
+            assert!(clear["args"]["activity"].is_null());
+            assert_eq!(read_frame(&mut server).await.unwrap().0, OP_CLOSE);
+        };
+        let client_task = async {
+            let mut ipc = DiscordIpc { pipe };
+            ipc.handshake("test").await.unwrap();
+            let mut connection = ipc.split();
+            connection
+                .set_activity(Some(&json!({"details": "chapter 3"})))
+                .await
+                .unwrap();
+            connection.set_activity(None).await.unwrap();
+            connection.close().await.unwrap();
+            connection
+        };
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            tokio::join!(server_task, client_task);
+        })
+        .await
+        .expect("test pipe exchange timed out");
+    }
 
     #[test]
     fn frame_has_a_little_endian_header_and_one_payload() {

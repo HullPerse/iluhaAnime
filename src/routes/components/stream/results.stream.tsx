@@ -75,12 +75,14 @@ export default function StreamResults({
 
   useEffect(() => {
     setStreamCoverScope(items.flatMap((anime) => (anime.cover ? [anime.cover] : [])));
+
     return () => setStreamCoverScope(null);
   }, [items]);
 
   const focusTile = useCallback(
     (index: number) => {
       const count = items.length;
+
       if (count === 0) return;
       const next = Math.min(Math.max(index, 0), count - 1);
       setActiveIndex(next);

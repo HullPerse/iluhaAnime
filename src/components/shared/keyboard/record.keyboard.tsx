@@ -97,19 +97,27 @@ export function KeybindRecorder({
     event.preventDefault();
     event.stopPropagation();
     syncLive(event);
+
     if (event.code === "Escape") {
       onCancel();
+
       return;
     }
+
     if (event.code === "Backspace") {
       applyDraft(null);
+
       return;
     }
+
     if (event.code === "Enter") {
       if (!blocked) onCommit(draft);
+
       return;
     }
+
     const next = chordFromKeyboardEvent(event, live);
+
     if (next && parseChord(next)) applyDraft(next);
   };
 

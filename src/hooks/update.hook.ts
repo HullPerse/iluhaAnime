@@ -18,16 +18,23 @@ export function useUpdateCheck() {
 
   const check = useCallback(async (): Promise<UpdateCheckOutcome> => {
     if (!isOnline) return { status: "offline" };
+
     if (data) {
       openUpdatePrompt();
+
       return { status: "available", update: data };
     }
+
     const result = await refetch();
+
     if (result.error !== null) return { status: "error", error: result.error };
+
     if (result.data) {
       openUpdatePrompt();
+
       return { status: "available", update: result.data };
     }
+
     return { status: "none" };
   }, [data, isOnline, refetch]);
 

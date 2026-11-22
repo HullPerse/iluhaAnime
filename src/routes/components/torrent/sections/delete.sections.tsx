@@ -22,7 +22,9 @@ export function DeleteTorrentDialog({
   onClose,
 }: DeleteTorrentDialogProps) {
   const { t } = useI18n();
+
   if (!open) return null;
+
   return (
     <Modal header={t("torrent.delete.title")} onClose={onClose} className="w-xl">
       <section className="flex flex-1 flex-col">

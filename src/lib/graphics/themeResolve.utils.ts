@@ -11,16 +11,20 @@ import type { ResolveThemeOptions } from "@/types/graphics/themeResolve";
 
 function relativeLuminance(hex: string): number {
   const rgb = hexToRgb(hex);
+
   if (!rgb) return 0;
   const channel = (value: number): number => {
     const normalized = value / 255;
+
     return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
   };
+
   return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b);
 }
 
 export function themeMode(theme: ThemeDefinition): ThemeMode {
   if (theme.mode) return theme.mode;
+
   return relativeLuminance(theme.colors.text) > relativeLuminance(theme.colors.primary)
     ? "dark"
     : "light";
@@ -44,6 +48,7 @@ export function resolveTheme({
   patch,
 }: ResolveThemeOptions): ThemeDefinition | undefined {
   const base = findTheme(name, builtins, customThemes);
+
   if (!base || !patch) return base;
 
   return {
@@ -66,10 +71,13 @@ function sameOverrides(
   const left = base ?? {};
   const right = draft ?? {};
   const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+
   for (const key of keys) {
     const token = key as keyof ThemeOverrides;
+
     if (left[token] !== right[token]) return false;
   }
+
   return true;
 }
 
@@ -88,27 +96,34 @@ function diffColors(
     keyof ThemeDefinition["colors"]
   >;
   const colors: Record<string, string | number | undefined> = {};
+
   for (const key of keys) {
     if (key === "autocompleteOpacity") {
       const baseOpacity = normalizeAutocompleteOpacity(base[key]);
       const draftOpacity = normalizeAutocompleteOpacity(draft[key]);
+
       if (baseOpacity !== draftOpacity) colors[key] = draftOpacity;
       continue;
     }
+
     if (key === "autocomplete") {
       const baseColor = isHexColor(base.autocomplete) ? base.autocomplete : base.muted;
       const draftColor = isHexColor(draft.autocomplete) ? draft.autocomplete : draft.muted;
+
       if (baseColor !== draftColor) colors[key] = draftColor;
       continue;
     }
+
     if (draft[key] !== base[key]) colors[key] = draft[key];
   }
+
   return Object.keys(colors).length > 0 ? colors : undefined;
 }
 
 function diffTrait<T>(base: T | undefined, draft: T | undefined, fallback: T): T | undefined {
   const effectiveBase = base ?? fallback;
   const effectiveDraft = draft ?? fallback;
+
   return effectiveDraft === effectiveBase ? undefined : effectiveDraft;
 }
 
@@ -117,6 +132,7 @@ function diffComponents(
   draft: ThemeComponents | undefined
 ): ThemeComponents | undefined {
   if (sameComponents(base, draft)) return undefined;
+
   return draft ?? {};
 }
 
@@ -125,6 +141,7 @@ function diffOverrides(
   draft: ThemeOverrides | undefined
 ): ThemeOverrides | undefined {
   if (sameOverrides(base, draft)) return undefined;
+
   return draft ?? {};
 }
 
@@ -133,6 +150,7 @@ function diffGradient(
   draft: ThemeDefinition["titlebarGradient"]
 ): ThemeDefinition["titlebarGradient"] | undefined {
   if (base?.from === draft?.from && base?.to === draft?.to) return undefined;
+
   return draft;
 }
 
@@ -140,24 +158,31 @@ export function diffTheme(base: ThemeDefinition, draft: ThemeDefinition): ThemeP
   const patch: ThemePatch = {};
 
   const colors = diffColors(base.colors, draft.colors);
+
   if (colors) patch.colors = colors;
 
   const radius = diffTrait(base.radius, draft.radius, "none");
+
   if (radius) patch.radius = radius;
 
   const bevel = diffTrait(base.bevel, draft.bevel, "raised");
+
   if (bevel) patch.bevel = bevel;
 
   const overlay = diffTrait(base.overlay, draft.overlay, "none");
+
   if (overlay) patch.overlay = overlay;
 
   const components = diffComponents(base.components, draft.components);
+
   if (components) patch.components = components;
 
   const overrides = diffOverrides(base.overrides, draft.overrides);
+
   if (overrides) patch.overrides = overrides;
 
   const titlebarGradient = diffGradient(base.titlebarGradient, draft.titlebarGradient);
+
   if (titlebarGradient) patch.titlebarGradient = titlebarGradient;
 
   if (draft.fontFamily !== base.fontFamily && draft.fontFamily !== undefined) {

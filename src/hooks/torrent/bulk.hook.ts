@@ -52,6 +52,7 @@ export function useTorrentBulk(): TorrentBulkApi {
           })
           .then((removed) => {
             if (removed) prepareTorrentDownload(`magnet:?xt=urn:btih:${torrent.info_hash}`);
+
             return null;
           })
       );
@@ -68,6 +69,7 @@ export function useTorrentBulk(): TorrentBulkApi {
     ) => {
       if (targets.length === 0 || bulkBusy) return;
       setBulkBusy(true);
+
       try {
         const total = targets.length;
         const reportFailures = (done: number) => {
@@ -78,6 +80,7 @@ export function useTorrentBulk(): TorrentBulkApi {
             t("torrent.bulk.done", { done, failed: total - done })
           );
         };
+
         await attempt(
           (async () => {
             if (kind === "remove") {
@@ -93,8 +96,10 @@ export function useTorrentBulk(): TorrentBulkApi {
                 (outcome) => outcome.ok && Boolean(outcome.value)
               ).length;
               reportFailures(done);
+
               return;
             }
+
             if (kind === "recheck") {
               const results = await Promise.all(
                 targets.map((torrent) =>
@@ -106,6 +111,7 @@ export function useTorrentBulk(): TorrentBulkApi {
                 )
               );
               const { lost, failed } = splitRecheckOutcome(targets, results);
+
               if (failed > 0) {
                 addNotification(
                   t("torrent.bulk.title"),
@@ -116,9 +122,12 @@ export function useTorrentBulk(): TorrentBulkApi {
                   })
                 );
               }
+
               if (lost.length > 0) setRecreateTargets(lost);
+
               return;
             }
+
             if (kind === "trackers" && payload?.tracker !== undefined) {
               const tracker = payload.tracker;
               const { done, failed } = await applyBulkAction(targets, (torrent) =>
@@ -129,14 +138,17 @@ export function useTorrentBulk(): TorrentBulkApi {
                   silent: true,
                 })
               );
+
               if (failed > 0)
                 addNotification(
                   t("torrent.bulk.title"),
                   "error",
                   t("torrent.bulk.done", { done, failed })
                 );
+
               return;
             }
+
             if (kind === "limits") {
               const downloadBps =
                 payload?.downloadBps != null ? Math.round(payload.downloadBps * 1024) : null;
@@ -149,14 +161,17 @@ export function useTorrentBulk(): TorrentBulkApi {
                   torrent.info_hash
                 )
               );
+
               if (failed > 0)
                 addNotification(
                   t("torrent.bulk.title"),
                   "error",
                   t("torrent.bulk.done", { done, failed })
                 );
+
               return;
             }
+
             const { done, failed } = await applyBulkAction(targets, (torrent) =>
               kind === "pause"
                 ? pauseMutation.mutateAsync({
@@ -170,6 +185,7 @@ export function useTorrentBulk(): TorrentBulkApi {
                     silent: true,
                   })
             );
+
             if (failed > 0)
               addNotification(
                 t("torrent.bulk.title"),
@@ -213,6 +229,7 @@ export function useTorrentBulkDialogs(
   const confirmRemove = useCallback(
     (deleteFiles: boolean) => {
       const targets = removeTargets;
+
       if (!targets) return;
       setRemoveTargets(null);
       ignore(runBulk("remove", targets, deleteFiles));

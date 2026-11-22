@@ -4,11 +4,13 @@ import { splitChordParts } from "@/lib/core/hotkeys/chordHotkeys.utils";
 
 export function ChordChips({ chord }: { chord: string }) {
   const parts = splitChordParts(chord);
+
   if (!parts) {
     return (
       <span className="windows95-text shrink-0 text-xs whitespace-nowrap select-none">{chord}</span>
     );
   }
+
   return (
     <span className="flex min-w-0 items-center gap-0.5">
       {parts.map((part, index) => (

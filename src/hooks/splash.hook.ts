@@ -48,8 +48,11 @@ function withStatus(
 
 async function defaultCheckDatabase(): Promise<DbCheckResult> {
   const [data, failure] = await attempt(systemApi.getDatabaseStatus());
+
   if (failure !== null) return { ok: false, message: failure.message, status: null };
+
   if (!data.ok) return { ok: false, message: data.error ?? "Database check failed", status: data };
+
   return { ok: true, message: "", status: data };
 }
 
@@ -96,6 +99,7 @@ export function useSplashStages(
   const tryFinish = useCallback(() => {
     if (finished.current) return;
     const state = settled.current;
+
     if (
       !state.theme ||
       !state.migrations ||
@@ -107,6 +111,7 @@ export function useSplashStages(
     ) {
       return;
     }
+
     finished.current = true;
     const wait = Math.max(0, minMs - (Date.now() - startedAt.current));
     const timer = scheduleTask("timeout", wait, () => setDone(true));
@@ -121,11 +126,13 @@ export function useSplashStages(
       .current()
       .then(async (result) => {
         if (disposed) return;
+
         if (result.ok) {
           setDbStatus(result.status);
           const nap = sleep(stepMs);
           naps.current.push(nap);
           await nap.done;
+
           if (disposed) return;
           settled.current.database = true;
           setStages((current) => withStatus(current, "database", "done"));
@@ -136,6 +143,7 @@ export function useSplashStages(
           setStages((current) => withStatus(current, "database", "degraded"));
           setDbFailed(true);
         }
+
         return null;
       })
       .catch((error) => {
@@ -148,12 +156,15 @@ export function useSplashStages(
     const cleanup = () => {
       disposed = true;
     };
+
     dbCheckCleanupRef.current = cleanup;
+
     return cleanup;
   }, [stepMs, tryFinish]);
 
   useEffect(() => {
     runDatabaseCheck();
+
     return () => {
       dbCheckCleanupRef.current?.();
       dbCheckCleanupRef.current = null;
@@ -181,39 +192,55 @@ export function useSplashStages(
       const nap = sleep(stepMs);
       naps.current.push(nap);
       await nap.done;
+
       return !disposed;
     };
 
     const run = async (): Promise<void> => {
       setStages((current) => withStatus(current, "theme", "active"));
+
       if (!(await pace("theme", "done"))) return;
+
       if (disposed) return;
 
       setStages((current) => withStatus(current, "migrations", "active"));
       const [, migrationError] = attemptSync(() => detectMigrations());
+
       if (migrationError !== null) reportBackgroundError("splash.migrations", migrationError);
+
       if (!(await pace("migrations", "done"))) return;
+
       if (disposed) return;
 
       setStages((current) => withStatus(current, "cache", "active"));
       const ready = await awaitCacheReady(stageTimeoutMs);
+
       if (disposed) return;
+
       if (!ready)
         reportBackgroundError("splash.cache.timeout", new Error("cache warmup timed out"));
+
       if (!(await pace("cache", ready ? "done" : "degraded"))) return;
+
       if (disposed) return;
 
       setStages((current) => withStatus(current, "spelling", "active"));
       const spelled = await awaitSignal(isSpellingReady, onSpellingReady, stageTimeoutMs);
+
       if (disposed) return;
+
       if (!spelled)
         reportBackgroundError("splash.spelling.timeout", new Error("spelling warmup timed out"));
+
       if (!(await pace("spelling", spelled ? "done" : "degraded"))) return;
+
       if (disposed) return;
 
       setStages((current) => withStatus(current, "index", "active"));
       const indexed = await awaitSignal(isIndexReady, onIndexReady, stageTimeoutMs);
+
       if (disposed) return;
+
       if (!indexed)
         reportBackgroundError("splash.index.timeout", new Error("anime index warmup timed out"));
       settle("index", indexed ? "done" : "degraded");
@@ -221,10 +248,13 @@ export function useSplashStages(
     };
 
     run().catch((error) => reportBackgroundError("splash.boot", error));
+
     return () => {
       disposed = true;
+
       for (const nap of naps.current) nap.cancel();
       naps.current = [];
+
       for (const timer of timers.current) timer.cancel();
       timers.current = [];
     };

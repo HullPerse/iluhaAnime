@@ -25,19 +25,24 @@ export function findUpdatedFiles(
   const knownBase = new Set(
     torrentFiles.map((file) => {
       const normalized = normalizeUpdateFileName(file.name);
+
       return fileNameFromPath(normalized);
     })
   );
+
   return detailFiles.filter((file) => {
     const normalized = normalizeUpdateFileName(file.name);
+
     if (!normalized || known.has(normalized)) return false;
     const base = fileNameFromPath(normalized);
+
     return !knownBase.has(base);
   });
 }
 
 function parseRutrackerTopicId(url: string): string | null {
   const match = url.match(/[?&]t=(\d+)/);
+
   return match ? match[1] : null;
 }
 
@@ -47,18 +52,25 @@ async function fetchFreshTorrentBytes(
 ): Promise<{ ok: true; bytes: number[] } | { ok: false; error: string }> {
   if (origin.source === "rutracker") {
     const topicId = parseRutrackerTopicId(origin.url);
+
     if (!topicId) return { ok: false, error: tr("torrent.files.update.bad.url") };
     const [bytes, error] = await attempt(torrentApi.rutrackerGetTorrentBytes(topicId));
+
     if (error || !bytes || bytes.length === 0)
       return { ok: false, error: error?.message ?? tr("torrent.files.update.bytes.error") };
+
     return { ok: true, bytes };
   }
+
   const torrentUrl = details.torrentUrl || details.magnet;
+
   if (!torrentUrl.startsWith("http"))
     return { ok: false, error: tr("torrent.files.update.no.url") };
   const [bytes, error] = await attempt(torrentApi.fetchTorrentBytes(torrentUrl, origin.source));
+
   if (error || !bytes || bytes.length === 0)
     return { ok: false, error: error?.message ?? tr("torrent.files.update.bytes.error") };
+
   return { ok: true, bytes };
 }
 
@@ -69,15 +81,19 @@ function matchPickedIndices(picked: TorrentDetailFile[], freshFiles: TorrentFile
   const byBase = new Map(
     freshFiles.map((file) => {
       const normalized = normalizeUpdateFileName(file.name);
+
       return [fileNameFromPath(normalized), file.index];
     })
   );
   const indices: number[] = [];
+
   for (const file of picked) {
     const normalized = normalizeUpdateFileName(file.name);
     const index = byFull.get(normalized) ?? byBase.get(fileNameFromPath(normalized));
+
     if (index !== undefined) indices.push(index);
   }
+
   return [...new Set(indices)];
 }
 
@@ -88,10 +104,13 @@ export async function applyTorrentUpdate(
   picked: TorrentDetailFile[]
 ): Promise<boolean> {
   const fetched = await fetchFreshTorrentBytes(origin, details);
+
   if (!fetched.ok) {
     showError(tr("torrent.files.update.error"), fetched.error);
+
     return false;
   }
+
   const [newId, addError] = await attempt(
     torrentApi.startTorrentDownload({
       fileBytes: fetched.bytes,
@@ -101,22 +120,32 @@ export async function applyTorrentUpdate(
       sequential: false,
     })
   );
+
   if (addError || newId === undefined) {
     showError(tr("torrent.files.update.error"), addError?.message ?? "");
+
     return false;
   }
+
   const [freshFiles] = await attempt(torrentApi.runningTorrentFiles(newId));
   const indices = matchPickedIndices(picked, freshFiles ?? []);
+
   if (indices.length > 0 && indices.length < (freshFiles ?? []).length) {
     const [, selectError] = await attempt(torrentApi.updateOnlyFiles(newId, indices, undefined));
+
     if (selectError) showError(tr("torrent.files.update.error"), selectError.message);
   }
+
   const [, sourceError] = await attempt(torrentApi.setTorrentSource(newId, origin, undefined));
+
   if (sourceError) showError(tr("torrent.files.update.error"), sourceError.message);
   const [, removeError] = await attempt(torrentApi.removeTorrent(item.id, false));
+
   if (removeError) {
     showError(tr("torrent.files.update.error"), removeError.message);
+
     return false;
   }
+
   return true;
 }

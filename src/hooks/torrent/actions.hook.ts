@@ -54,6 +54,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   const onSeedChange = useCallback(
     (enabled: boolean) => {
       setSeedPreference(id, enabled);
+
       if (enabled) resumeMutation.mutate({ id, infoHash });
       else pauseMutation.mutate({ id, infoHash });
     },
@@ -89,8 +90,10 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
         const [, error] = await attempt(
           setSequentialMutation.mutateAsync({ id, enabled: true, infoHash })
         );
+
         if (error) return false;
       }
+
       if (payload.selected.length > 0) {
         const [, error] = await attempt(
           setFilePriorityMutation.mutateAsync({
@@ -100,8 +103,10 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
             infoHash,
           })
         );
+
         if (error) return false;
       }
+
       if (payload.deselected.length > 0) {
         const [, error] = await attempt(
           setFilePriorityMutation.mutateAsync({
@@ -111,11 +116,14 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
             infoHash,
           })
         );
+
         if (error) return false;
       }
+
       const [, error] = await attempt(
         setDownloadOrderMutation.mutateAsync({ id, indices: payload.order, infoHash })
       );
+
       return !error;
     },
     [setSequentialMutation, setFilePriorityMutation, setDownloadOrderMutation, id, infoHash]
@@ -126,6 +134,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
       deleteFiles: false,
       infoHash,
     });
+
     if (!removed) return;
     prepareTorrentDownload(`magnet:?xt=urn:btih:${infoHash}`);
   }, [removeMutation, id, infoHash]);
@@ -140,6 +149,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   }, [recheckPausedMutation, id, infoHash]);
   const onRecheck = useCallback(async () => {
     const result = await recheckMutation.mutateAsync({ id, infoHash });
+
     if (!result) return;
     const notice = describeRecheckOutcome(result, t);
     addNotification(t("torrent.recheck.title"), notice.tone, notice.message);
@@ -147,6 +157,7 @@ export function useTorrentItemActions(item: TorrentInfo): TorrentItemActions {
   const onUpdateRequest = useCallback(
     async (request: { added: TorrentDetailFile[]; details: TorrentDetails }) => {
       const [origin] = await attempt(torrentApi.getTorrentSource(id, infoHash));
+
       if (!origin) return;
       ignore(applyTorrentUpdate(item, origin, request.details, request.added));
     },

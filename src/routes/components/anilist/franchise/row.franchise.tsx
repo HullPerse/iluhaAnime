@@ -51,6 +51,7 @@ export function FranchiseRow({
   const aired = availableEpisodes(node, now);
   const notReleased = node.status === "NOT_YET_RELEASED";
   let shownProgress: number | null = null;
+
   if (progress != null && aired > 0) shownProgress = Math.min(progress, aired);
   const accessible = [
     node.title,

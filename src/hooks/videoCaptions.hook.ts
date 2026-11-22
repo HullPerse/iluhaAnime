@@ -12,6 +12,7 @@ export function useCaptionTracks() {
   useEffect(() => {
     if (!media) return;
     const list = (media as { textTracks?: TextTrackListLike }).textTracks;
+
     if (!list) return;
     const sync = () => {
       const subs = Array.from(list).filter(
@@ -24,16 +25,19 @@ export function useCaptionTracks() {
         ) {
           return prev;
         }
+
         return [...subs];
       });
       setShowingId(subs.find((track) => track.mode === "showing")?.id ?? null);
     };
+
     sync();
     const onListEvent = () => sync();
     list.addEventListener?.("addtrack", onListEvent);
     list.addEventListener?.("removetrack", onListEvent);
     list.addEventListener?.("change", onListEvent);
     const retry = scheduleTask("timeout", 250, sync);
+
     return () => {
       list.removeEventListener?.("addtrack", onListEvent);
       list.removeEventListener?.("removetrack", onListEvent);

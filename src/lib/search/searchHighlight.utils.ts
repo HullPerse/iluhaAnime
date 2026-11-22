@@ -30,15 +30,21 @@ export function computeGhostValue({
   currentValue: string;
 }): string | null {
   if (!enabled) return null;
+
   if (mode !== "inline" && mode !== "both") return null;
+
   if (dismissed || !focused) return null;
   const candidate = activeSuggestion?.value ?? completion ?? null;
+
   if (!candidate) return null;
+
   if (currentValue.trim().length === 0) return null;
   const normCandidate = normalizeSearchText(candidate);
   const normCurrent = normalizeSearchText(currentValue);
+
   if (!normCandidate.startsWith(normCurrent) || normCandidate === normCurrent) {
     return null;
   }
+
   return candidate;
 }

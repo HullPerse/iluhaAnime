@@ -70,7 +70,9 @@ export default function StreamEpisodeList({
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((item) => {
               const episode = episodes[item.index];
+
               if (!episode) return null;
+
               return (
                 <div
                   key={item.key}

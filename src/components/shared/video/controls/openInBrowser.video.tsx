@@ -12,9 +12,11 @@ export function OpenInBrowserButton({ youtubeId }: { youtubeId: string }) {
   const onClick = () => {
     (async () => {
       const [, error] = await attempt(openUrl(`https://www.youtube.com/watch?v=${youtubeId}`));
+
       if (error) showError(t("common.error"), error.message);
     })();
   };
+
   return (
     <Win95PlayerButton
       onClick={onClick}

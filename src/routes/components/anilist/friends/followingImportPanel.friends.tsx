@@ -34,18 +34,23 @@ export function FollowingImportPanel({
   const toggleAll = (next: boolean) => {
     setSelected(next ? new Set(selectable.map((user) => user.id)) : new Set());
   };
+
   const toggleOne = (id: number, next: boolean) => {
     setSelected((current) => {
       const nextSet = new Set(current);
+
       if (next) nextSet.add(id);
       else nextSet.delete(id);
+
       return nextSet;
     });
   };
+
   const handleAdd = () => {
     const picked = following.users.filter(
       (user) => selectableIds.has(user.id) && selected.has(user.id)
     );
+
     if (picked.length === 0) return;
     onAddMany(picked.map((user) => ({ id: user.id, name: user.name, avatar: user.avatar })));
     setSelected(new Set());
@@ -102,6 +107,7 @@ export function FollowingImportPanel({
           <div className="flex max-h-56 min-h-0 flex-col gap-1 overflow-y-auto">
             {following.users.map((user) => {
               const added = addedIds.has(user.id);
+
               return (
                 <div key={user.id} className="hover:bg-surface flex items-center gap-1 p-1">
                   <Checkbox

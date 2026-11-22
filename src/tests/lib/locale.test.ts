@@ -20,6 +20,7 @@ describe("locale dictionary", () => {
       ...changed,
       ...fixed,
     ])[0]?.key;
+
     if (entryKey === undefined) throw new Error("no changelog entries");
 
     expect(translate(entryKey)).toBe(entryKey);
@@ -67,10 +68,12 @@ describe("locale dictionary", () => {
     it("does not repeat a key", () => {
       const seen = new Set<string>();
       const duplicates: string[] = [];
+
       for (const { key } of entries) {
         if (seen.has(key)) duplicates.push(key);
         seen.add(key);
       }
+
       expect(duplicates).toEqual([]);
     });
   });

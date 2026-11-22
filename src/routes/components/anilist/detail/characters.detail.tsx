@@ -73,6 +73,7 @@ function AniListCharactersPanel({
 
   const voiceActorPreview = (edge: AniCharacterEdge) => {
     if (edge.voice_actors.length === 0) return undefined;
+
     return (close: () => void) => (
       <VoiceActorsPreview
         voiceActors={edge.voice_actors}
@@ -96,6 +97,7 @@ function AniListCharactersPanel({
   };
 
   if (query.isLoading) return null;
+
   if (edges.length === 0) return null;
 
   return (

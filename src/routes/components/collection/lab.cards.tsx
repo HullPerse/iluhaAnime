@@ -17,6 +17,7 @@ import {
   LAB_PACK,
   LAB_SHOP_PACKS,
   LAB_WALLET,
+  LAB_SCALES,
   labCombinationCount,
 } from "@/config/cards/labFixtures.config";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -31,12 +32,6 @@ import LabPack from "@/routes/components/collection/labPack.cards";
 import LabSection from "@/routes/components/collection/labSection.cards";
 import LabStudioSection from "@/routes/components/collection/labStudioSection.cards";
 import ShopPack from "@/routes/components/collection/shopPack.cards";
-
-const SCALES = [
-  { label: "100%", width: "9rem" },
-  { label: "150%", width: "13.5rem" },
-  { label: "200%", width: "18rem" },
-] as const;
 
 export default function CardsLab() {
   const { t } = useI18n();
@@ -66,22 +61,18 @@ export default function CardsLab() {
         </span>
       </header>
       <p className="windows95-text text-hint mt-1 mb-2">
-        Dev-only маршрут. Команды карточной коллекции не вызываются; данные берутся из фикстур.
+        Маршрут для разработки. Данные из фикстур.
       </p>
 
       <div className="flex flex-col gap-2">
-        <LabSection id="lab-matrix" title="Матрица карточек" hint="Все типы, редкости и варианты">
+        <LabSection id="lab-matrix" title="Матрица карточек">
           <LabMatrix cards={LAB_CARDS} />
         </LabSection>
 
-        <LabSection
-          id="lab-scale"
-          title="Масштаб и рубашки"
-          hint="100 / 150 / 200% и пять свечений"
-        >
+        <LabSection id="lab-scale" title="Масштаб и рубашки">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start gap-3">
-              {SCALES.map((scale) => (
+              {LAB_SCALES.map((scale) => (
                 <figure key={scale.label} className="m-0 flex flex-col gap-1">
                   <div style={{ width: scale.width }}>
                     <CardFace card={LAB_GIFT} />
@@ -103,19 +94,19 @@ export default function CardsLab() {
           </div>
         </LabSection>
 
-        <LabSection id="lab-pack" title="Пак и раскрытие" hint="5 секунд, клик, Skip, Replay">
+        <LabSection id="lab-pack" title="Пак и раскрытие">
           <LabPack cards={LAB_PACK} />
         </LabSection>
 
-        <LabSection id="lab-binder" title="Биндер" hint="Страница 4×3">
+        <LabSection id="lab-binder" title="Биндер">
           <LabBinderPage />
         </LabSection>
 
-        <LabSection id="lab-shelf" title="Полка аниме" hint="Обложка, ростер и силуэты">
+        <LabSection id="lab-shelf" title="Полка аниме">
           <LabAnimeShelf />
         </LabSection>
 
-        <LabSection id="lab-studio" title="Коллаж студии" hint="2×2 и монограмма">
+        <LabSection id="lab-studio" title="Коллаж студии">
           <LabStudioSection />
         </LabSection>
 
@@ -148,7 +139,7 @@ export default function CardsLab() {
           </div>
         </LabSection>
 
-        <LabSection id="lab-dialogs" title="Диалоги" hint="Разбор и подарок">
+        <LabSection id="lab-dialogs" title="Диалоги">
           <div className="flex flex-wrap items-start gap-2">
             <div className="windows95-border bg-field flex min-w-60 flex-1 flex-col gap-2 p-2">
               <h3 className="windows95-text m-0 font-bold">Разбор карточки</h3>
@@ -161,9 +152,6 @@ export default function CardsLab() {
             </div>
             <div className="windows95-border bg-field flex min-w-60 flex-1 flex-col gap-2 p-2">
               <h3 className="windows95-text m-0 font-bold">Подарок</h3>
-              <p className="windows95-text text-hint m-0">
-                Состояние подаренной карточки: источник, редкость и ценность.
-              </p>
               <Button className="h-6 self-start px-2 text-xs" onClick={() => setGiftOpen(true)}>
                 Открыть подарок
               </Button>

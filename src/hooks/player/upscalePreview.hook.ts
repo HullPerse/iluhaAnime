@@ -57,10 +57,13 @@ export function useUpscalePreview({
 
   const load = useCallback(() => {
     const dims = resolution === "original" ? [0, 0] : resolution.split("x").map(Number);
+
     if (dims.length !== 2 || dims.some((dim) => !Number.isInteger(dim) || dim < 0)) {
       setState({ ...EMPTY_STATE(requestKey), error: t("player.upscale.preview.failed") });
+
       return;
     }
+
     const [w, h] = dims;
     setState((prev) => ({
       key: requestKey,
@@ -79,19 +82,24 @@ export function useUpscalePreview({
         })
       ).then(([data, err]) => {
         if (latestKeyRef.current !== requestKey) return;
+
         if (err || !data) {
           setState({
             ...EMPTY_STATE(requestKey),
             error: err ? err.message : t("player.upscale.preview.failed"),
           });
+
           return;
         }
+
         setState({ key: requestKey, frames: data, loading: false, error: null });
+
         return null;
       })
     );
   }, [filePath, requestKey, resolution, selectedShaders, t, temporalDenoise]);
 
   if (state.key !== requestKey) return { ...EMPTY_STATE(requestKey), load };
+
   return { frames: state.frames, loading: state.loading, error: state.error, load };
 }

@@ -24,12 +24,15 @@ export function ChartFrame({
 
   useEffect(() => {
     const node = containerRef.current;
+
     if (!node) return;
     const measure = () => setWidth(node.getBoundingClientRect().width);
     measure();
+
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(node);
+
     return () => observer.disconnect();
   }, []);
 

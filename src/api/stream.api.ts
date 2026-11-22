@@ -1,4 +1,6 @@
 import { tauriTransport } from "@/api/transport.api";
+import { assertSchema } from "@/lib/core/system/invoke.utils";
+import { StreamSourcesSchema } from "@/schemas/stream.schema";
 import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
 import type { ApiTransport } from "@/types/core/transport";
 import {
@@ -28,15 +30,11 @@ import type {
   StreamSource,
 } from "@/types/player/videoPlayer";
 
-import type { AnimeLibAccount, StreamApiConfig } from "@/types/api/stream";
-
-interface StreamSourcesInput {
-  episodeId: string;
-  variantId: string;
-}
+import type { AnimeLibAccount, StreamApiConfig, StreamSourcesInput } from "@/types/api/stream";
 
 export class StreamApi {
   private readonly transport: ApiTransport;
+
   private readonly proxyUrl: string | null | (() => string | null);
 
   constructor(config: StreamApiConfig = {}) {
@@ -46,6 +44,7 @@ export class StreamApi {
 
   private proxy(): Record<string, string> {
     const resolved = typeof this.proxyUrl === "function" ? this.proxyUrl() : this.proxyUrl;
+
     return streamProxyArgs(resolved);
   }
 
@@ -53,11 +52,14 @@ export class StreamApi {
     const [value, error] = await attempt(
       this.transport.call<T>(command, { ...args, ...this.proxy() })
     );
+
     if (error !== null) {
       noteNetworkFailure(error);
       throw error;
     }
+
     noteNetworkSuccess();
+
     return value;
   }
 
@@ -74,6 +76,7 @@ export class StreamApi {
     }>("anime_lib_search", {
       input: { query, page: page ?? 1, ...(filters ? { filters } : {}) },
     });
+
     return {
       items: raw.items.map(normalizeAnime),
       page: raw.page,
@@ -84,6 +87,7 @@ export class StreamApi {
 
   async random(filters: StreamCatalogFilters): Promise<StreamingAnime | null> {
     const raw = await this.call<RawAnime | null>("anime_lib_random", { filters });
+
     return raw ? normalizeAnime(raw) : null;
   }
 
@@ -95,6 +99,7 @@ export class StreamApi {
     const raw = await this.call<{ anime: RawAnime; episodes: RawEpisode[] }>("anime_lib_title", {
       input: { slug },
     });
+
     return {
       anime: normalizeAnime(raw.anime),
       episodes: raw.episodes.map(normalizeEpisode),
@@ -105,6 +110,7 @@ export class StreamApi {
     const raw = await this.call<RawEpisode[]>("anime_lib_episodes", {
       input: { animeId },
     });
+
     return raw.map(normalizeEpisode);
   }
 
@@ -112,11 +118,14 @@ export class StreamApi {
     const raw = await this.call<RawVariant[]>("anime_lib_players", {
       input: { episodeId },
     });
+
     return raw.map(normalizeVariant);
   }
 
   async streamSources(input: StreamSourcesInput): Promise<StreamSource[]> {
-    return this.call<StreamSource[]>("anime_lib_stream_sources", { input });
+    const sources = await this.call<unknown>("anime_lib_stream_sources", { input });
+
+    return assertSchema(sources, StreamSourcesSchema);
   }
 
   /**

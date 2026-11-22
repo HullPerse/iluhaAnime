@@ -72,6 +72,7 @@ export function ClipPlayer({
                   ? clipStart(next, startFraction)
                   : Math.min(clipStart(next, startFraction), Math.max(0, next - clipSeconds));
               video.currentTime = startAtZero ? 0 : start;
+
               if (autoPlay) ignore(video.play());
             }}
             onTimeUpdate={onTimeUpdate}

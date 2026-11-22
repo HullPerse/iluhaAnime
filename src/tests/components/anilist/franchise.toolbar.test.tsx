@@ -35,6 +35,7 @@ const toolbarProps = (overrides: Partial<FranchiseToolbarProps> = {}): Franchise
 const renderToolbar = (overrides: Partial<FranchiseToolbarProps> = {}) => {
   const props = toolbarProps(overrides);
   const view = render(<FranchiseToolbar {...props} />);
+
   return { props, view };
 };
 

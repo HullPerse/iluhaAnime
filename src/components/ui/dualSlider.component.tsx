@@ -39,6 +39,7 @@ export function DualSlider({
       const clamped = clamp(raw, 0, 1);
       const stepped = Math.round((min + clamped * (max - min)) / step) * step;
       const nv = clamp(stepped, min, max);
+
       if (target === "min") {
         onChange([Math.min(nv, value[1]), value[1]]);
       } else {
@@ -53,9 +54,11 @@ export function DualSlider({
       e.preventDefault();
       const base = e.shiftKey ? step * 10 : step;
       const rect = ref.current?.getBoundingClientRect();
+
       if (!rect) return;
       const raw = (e.clientX - rect.left) / rect.width;
       const mid = (low + high) / 200;
+
       if (raw < mid) {
         const amount = base * (e.deltaY > 0 ? 1 : -1);
         onChange([clamp(value[0] + amount, min, value[1]), value[1]]);
@@ -70,8 +73,10 @@ export function DualSlider({
   useEffect(() => {
     if (!wheel) return;
     const el = ref.current;
+
     if (!el) return;
     el.addEventListener("wheel", adjustWheel, { passive: false });
+
     return () => el.removeEventListener("wheel", adjustWheel);
   }, [wheel, adjustWheel]);
 
@@ -81,6 +86,7 @@ export function DualSlider({
     const onUp = () => setDragTarget(null);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -96,6 +102,7 @@ export function DualSlider({
         onMouseDown={(e) => {
           e.preventDefault();
           const rect = ref.current?.getBoundingClientRect();
+
           if (!rect) return;
           const raw = (e.clientX - rect.left) / rect.width;
           const mid = (low + high) / 200;
@@ -131,6 +138,7 @@ export function DualSlider({
               Home: () => onChange([min, value[1]]),
             };
             const keyAction = keyMap[e.key];
+
             if (!keyAction) return;
             e.preventDefault();
             keyAction();
@@ -160,6 +168,7 @@ export function DualSlider({
               End: () => onChange([value[0], max]),
             };
             const keyAction = keyMap[e.key];
+
             if (!keyAction) return;
             e.preventDefault();
             keyAction();

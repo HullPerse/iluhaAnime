@@ -16,19 +16,25 @@ export function usePlayerWatchProgress({ playlistOpen }: { playlistOpen: boolean
       const path = playbackAtoms.path.get();
       const eofReached = playbackAtoms.eofReached.get();
       const duration = effectivePlaybackDuration();
+
       if (!path || eofReached || duration <= 0) {
         return;
       }
+
       const timePos = playbackAtoms.timePos.get();
       const session = streamSession.get();
       const watchPath = session ? session.watchKey : path;
       const lastSaved = lastSavedWatchRef.current;
+
       if (lastSaved && lastSaved.path === watchPath && lastSaved.position === timePos) {
         return;
       }
+
       lastSavedWatchRef.current = { path: watchPath, position: timePos };
+
       if (!session) setMediaPosition(path, timePos, duration);
     }, WATCH_INTERVAL);
+
     return cancel;
   }, []);
 
@@ -36,17 +42,21 @@ export function usePlayerWatchProgress({ playlistOpen }: { playlistOpen: boolean
     const path = playbackAtoms.path.get();
     const playlistCount = playbackAtoms.playlistCount.get();
     const playlistIndex = playbackAtoms.playlistIndex.get();
+
     if (!path || playlistCount === 0) return;
     let cancelled = false;
     ignore(
       readPlaylistEntries().then((entries) => {
         if (cancelled) return;
         const filenames = entries.map((entry) => entry.filename);
+
         if (playlistOpen) scheduleCardPrefetch(filenames, path);
         else scheduleNeighborPrefetch(filenames, path, playlistIndex);
+
         return null;
       })
     );
+
     return () => {
       cancelled = true;
     };

@@ -21,6 +21,7 @@ export default function WallpaperCanvas({ src, alt, className, filter }: Wallpap
       const canvas = canvasRef.current;
       const wrap = wrapRef.current;
       const image = imageRef.current;
+
       if (!canvas || !wrap || !image) return;
       const dpr = Math.min(
         WALLPAPER_MAX_DPR,
@@ -30,14 +31,18 @@ export default function WallpaperCanvas({ src, alt, className, filter }: Wallpap
       const boxHeight = Math.max(1, wrap.clientHeight);
       const naturalWidth = image.naturalWidth;
       const naturalHeight = image.naturalHeight;
+
       if (naturalWidth <= 0 || naturalHeight <= 0) return;
       canvas.width = Math.max(1, Math.round(boxWidth * dpr));
       canvas.height = Math.max(1, Math.round(boxHeight * dpr));
       const ctx = canvas.getContext("2d");
+
       if (!ctx) {
         setFailed(true);
+
         return;
       }
+
       const scale = Math.max(canvas.width / naturalWidth, canvas.height / naturalHeight);
       const drawWidth = naturalWidth * scale;
       const drawHeight = naturalHeight * scale;
@@ -56,6 +61,7 @@ export default function WallpaperCanvas({ src, alt, className, filter }: Wallpap
     let alive = true;
     sourceRef.current = src;
     setFailed(false);
+
     if (canvasRef.current) canvasRef.current.style.transform = "";
     const attemptLoad = (attempt: number) => {
       if (!alive) return;
@@ -66,16 +72,22 @@ export default function WallpaperCanvas({ src, alt, className, filter }: Wallpap
         if (!alive || imageRef.current !== image) return;
         paintRef.current();
       };
+
       image.onerror = () => {
         if (!alive || imageRef.current !== image) return;
+
         if (attempt < WALLPAPER_LOAD_RETRIES) attemptLoad(attempt + 1);
         else setFailed(true);
       };
+
       image.src = src;
     };
+
     attemptLoad(0);
+
     return () => {
       alive = false;
+
       if (imageRef.current) {
         imageRef.current.onload = null;
         imageRef.current.onerror = null;
@@ -85,9 +97,11 @@ export default function WallpaperCanvas({ src, alt, className, filter }: Wallpap
 
   useEffect(() => {
     const wrap = wrapRef.current;
+
     if (!wrap || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => paintRef.current());
     observer.observe(wrap);
+
     return () => observer.disconnect();
   }, []);
 

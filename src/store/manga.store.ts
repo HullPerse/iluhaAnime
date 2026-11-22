@@ -2,7 +2,20 @@ import { createSignalStore } from "@hullperse/hp_utils/signal";
 
 import type { MangaPersonSearch, MangaSource } from "@/api/manga.api";
 
+import type { LibrarySortKey } from "@/types/manga/library";
+
 const store = createSignalStore();
+export const mangaLibraryFilter = store.atom<string>("manga.library.filter", "");
+export const mangaLibraryStatus = store.atom<string>("manga.library.status", "");
+
+export const librarySort = store.atom<{ key: LibrarySortKey; dir: "asc" | "desc" }>(
+  "manga.library.sort",
+  {
+    key: "lastRead",
+    dir: "desc",
+  }
+);
+
 export const mangaSection = store.atom<"library" | "search" | "history" | "sources">(
   "manga.section",
   "library"

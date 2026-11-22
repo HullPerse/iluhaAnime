@@ -60,7 +60,9 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
   const rows = useMemo(() => resolveKeybinds(overrides), [overrides]);
   const descriptions = useMemo(() => {
     const map = new Map<string, string>();
+
     for (const row of rows) map.set(row.entry.id, t(row.entry.description));
+
     return map;
   }, [rows, t]);
 
@@ -75,12 +77,14 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
           .includes(needle)) &&
       (wanted === null || (row.activeChord !== null && chordIdentity(row.activeChord) === wanted));
     const byScope = new Map<KeybindScope, ResolvedKeybind[]>();
+
     for (const row of rows) {
       if (!matches(row)) continue;
       const list = byScope.get(row.entry.scope) ?? [];
       list.push(row);
       byScope.set(row.entry.scope, list);
     }
+
     return KEYBIND_SCOPES.map((entry) => ({
       scope: entry,
       rows: byScope.get(entry) ?? [],
@@ -100,7 +104,9 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
     if (!preview) return null;
     const tentative = resolveKeybinds({ ...overrides, [preview.forId]: preview.chord });
     const loser = tentative.find((row) => row.shadowedBy === preview.forId);
+
     if (!loser) return null;
+
     return {
       name: descriptions.get(loser.entry.id) ?? loser.entry.id,
       scope: scopeLabels[loser.entry.scope],
@@ -110,8 +116,10 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
   const toggleCollapsed = (scope: KeybindScope): void => {
     setCollapsed((prev) => {
       const next = new Set(prev);
+
       if (next.has(scope)) next.delete(scope);
       else next.add(scope);
+
       return next;
     });
   };
@@ -132,6 +140,7 @@ export function SettingsKeybinds({ expandedSectionIds }: { expandedSectionIds?: 
 
   const saveOverride = (id: string, chord: string | null): void => {
     const next = { ...overrides };
+
     if (chord === null) next[id] = null;
     else next[id] = chord;
     patchSettings({ keybindOverrides: next });

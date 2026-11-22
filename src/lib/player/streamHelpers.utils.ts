@@ -93,13 +93,16 @@ export function variantOf(
   variantId: string
 ): StreamVariant | null {
   const exact = variants.find((variant) => buildVariantId(variant) === variantId);
+
   if (exact) return exact;
   const teamId = variantId.split(":").at(-1);
+
   return variants.find((variant) => variant.id === teamId) ?? null;
 }
 
 export function isSubtitleVariant(variant: StreamVariant): boolean {
   const label = `${variant.language ?? ""} ${variant.name}`.toLowerCase();
+
   return label.includes("субтит") || label.includes("subtitle");
 }
 

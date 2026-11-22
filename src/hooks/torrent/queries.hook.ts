@@ -41,6 +41,7 @@ export function useTorrents(enabled = true) {
     enabled,
     retry: false,
   });
+
   return query;
 }
 
@@ -83,15 +84,18 @@ export function usePartialLeftovers(enabled = true) {
 
 async function fetchTorrentFiles(queryClient: QueryClient, id: number): Promise<TorrentFileInfo[]> {
   const [files, error] = await attempt(torrentApi.runningTorrentFiles(id));
+
   if (error) throw error;
   const next = files ?? [];
   const prev = queryClient.getQueryData<TorrentFileInfo[]>(torrentFilesKey(id));
+
   if (
     prev &&
     prev.length === next.length &&
     prev.every((file, index) => sameFileInfo(file, next[index]))
   )
     return prev;
+
   return next;
 }
 
@@ -114,14 +118,13 @@ export function useTorrentFilesMap(
     [idsKey]
   );
   const hasPollScope = pollIds !== undefined;
-  const enabledFilterKey = enabledIds
-    ? stableIds.filter((id) => enabledIds.has(id)).join(",")
-    : "";
+  const enabledFilterKey = enabledIds ? stableIds.filter((id) => enabledIds.has(id)).join(",") : "";
   const scopedPollKey = pollIds ? stableIds.filter((id) => pollIds.has(id)).join(",") : "";
   const queriesInput = useMemo(
     () =>
       stableIds.map((id) => {
         const enabled = refetchMs === false && (enabledIds?.has(id) ?? true);
+
         return {
           queryKey: queryKeys.torrentFiles(id, lite),
           queryFn: () => fetchTorrentFiles(queryClient, id),
@@ -136,13 +139,18 @@ export function useTorrentFilesMap(
 
   const pollingIdKeys = useMemo(() => {
     if (refetchMs === false) return [];
+
     if (hasPollScope) return scopedPollKey.length > 0 ? scopedPollKey.split(",") : [];
+
     if (enabledIds) return enabledFilterKey.length > 0 ? enabledFilterKey.split(",") : [];
+
     return stableIds.map(String).sort();
   }, [enabledFilterKey, enabledIds, hasPollScope, refetchMs, scopedPollKey, stableIds]);
   const initialIdKeys = useMemo(() => {
     if (refetchMs === false) return [];
+
     if (!hasPollScope) return pollingIdKeys;
+
     return stableIds.map(String).sort();
   }, [hasPollScope, pollingIdKeys, refetchMs, stableIds]);
   const [pollingIds, setPollingIds] = useState<Set<string>>(new Set());
@@ -156,9 +164,11 @@ export function useTorrentFilesMap(
       const idsToFetch = wanted.map(Number);
       setPollingIds(new Set(wanted));
       const [entries] = await attempt(torrentApi.runningTorrentFilesBatch(idsToFetch, lite));
+
       if (disposed) return;
       setPollingIds(new Set());
       const batch = entries ?? [];
+
       for (const entry of batch) {
         if (entry.error !== null) continue;
         const files = entry.files ?? [];
@@ -173,23 +183,29 @@ export function useTorrentFilesMap(
             : files
         );
       }
+
       setPollErrors((prev) => {
         const next: Record<number, string> = { ...prev };
+
         for (const entry of batch) {
           if (entry.error !== null) next[entry.id] = entry.error;
           else delete next[entry.id];
         }
+
         return next;
       });
     };
+
     ignore(sweep(initialIdKeys));
     pokeRef.current = (ids: number[]) => {
       if (ids.length > 0) ignore(sweep(ids.map(String)));
     };
+
     const timer =
       pollingIdKeys.length > 0
         ? createInterval(() => ignore(sweep(pollingIdKeys)), refetchMs)
         : null;
+
     return () => {
       disposed = true;
       timer?.cancel();
@@ -202,12 +218,15 @@ export function useTorrentFilesMap(
     const errors: Record<number, string> = {};
     stableIds.forEach((id, index) => {
       files[id] = results[index]?.data;
+
       if (results[index]?.isFetching || pollingIds.has(String(id))) pendingIds.add(id);
       const failure = results[index]?.error;
+
       if (failure !== undefined && failure !== null)
         errors[id] = failure instanceof Error ? failure.message : String(failure);
       else if (pollErrors[id] !== undefined) errors[id] = pollErrors[id];
     });
+
     return {
       errors,
       files,
@@ -219,21 +238,26 @@ export function useTorrentFilesMap(
 
 function setOpInFlight(id: number, op: "pause" | "resume" | "remove" | null): void {
   const opInFlight = torrentAtoms.opInFlight.get();
+
   if (op === null) {
     if (opInFlight[id] === undefined) return;
     const next = { ...opInFlight };
     delete next[id];
     torrentAtoms.opInFlight.set(next);
+
     return;
   }
+
   torrentAtoms.opInFlight.set({ ...opInFlight, [id]: op });
 }
 
 export function usePauseTorrent() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; infoHash?: string; silent?: boolean }) => {
       const { id } = vars;
+
       if (torrentAtoms.opInFlight.get()[id] !== undefined) return false;
       const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
       queryClient.setQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY, (old) =>
@@ -242,13 +266,18 @@ export function usePauseTorrent() {
       setOpInFlight(id, "pause");
       const [, error] = await attempt(torrentApi.pauseTorrent(id, vars.infoHash));
       setOpInFlight(id, null);
+
       if (error) {
         if (!vars.silent)
           showError(tr("download.error.pause"), torrentErrorText(error.message, tr));
+
         if (prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
+
         return false;
       }
+
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+
       return true;
     },
   });
@@ -256,9 +285,11 @@ export function usePauseTorrent() {
 
 export function useResumeTorrent() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; infoHash?: string; silent?: boolean }) => {
       const { id } = vars;
+
       if (torrentAtoms.opInFlight.get()[id] !== undefined) return false;
       const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
       queryClient.setQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY, (old) =>
@@ -267,16 +298,23 @@ export function useResumeTorrent() {
       setOpInFlight(id, "resume");
       const [result, error] = await attempt(torrentApi.resumeTorrent(id, vars.infoHash));
       setOpInFlight(id, null);
+
       if (error) {
         if (!vars.silent)
           showError(tr("download.error.resume"), torrentErrorText(error.message, tr));
+
         if (prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
+
         return false;
       }
+
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+
       if (!result) return true;
       queryClient.invalidateQueries({ queryKey: torrentFilesKey(result.id) });
+
       if (result.rechecked) notifyResumeReverified(result.check);
+
       return true;
     },
   });
@@ -284,23 +322,30 @@ export function useResumeTorrent() {
 
 function notifyResumeReverified(check: TorrentCheckResult | null): void {
   if (!check) return;
+
   if (check.missing.length === 0 && check.size_mismatch.length === 0) return;
   const parts = [tr("torrent.resume.external.body", { ok: check.ok, total: check.total })];
+
   if (check.missing.length > 0) {
     parts.push(tr("torrent.recheck.missing", { count: check.missing.length }));
   }
+
   if (check.size_mismatch.length > 0) {
     parts.push(tr("torrent.recheck.size", { count: check.size_mismatch.length }));
   }
+
   showWarning(tr("torrent.resume.external.title"), parts.join(" - "));
 }
 
 export function useRemoveTorrent() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: RemoveTorrentVars) => {
       const { id } = vars;
+
       if (!Number.isInteger(id)) return false;
+
       if (torrentAtoms.opInFlight.get()[id] !== undefined) return false;
       const prev = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
       setOpInFlight(id, "remove");
@@ -313,15 +358,19 @@ export function useRemoveTorrent() {
       setOpInFlight(id, null);
       const partial =
         error?.message.startsWith("torrent deleted, but could not delete files:") === true;
+
       if (error) {
         if (!partial && prev !== undefined) queryClient.setQueryData(TORRENTS_QUERY_KEY, prev);
         const text = torrentErrorText(error.message, tr);
+
         if (!vars.silent) {
           if (partial) showWarning(tr("download.error.remove"), text);
           else showError(tr("download.error.remove"), text);
         }
+
         return false;
       }
+
       removeSeedPreference(id);
       queryClient.setQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY, (old) =>
         (old ?? []).filter((t) => t.id !== id)
@@ -330,6 +379,7 @@ export function useRemoveTorrent() {
       const lastActiveAt = { ...torrentAtoms.lastActiveAt.get() };
       delete lastActiveAt[id];
       torrentAtoms.lastActiveAt.set(lastActiveAt);
+
       return true;
     },
     onSettled: () => {
@@ -340,11 +390,13 @@ export function useRemoveTorrent() {
 
 export function useUpdateOnlyFiles() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; indices: number[]; infoHash?: string }) => {
       const [, error] = await attempt(
         torrentApi.updateOnlyFiles(vars.id, vars.indices, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.update"), torrentErrorText(error.message, tr));
         throw new Error(error.message);
@@ -358,6 +410,7 @@ export function useUpdateOnlyFiles() {
       queryClient.setQueryData<TorrentFileInfo[]>(key, (old) =>
         old?.map((file) => ({ ...file, selected: wanted.has(file.index) }))
       );
+
       return { previous };
     },
     onError: (_error, vars, context) => {
@@ -372,6 +425,7 @@ export function useUpdateOnlyFiles() {
 
 export function useSetFilePriority() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: {
       id: number;
@@ -382,6 +436,7 @@ export function useSetFilePriority() {
       const [, error] = await attempt(
         torrentApi.setFilePriority(vars.id, vars.fileIndices, vars.priority, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.priority"), torrentErrorText(error.message, tr));
         throw new Error(error.message);
@@ -395,6 +450,7 @@ export function useSetFilePriority() {
       queryClient.setQueryData<TorrentFileInfo[]>(key, (old) =>
         old?.map((file) => (wanted.has(file.index) ? { ...file, priority: vars.priority } : file))
       );
+
       return { previous };
     },
     onError: (_error, vars, context) => {
@@ -416,16 +472,19 @@ function patchTorrentInfo(
   queryClient.setQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY, (old) =>
     old?.map((item) => (item.id === id ? { ...item, ...patch } : item))
   );
+
   return previous;
 }
 
 export function useSetSequentialDownload() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; enabled: boolean; infoHash?: string }) => {
       const [, error] = await attempt(
         torrentApi.setSequentialDownload(vars.id, vars.enabled, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.sequential"), torrentErrorText(error.message, tr));
         throw new Error(error.message);
@@ -436,6 +495,7 @@ export function useSetSequentialDownload() {
       const previous = patchTorrentInfo(queryClient, vars.id, {
         sequential_download: vars.enabled,
       });
+
       return { previous };
     },
     onError: (_error, _vars, context) => {
@@ -450,11 +510,13 @@ export function useSetSequentialDownload() {
 
 export function useSetDownloadOrder() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; indices: number[]; infoHash?: string }) => {
       const [, error] = await attempt(
         torrentApi.setTorrentDownloadOrder(vars.id, vars.indices, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.order"), torrentErrorText(error.message, tr));
         throw new Error(error.message);
@@ -463,6 +525,7 @@ export function useSetDownloadOrder() {
     onMutate: async (vars) => {
       await queryClient.cancelQueries({ queryKey: TORRENTS_QUERY_KEY });
       const previous = patchTorrentInfo(queryClient, vars.id, { download_order: vars.indices });
+
       return { previous };
     },
     onError: (_error, _vars, context) => {
@@ -478,11 +541,13 @@ export function useSetDownloadOrder() {
 
 export function useSetTorrentAlias() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; alias: string | null; infoHash?: string }) => {
       const [, error] = await attempt(
         torrentApi.setTorrentAlias(vars.id, vars.alias, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.alias"), torrentErrorText(error.message, tr));
         throw new Error(error.message);
@@ -491,6 +556,7 @@ export function useSetTorrentAlias() {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: TORRENTS_QUERY_KEY });
       const previous = queryClient.getQueryData<TorrentInfo[]>(TORRENTS_QUERY_KEY);
+
       return { previous };
     },
     onError: (_error, _vars, context) => {
@@ -505,16 +571,21 @@ export function useSetTorrentAlias() {
 
 export function useRedownloadFile() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; fileIndex: number; infoHash: string }) => {
       const [newId, error] = await attempt(
         torrentApi.redownloadFile(vars.id, vars.fileIndex, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.redownload"), torrentErrorText(error.message, tr));
+
         return null;
       }
+
       if (newId !== null) queryClient.invalidateQueries({ queryKey: torrentFilesKey(newId) });
+
       return newId;
     },
   });
@@ -522,15 +593,20 @@ export function useRedownloadFile() {
 
 export function useRecheckTorrent() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; infoHash?: string; silent?: boolean }) => {
       const [result, error] = await attempt(torrentApi.recheckTorrent(vars.id, vars.infoHash));
+
       if (error) {
         if (!vars.silent)
           showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
+
         return null;
       }
+
       queryClient.invalidateQueries({ queryKey: torrentFilesKey(vars.id) });
+
       return result;
     },
   });
@@ -538,17 +614,23 @@ export function useRecheckTorrent() {
 
 export function useRecheckPausedTorrent() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; infoHash?: string }) => {
       const [result, error] = await attempt(
         torrentApi.recheckPausedTorrent(vars.id, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.recheck"), torrentErrorText(error.message, tr));
+
         return null;
       }
+
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+
       if (result) queryClient.invalidateQueries({ queryKey: torrentFilesKey(result.id) });
+
       return result;
     },
   });
@@ -556,6 +638,7 @@ export function useRecheckPausedTorrent() {
 
 export function useAddTorrentTracker() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: {
       id: number;
@@ -566,13 +649,17 @@ export function useAddTorrentTracker() {
       const [, error] = await attempt(
         torrentApi.addTorrentTracker(vars.id, vars.tracker, vars.infoHash)
       );
+
       if (error) {
         if (!vars.silent)
           showError(tr("download.error.tracker.add"), torrentErrorText(error.message, tr));
+
         return false;
       }
+
       queryClient.invalidateQueries({ queryKey: queryKeys.torrentDiagnostics(vars.id) });
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+
       return true;
     },
   });
@@ -580,17 +667,22 @@ export function useAddTorrentTracker() {
 
 export function useRemoveTorrentTracker() {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (vars: { id: number; tracker: string; infoHash: string }) => {
       const [, error] = await attempt(
         torrentApi.removeTorrentTracker(vars.id, vars.tracker, vars.infoHash)
       );
+
       if (error) {
         showError(tr("download.error.tracker.remove"), torrentErrorText(error.message, tr));
+
         return false;
       }
+
       queryClient.invalidateQueries({ queryKey: queryKeys.torrentDiagnostics(vars.id) });
       queryClient.invalidateQueries({ queryKey: TORRENTS_QUERY_KEY });
+
       return true;
     },
   });

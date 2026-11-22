@@ -19,6 +19,7 @@ export function TorrentSelectionBar({
   const bulkPauseTitle = useKeybindTitle(t("torrent.bulk.pause"), "torrent.pause.resume");
   const bulkResumeTitle = useKeybindTitle(t("torrent.bulk.resume"), "torrent.pause.resume");
   const bulkRecheckTitle = useKeybindTitle(t("torrent.bulk.recheck"), "torrent.recheck.errors");
+
   return (
     <section
       className="windows95-active-border bg-primary flex flex-wrap items-center gap-1 p-0.5"

@@ -9,8 +9,11 @@ export function shouldBlurOnEscape(target: EventTarget | null, gate: BlurGate): 
   if (gate.hintsOpen || gate.topLayer !== null) {
     return false;
   }
+
   if (!(target instanceof HTMLElement)) return false;
+
   if (target.closest(FIND_BAR_SELECTOR)) return false;
+
   return target.matches(BLUR_SELECTOR);
 }
 

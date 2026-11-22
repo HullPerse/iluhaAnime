@@ -35,10 +35,13 @@ export function useAnilistAuth(closeAuth: () => void): (authUser: AniUser) => vo
     consumeAuthDeepLink();
     (async () => {
       const [authUser, error] = await attempt(anilistApi.login(authTarget.accessToken));
+
       if (error) {
         addNotification(tr("anilist.auth.failed"), "error", error.message);
+
         return;
       }
+
       handleAuthSuccess(authUser);
     })();
   }, [authTarget, handleAuthSuccess]);

@@ -72,6 +72,7 @@ const renderFiles = (
   props: { item?: TorrentInfo; files?: TorrentFileInfo[]; expanded?: boolean } = {}
 ) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <TorrentFiles
@@ -96,7 +97,9 @@ beforeEach(() => {
     if (command === "get_torrent_limits") {
       return Promise.resolve({ downloadBps: null, uploadBps: null });
     }
+
     if (command === "get_torrent_source") return Promise.resolve(null);
+
     return Promise.resolve(undefined);
   });
 });

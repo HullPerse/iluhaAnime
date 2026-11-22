@@ -51,9 +51,12 @@ function Modal({
   useEffect(() => {
     if (!modalAnimation) {
       setVisible(true);
+
       return;
     }
+
     const task = scheduleTask("raf", 0, () => setVisible(true));
+
     return () => task.cancel();
   }, [modalAnimation]);
 
@@ -61,13 +64,16 @@ function Modal({
     if (!animateModalContent) return;
     const previous = prevContentSignatureRef.current;
     prevContentSignatureRef.current = contentSignature;
+
     if (previous === undefined || previous === contentSignature) return;
     const element = contentElement.current;
+
     if (element === null) return;
     const animation = element.animate([{ opacity: 0 }, { opacity: 1 }], {
       duration: MODAL_CONTENT_FADE_MS,
       easing: "ease-out",
     });
+
     return () => animation.cancel();
   }, [animateModalContent, contentSignature]);
 
@@ -80,6 +86,7 @@ function Modal({
         );
       }
     });
+
     return () => task.cancel();
   }, []);
 
@@ -90,10 +97,13 @@ function Modal({
       disablePointerDismissal={!closeOnOutsideClick}
       onOpenChange={(open, details) => {
         if (open) return;
+
         if (canClose && !canClose()) {
           details.cancel();
+
           return;
         }
+
         onClose();
       }}
     >
@@ -124,7 +134,9 @@ function Modal({
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(event) => {
             if (!pager || pager.total < 2) return;
+
             if (isTextEntryTarget(event.target)) return;
+
             if (event.key === "ArrowLeft") {
               event.preventDefault();
               pager.onPrevious();
@@ -172,7 +184,7 @@ function Modal({
           <section
             ref={contentElement}
             className={cn(
-              "bg-primary flex w-full flex-1 flex-col gap-2 overflow-y-auto p-3 [scrollbar-gutter:stable]",
+              "bg-primary flex w-full flex-1 [scrollbar-gutter:stable] flex-col gap-2 overflow-y-auto p-3",
               contentClassName
             )}
           >

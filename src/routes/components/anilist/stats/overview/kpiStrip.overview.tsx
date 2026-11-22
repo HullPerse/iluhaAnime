@@ -16,6 +16,7 @@ export function KpiStrip({
 }) {
   const { t, locale } = useI18n();
   const compact = (value: number) => formatCompact(Math.round(value), locale);
+
   return (
     <div className="flex flex-wrap gap-2">
       <Kpi label={t("anilist.stats.kpi.titles")}>

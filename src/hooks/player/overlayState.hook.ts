@@ -13,20 +13,28 @@ export function usePlayerOverlayState(): PlayerOverlayState {
   const closeOverlay = useCallback(() => {
     if (diagnosticsOpen) {
       setDiagnosticsOpen(false);
+
       return true;
     }
+
     if (playlistOpen) {
       setPlaylistOpen(false);
+
       return true;
     }
+
     if (panel !== null) {
       setPanel(null);
+
       return true;
     }
+
     if (jumpOpen) {
       setJumpOpen(false);
+
       return true;
     }
+
     return false;
   }, [diagnosticsOpen, jumpOpen, panel, playlistOpen]);
 

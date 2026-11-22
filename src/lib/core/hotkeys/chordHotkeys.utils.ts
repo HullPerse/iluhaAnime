@@ -16,13 +16,17 @@ export function parseChord(input: string): HotkeyChord | undefined {
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   const code = parts.pop();
+
   if (!code || !CODE_PATTERN.test(code) || MODIFIERS[code.toLowerCase()]) return undefined;
   const chord: HotkeyChord = { code, ctrl: false, shift: false, alt: false, meta: false };
+
   for (const part of parts) {
     const field = MODIFIERS[part.toLowerCase()];
+
     if (!field) return undefined;
     chord[field] = true;
   }
+
   return chord;
 }
 
@@ -70,19 +74,27 @@ const KEY_LABELS: Record<string, string> = {
 
 function humanizeCode(code: string): string {
   if (code.startsWith("Key") && code.length === 4) return code.slice(3);
+
   if (code.startsWith("Digit") && code.length === 6) return code.slice(5);
+
   return KEY_LABELS[code] ?? code;
 }
 
 export function splitChordParts(input: string): string[] | null {
   const chord = parseChord(input);
+
   if (!chord) return null;
   const parts: string[] = [];
+
   if (chord.ctrl) parts.push("Ctrl");
+
   if (chord.alt) parts.push("Alt");
+
   if (chord.shift) parts.push("Shift");
+
   if (chord.meta) parts.push("Meta");
   parts.push(humanizeCode(chord.code));
+
   return parts;
 }
 
@@ -92,5 +104,6 @@ export function humanizeChord(input: string): string {
 
 export function chordIdentity(chord: string): string | null {
   const parsed = parseChord(chord);
+
   return parsed ? chordKey(parsed) : null;
 }

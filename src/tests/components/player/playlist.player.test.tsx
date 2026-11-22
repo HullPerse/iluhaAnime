@@ -34,8 +34,10 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation((command: unknown) => {
     if (command === "player_playlist_entries") return Promise.resolve(ENTRIES);
+
     if (command === "get_video_card")
       return Promise.resolve({ path: "thumb.jpg", duration: 10, size: 100 });
+
     return Promise.resolve(undefined);
   });
   mockDialogOpen.mockResolvedValue(null);
@@ -57,11 +59,15 @@ const stubIntersectionObserver = (): { trigger: (visible: boolean) => void } => 
       constructor(callback: IntersectionHandler) {
         handler = callback;
       }
+
       observe(): void {}
+
       unobserve(): void {}
+
       disconnect(): void {}
     }
   );
+
   return {
     trigger: (visible: boolean) => {
       act(() => {
@@ -82,6 +88,7 @@ describe("PlaylistBody thumbnails", () => {
     const second = container.querySelectorAll('[data-testid="playlist-card"]')[1];
     expect(second.querySelector('img[src*="thumb"]')).toBeNull();
     const prefilled = await fetchVideoCard("D:/b.mkv");
+
     if (!prefilled) throw new Error("prefill fetch returned null");
     trigger(true);
     await vi.waitFor(() => {

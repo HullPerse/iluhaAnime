@@ -19,9 +19,13 @@ export function DiscoveryCard({ item, nav }: DiscoveryCardProps) {
   const { cardMeta } = useThemeComponents();
   const shortMeta = cardMeta === "short";
   const chips: string[] = [];
+
   if (media.format) chips.push(t(toLocaleKey(formatLabels[media.format] ?? media.format)));
+
   if (media.season_year != null) chips.push(String(media.season_year));
+
   if (media.episodes != null) chips.push(`${media.episodes} ${t("anilist.details.eps.short")}`);
+
   return (
     <section className="flex w-full flex-row gap-2">
       <div className="windows95-border bg-field shrink-0 self-start">

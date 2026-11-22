@@ -32,10 +32,13 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
 
   const browse = async () => {
     const [dir, error] = await attempt(openDialog({ directory: true }));
+
     if (error) {
       reportBackgroundError("torrent.create.browse", error);
+
       return;
     }
+
     if (dir) setFolder(dir);
   };
 
@@ -44,10 +47,13 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
     setCreating(true);
     const [result, error] = await attempt(torrentApi.createTorrentFromFolder(folder));
     setCreating(false);
+
     if (error || !result) {
       showError(t("torrent.create.failed"), error?.message ?? "");
+
       return;
     }
+
     setCreated(result);
     onCreated(result);
   };
@@ -58,14 +64,17 @@ export default function CreateTorrentModal({ open, onClose, onCreated }: CreateT
       defaultPath: `${created.name}.torrent`,
       filters: [{ name: "Torrent", extensions: ["torrent"] }],
     });
+
     if (!target) return;
     const [, error] = await attempt(torrentApi.saveCreatedTorrent(created.torrent_path, target));
+
     if (error) showError(t("torrent.create.failed"), error.message);
   };
 
   const copyLink = async () => {
     if (!created) return;
     const [, error] = await attempt(writeText(buildTorrentLink(created.info_hash as TorrentHash)));
+
     if (error) showError(t("torrent.copy.link"), error.message);
   };
 

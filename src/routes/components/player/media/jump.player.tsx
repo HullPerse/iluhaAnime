@@ -23,10 +23,13 @@ function JumpToTime({
 
   const handleSubmit = () => {
     const seconds = parseTimecode(value);
+
     if (seconds === null) {
       setInvalid(true);
+
       return;
     }
+
     onCommit(seconds);
     onClose();
   };
@@ -53,7 +56,9 @@ function JumpToTime({
             }}
             onKeyDown={(event) => {
               if (event.nativeEvent.isComposing) return;
+
               if (event.key === "Enter") handleSubmit();
+
               if (event.key === "Escape") onClose();
             }}
           />

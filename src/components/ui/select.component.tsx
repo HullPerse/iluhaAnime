@@ -40,6 +40,7 @@ function Select<T extends string = string>({
   const filteredOptions = useMemo(() => {
     if (!showSearch || !search) return options;
     const q = search.toLowerCase();
+
     return options.filter(
       (o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)
     );
@@ -48,6 +49,7 @@ function Select<T extends string = string>({
   const scrollToSelected = () => {
     const list = listRef.current;
     const item = list?.querySelector<HTMLElement>("[data-selected]");
+
     if (!list || !item) return;
     const listRect = list.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
@@ -59,6 +61,7 @@ function Select<T extends string = string>({
     const task = scheduleTask("raf", 0, () => {
       if (listRef.current) listRef.current.scrollTop = 0;
     });
+
     return () => task.cancel();
   }, [search]);
 
@@ -72,8 +75,10 @@ function Select<T extends string = string>({
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setSearch("");
+
       return;
     }
+
     scheduleScrollToSelected();
   };
 
@@ -83,8 +88,10 @@ function Select<T extends string = string>({
       e.stopPropagation();
       searchInputRef.current?.blur();
       listRef.current?.focus();
+
       return;
     }
+
     e.stopPropagation();
   };
 

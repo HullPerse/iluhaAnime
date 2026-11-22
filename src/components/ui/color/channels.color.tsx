@@ -28,18 +28,22 @@ export function ChannelInputs({
     next[index] = digits;
     setDraft(next);
     const parsed = toChannels(format, next);
+
     if (parsed) onChange(parsed);
   };
 
   const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" || event.key === "Tab") {
       const nextField = refs.current[index + 1];
+
       if (nextField) {
         event.preventDefault();
         nextField.focus();
       }
+
       return;
     }
+
     if (event.key === "Backspace" && values[index] === "" && index > 0) {
       event.preventDefault();
       refs.current[index - 1]?.focus();
@@ -50,6 +54,7 @@ export function ChannelInputs({
     <div className="flex flex-1 flex-row gap-0.5">
       {values.map((value, index) => {
         const name = config.names[index] ?? String(index + 1);
+
         return (
           <Input
             key={name}

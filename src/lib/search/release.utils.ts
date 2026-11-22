@@ -55,6 +55,7 @@ const SEASON_LIKE_RE = /^(s\d{1,2}|tv-?\d*|part-?\d*|season-?\d*)$/i;
 
 function isReleaseToken(token: string): boolean {
   const lower = token.toLowerCase();
+
   return (
     RELEASE_TOKENS.has(lower) ||
     RELEASE_TOKENS.has(lower.replaceAll("-", "")) ||
@@ -72,14 +73,19 @@ export function stripReleaseNoise(query: string): string {
   rest = rest.replaceAll(/[._]+/g, " ");
   rest = rest.replace(TRAILING_GROUP_RE, " ");
   const kept: string[] = [];
+
   for (const token of rest.split(/\s+/)) {
     if (!token) continue;
+
     if (isReleaseToken(token)) continue;
+
     if (SEASON_LIKE_RE.test(token)) {
       kept.push(token);
       continue;
     }
+
     kept.push(token);
   }
+
   return kept.join(" ").replace(/\s+/g, " ").trim();
 }

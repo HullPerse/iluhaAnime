@@ -20,11 +20,14 @@ export default function DescriptionBlocks({
   const toggleSpoiler = (index: number) => {
     setOpenSpoilers((prev) => {
       const next = new Set(prev);
+
       if (next.has(index)) next.delete(index);
       else next.add(index);
+
       return next;
     });
   };
+
   if (blocks.length === 0) {
     return (
       <p className="windows95-text max-h-64 scrollbar-gutter-stable overflow-y-auto text-xs wrap-break-word whitespace-pre-wrap">
@@ -32,12 +35,14 @@ export default function DescriptionBlocks({
       </p>
     );
   }
+
   const renderContext: DescriptionRenderContext = {
     openImageLabel: t("search.details.open.image"),
     openSpoilers,
     handleToggleSpoiler: toggleSpoiler,
     onZoom,
   };
+
   return (
     <div className="flex flex-col gap-1">
       {blocks.map((block, index) => (

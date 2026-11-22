@@ -25,10 +25,12 @@ function StreamCardView({
   const watched = progress?.watched ?? 0;
   const lastPosition = progress?.lastPosition ?? 0;
   let watchLabel: string | null = null;
+
   if (progress) {
     if (watched > 0) watchLabel = `${watched} ${t("stream.history.watched")}`;
     else if (lastPosition > 0) watchLabel = formatResume(lastPosition);
   }
+
   const meta = [anime.year != null ? String(anime.year) : null, anime.mediaType ?? null].filter(
     Boolean
   );

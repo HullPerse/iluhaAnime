@@ -12,6 +12,7 @@ export function VolumeInitializer() {
     applied.current = true;
 
     const [, error] = attemptSync(() => ((media as { volume?: number }).volume = DEFAULT_VOLUME));
+
     if (error) return undefined;
   }, [media]);
 

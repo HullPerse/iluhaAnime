@@ -94,6 +94,7 @@ export default function AniListProfileSections({
       .map((item) => {
         const label = t(toLocaleKey(listStatusLabels[item.name.toUpperCase()] ?? item.name));
         const color = getStatusColor(item.name.toUpperCase());
+
         return { id: item.name, label: `${label} (${count(item.entries)})`, color };
       });
     const allCount = count(collectAllEntries(lists));
@@ -102,8 +103,10 @@ export default function AniListProfileSections({
       label: `${t("anilist.lists.all")} (${allCount})`,
       color: null,
     });
+
     return tabs;
   }, [lists, searchTerms, global, filters, localFilter, t]);
+
   return (
     <>
       {showProfile &&

@@ -52,12 +52,14 @@ const mockPreviewInvoke = (frames: PreviewFrame[]): void => {
       estimate_upscale_time: { seconds: 0 },
       preview_upscale_frames: frames,
     };
+
     return Promise.resolve(responses[cmd as string] ?? null);
   });
 };
 
 const renderUpscalePlayer = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <UpscalePlayer filePath="D:/video/ep01.mkv" />
@@ -69,11 +71,13 @@ const selectAnime4k = async (): Promise<void> => {
   const upscaler = screen
     .getAllByRole("combobox")
     .find((element) => element.textContent?.includes("Lanczos"));
+
   if (!upscaler) throw new Error("upscaler select not found");
   fireEvent.mouseDown(upscaler);
   const listbox = await screen.findByRole("listbox");
   fireEvent.keyDown(listbox, { key: "ArrowDown" });
   const active = document.activeElement;
+
   if (!active || active === listbox) throw new Error("upscaler option not highlighted");
   fireEvent.keyDown(active, { key: "Enter" });
   await waitFor(() => expect(upscaler.textContent).toContain("Anime4K"));

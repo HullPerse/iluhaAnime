@@ -22,6 +22,7 @@ function dailyProxy(mode: DailyMode): string | null {
     mode === "frames"
       ? settingsAtoms.dailyProxyUrl.get()
       : settingsAtoms.dailyOpeningProxyUrl.get();
+
   return effectiveProxyUrl(proxy, settingsAtoms.anilistProxyUrl.get());
 }
 
@@ -36,6 +37,7 @@ function invalidateDailyResult(
 ): void {
   queryClient.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
   queryClient.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
+
   if (rewardPackId === null || rewardPackId === undefined) return;
   queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
   queryClient.invalidateQueries({ queryKey: queryKeys.cardsUnreadScope() });
@@ -66,6 +68,7 @@ export function useDailyGameHistory(day: string, mode: DailyMode, enabled: boole
 
 export function usePrepareDailyGame(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (mode: DailyMode) => {
       const result = await withTimeout(
@@ -73,7 +76,9 @@ export function usePrepareDailyGame(day: string) {
         PREPARE_TIMEOUT_MS,
         "preparing daily frames timed out"
       );
+
       if (!result.ok) throw result.error;
+
       return result.value;
     },
     onSuccess: () => {
@@ -84,6 +89,7 @@ export function usePrepareDailyGame(day: string) {
 
 export function useRevealDailyFrames(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (): Promise<DailyFramesView> => {
       const result = await withTimeout(
@@ -91,7 +97,9 @@ export function useRevealDailyFrames(day: string) {
         REVEAL_TIMEOUT_MS,
         "revealing daily frames timed out"
       );
+
       if (!result.ok) throw result.error;
+
       return result.value;
     },
     onSuccess: () => {
@@ -102,6 +110,7 @@ export function useRevealDailyFrames(day: string) {
 
 export function useWarmDailyOp(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (): Promise<DailyOpView> => dailyApi.prepareOp(day, dailyProxy("op")),
     onSuccess: () => {
@@ -112,6 +121,7 @@ export function useWarmDailyOp(day: string) {
 
 export function useWarmDailyAudio(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (): Promise<DailyOpView> => dailyApi.prepareAudio(day, dailyProxy("audio")),
     onSuccess: () => {
@@ -122,6 +132,7 @@ export function useWarmDailyAudio(day: string) {
 
 export function usePrepareDailyOp(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (): Promise<DailyOpView> => {
       const result = await withTimeout(
@@ -129,7 +140,9 @@ export function usePrepareDailyOp(day: string) {
         OP_PREPARE_TIMEOUT_MS,
         "preparing the daily opening timed out"
       );
+
       if (!result.ok) throw result.error;
+
       return result.value;
     },
     onSuccess: () => {
@@ -140,6 +153,7 @@ export function usePrepareDailyOp(day: string) {
 
 export function usePrepareDailyAudio(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (): Promise<DailyOpView> => {
       const result = await withTimeout(
@@ -147,7 +161,9 @@ export function usePrepareDailyAudio(day: string) {
         OP_PREPARE_TIMEOUT_MS,
         "preparing the daily audio clip timed out"
       );
+
       if (!result.ok) throw result.error;
+
       return result.value;
     },
     onSuccess: () => {
@@ -158,6 +174,7 @@ export function usePrepareDailyAudio(day: string) {
 
 export function useGuessDailyAudio(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (vars: { mediaId: number }): Promise<DailyOpGuessView> =>
       dailyApi.guessAudio(day, vars.mediaId, dailyProxy("audio")),
@@ -169,6 +186,7 @@ export function useGuessDailyAudio(day: string) {
 
 export function useSkipDailyAudio(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (): Promise<DailyOpGuessView> => dailyApi.skipAudio(day),
     onSuccess: () => {
@@ -179,6 +197,7 @@ export function useSkipDailyAudio(day: string) {
 
 export function useGuessDailyOp(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (vars: { mediaId: number }): Promise<DailyOpGuessView> =>
       dailyApi.guessOp(day, vars.mediaId, dailyProxy("op")),
@@ -190,6 +209,7 @@ export function useGuessDailyOp(day: string) {
 
 export function useSkipDailyOp(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (): Promise<DailyOpGuessView> => dailyApi.skipOp(day),
     onSuccess: () => {
@@ -200,6 +220,7 @@ export function useSkipDailyOp(day: string) {
 
 export function useGuessDailyGame(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (vars: { mode: DailyMode; mediaId: number }) =>
       dailyApi.guess(day, vars.mode, vars.mediaId, dailyProxy(vars.mode)),
@@ -211,6 +232,7 @@ export function useGuessDailyGame(day: string) {
 
 export function useSkipDailyGame(day: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (mode: DailyMode) => dailyApi.skip(day, mode, dailyProxy(mode)),
     onSuccess: () => {

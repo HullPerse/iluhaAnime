@@ -12,9 +12,11 @@ export default function FeedNews({
   onOpen: (item: NewsItem) => void;
 }) {
   const { t } = useI18n();
+
   if (items.length === 0) {
     return <p className="windows95-text text-hint p-4">{t("news.empty")}</p>;
   }
+
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] items-start gap-2">
       {items.map((item) => (

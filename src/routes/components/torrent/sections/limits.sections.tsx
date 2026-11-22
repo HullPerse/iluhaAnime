@@ -16,14 +16,18 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
     getTorrentLimits(id)
       .then((limits) => {
         if (cancelled) return null;
+
         if (limits.downloadBps !== null)
           setDownloadInput(String(Math.round(limits.downloadBps / 1024)));
+
         if (limits.uploadBps !== null) setUploadInput(String(Math.round(limits.uploadBps / 1024)));
+
         return null;
       })
       .catch((error: unknown) =>
         reportBackgroundError("srcroutescomponentstorrentsectionslimits.sections", error)
       );
+
     return () => {
       cancelled = true;
     };
@@ -31,13 +35,17 @@ export function TorrentLimitsSection({ id, infoHash }: { id: number; infoHash?: 
   const applyLimits = () => {
     const download = downloadInput === "" ? null : Number(downloadInput);
     const upload = uploadInput === "" ? null : Number(uploadInput);
+
     if (download !== null && (!Number.isFinite(download) || download <= 0)) return;
+
     if (upload !== null && (!Number.isFinite(upload) || upload <= 0)) return;
     setTorrentLimits(id, { download, upload }, infoHash);
   };
+
   const invalid =
     (downloadInput !== "" && !(Number(downloadInput) > 0)) ||
     (uploadInput !== "" && !(Number(uploadInput) > 0));
+
   return (
     <div className="flex flex-row flex-wrap items-center gap-1">
       <span className="windows95-text text-xs">{t("torrent.limits")}</span>

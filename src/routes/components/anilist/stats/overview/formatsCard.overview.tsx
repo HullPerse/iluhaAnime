@@ -17,6 +17,7 @@ export function FormatsCard({
   onDrill: (data: StatsDrillData) => void;
 }) {
   const { t, locale } = useI18n();
+
   return (
     <StatsCard title={t("anilist.stats.formats")}>
       <RatioChart
@@ -33,6 +34,7 @@ export function FormatsCard({
         })}
         onActivate={(index) => {
           const row = model.formats[index];
+
           if (row) {
             onDrill({
               title: `${t("anilist.stats.formats")} (${row.mediaIds.length})`,

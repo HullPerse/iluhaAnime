@@ -34,9 +34,12 @@ export function useMangaBackgroundRefresh() {
       const enabledSources = new Set(sources.filter((row) => row.enabled).map((row) => row.id));
       const pollId = Date.now();
       const updates: { title: string; count: number }[] = [];
+
       for (const item of library.items) {
         if (signal.aborted) break;
+
         if (!enabledSources.has(item.source)) continue;
+
         if (!mangaRatingVisible(item.rating, nsfw, item.source)) continue;
         const result = await refreshMangaChapters(
           item.source,
@@ -45,10 +48,13 @@ export function useMangaBackgroundRefresh() {
           true
         ).catch((error: unknown) => {
           reportBackgroundError("manga.refresh", error);
+
           return undefined;
         });
         const notification = result?.notification;
+
         if (!notification) continue;
+
         if (notification.statusChange) {
           const [previous, current] = notification.statusChange;
           addNotification(
@@ -58,10 +64,12 @@ export function useMangaBackgroundRefresh() {
             `manga:status:${item.id}:${pollId}`
           );
         }
+
         if (notification.newChapters > 0) {
           updates.push({ title: item.title, count: notification.newChapters });
         }
       }
+
       for (const [index, update] of groupMangaChapterUpdates(updates).entries()) {
         addNotification(
           t("manga.notification.chapters"),
@@ -72,7 +80,9 @@ export function useMangaBackgroundRefresh() {
           `manga:chapters:${pollId}:${index}`
         );
       }
+
       await client.invalidateQueries({ queryKey: mangaLibraryKey });
+
       return Date.now();
     },
   });

@@ -37,6 +37,7 @@ export function useStreamPlayer({
         isEpisodeWatched(entry),
         settingsAtoms.streamDefaultQuality.get()
       );
+
       if (!("playable" in resolved)) {
         addNotification(
           t("stream.playFailed"),
@@ -44,8 +45,10 @@ export function useStreamPlayer({
           resolved.failure || t("stream.error.noSources")
         );
         setPlayingId(null);
+
         return;
       }
+
       const { variant, source, sources, variants } = resolved.playable;
       const { prefs, resume } = resolved;
       const base = prefs ?? emptyPrefs(SOURCE_ID, anime.id);
@@ -53,9 +56,11 @@ export function useStreamPlayer({
       const [, prefsFailure] = await attempt(
         streamApi.prefsSave(remembered, ["variantId", "quality"])
       );
+
       if (prefsFailure) {
         addNotification(t("stream.playFailed"), "error", prefsFailure.message);
       }
+
       const [, openFailure] = await attempt(
         openStream({
           sourceId: SOURCE_ID,
@@ -72,11 +77,7 @@ export function useStreamPlayer({
           resume,
           paused: true,
           headers: source.headers,
-          proxyUrl: playbackProxyUrl(
-            source.variantId,
-            getAnimelibProxyUrl(),
-            source.url
-          ),
+          proxyUrl: playbackProxyUrl(source.variantId, getAnimelibProxyUrl(), source.url),
           quality: source.label,
           variantId: source.variantId,
           sources: toVariantSources(sources),
@@ -84,10 +85,12 @@ export function useStreamPlayer({
           mediaUrl: source.url,
         })
       );
+
       if (openFailure) addNotification(t("stream.playFailed"), "error", openFailure.message);
       setPlayingId(null);
     },
     [anime, playingId, setPlayingId, t]
   );
+
   return { play };
 }

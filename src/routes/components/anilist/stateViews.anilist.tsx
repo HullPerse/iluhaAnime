@@ -22,5 +22,6 @@ export default function AniListStateViews({
   onLogin: () => void;
 }) {
   const StateView = view === null ? undefined : STATE_VIEWS[view];
+
   return StateView ? <StateView onLogin={onLogin} /> : null;
 }

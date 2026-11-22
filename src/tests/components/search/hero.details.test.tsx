@@ -73,6 +73,7 @@ const renderHero = (poster: string) => {
 
 const posterButton = (): HTMLElement => {
   const button = screen.getByRole("button", { name: "Открыть изображение" });
+
   return button;
 };
 
@@ -105,6 +106,7 @@ const stubImagePipeline = (blob: Blob = pngBlob()) => {
     "ClipboardItem",
     class ClipboardItem {
       parts: unknown;
+
       constructor(parts: unknown) {
         this.parts = parts;
       }

@@ -29,6 +29,7 @@ const WORDS = [
 
 function makeIndex(count: number): SearchAnimeSuggestion[] {
   const out: SearchAnimeSuggestion[] = [];
+
   for (let i = 0; i < count; i++) {
     out.push({
       id: i,
@@ -41,14 +42,17 @@ function makeIndex(count: number): SearchAnimeSuggestion[] {
       seasonYear: 2000 + (i % 26),
     });
   }
+
   return out;
 }
 
 function makeStats(count: number): Record<string, SearchQueryStat> {
   const stats: Record<string, SearchQueryStat> = {};
+
   for (let i = 0; i < count; i += 4) {
     stats[`frieren ${i}`] = { count: 2, lastUsedAt: Date.now(), selectedCount: 1 };
   }
+
   return stats;
 }
 
@@ -65,55 +69,66 @@ const NORM_TITLES: string[][] = INDEX.map((anime) =>
 group("suggest-decomp @search @slow", () => {
   bench("query side x5 (normalize + operators, once per keystroke)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
       const terms = parseOperatorTerms(q);
       checksum += nq.length + (terms ? terms.length : 0);
     }
+
     return checksum;
   });
 
   bench("anime loop x5k plain (words hoisted, no stats)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const nq = normalizeSearchText(q);
       const terms = parseOperatorTerms(q);
       const qw = terms ? [] : nq.split(" ");
+
       for (const titles of NORM_TITLES) {
         for (const t of titles) {
           checksum += matchNormalizedTitle(terms, nq, t, qw) ?? 0;
         }
       }
     }
+
     return checksum;
   });
 
   bench("anime loop x5k operators (matchOperatorTerms path)", () => {
     let checksum = 0;
+
     for (const q of OPERATOR_QUERIES) {
       const nq = normalizeSearchText(q);
       const terms = parseOperatorTerms(q);
       const qw = terms ? [] : nq.split(" ");
+
       for (const titles of NORM_TITLES) {
         for (const t of titles) {
           checksum += matchNormalizedTitle(terms, nq, t, qw) ?? 0;
         }
       }
     }
+
     return checksum;
   });
 
   bench("symspell fallback x5 alone (suggestSpelling)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const out = suggestSpelling(q, { history: HISTORY, animeIndex: INDEX });
       checksum += out?.length ?? 0;
     }
+
     return checksum;
   });
 
   bench("full getSearchSuggestions x5 (control)", () => {
     let checksum = 0;
+
     for (const q of QUERIES) {
       const out = getSearchSuggestions(q, {
         animeIndex: INDEX,
@@ -123,6 +138,7 @@ group("suggest-decomp @search @slow", () => {
       });
       checksum += out.length + out.reduce((a, s) => a + s.score, 0);
     }
+
     return checksum;
   });
 });

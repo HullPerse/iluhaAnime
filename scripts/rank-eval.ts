@@ -28,8 +28,10 @@ interface EvalSet {
 function argument(name: string): string | undefined {
   const prefix = `--${name}=`;
   const inline = process.argv.find((entry) => entry.startsWith(prefix));
+
   if (inline) return inline.slice(prefix.length);
   const index = process.argv.indexOf(`--${name}`);
+
   return index !== -1 ? process.argv[index + 1] : undefined;
 }
 
@@ -59,6 +61,7 @@ const animeRows = db
 const animeIndex: SearchAnimeSuggestion[] = animeRows.map((row, index) => {
   const metadata = JSON.parse(row.metadata_json || "{}") as Record<string, unknown>;
   const rawId = Number(metadata.animeId ?? row.id.replace("anime:", ""));
+
   return {
     aliases: Array.isArray(metadata.aliases) ? (metadata.aliases as string[]) : [],
     favourite: Boolean(metadata.favourite),
@@ -120,6 +123,7 @@ function oldTsBoost(
 ): number {
   const ageHours = Math.max(0, (at - stat.lastUsedAt) / 3_600_000);
   const recency = ageHours <= 24 ? 60 : ageHours <= 168 ? 30 : ageHours <= 720 ? 15 : 6;
+
   return (
     Math.min(120, stat.count * 2) +
     recency +
@@ -132,15 +136,21 @@ function feedbackOf(suggestion: SearchSuggestion, formula: Formula): number {
   const key = normalizeSearchText(suggestion.value);
   const stats: SearchQueryStat[] = [];
   const merged = maps.suggestionStats[key];
+
   if (merged) stats.push(merged);
+
   if (suggestion.kind === "history") {
     const scoped = maps.queryStats[`anilist:${key}`] ?? maps.queryStats[key];
+
     if (scoped) stats.push(scoped);
   }
+
   let total = 0;
+
   for (const stat of stats) {
     total += formula === "old" ? oldTsBoost(stat, now) : feedbackScore(countersOf(stat), now);
   }
+
   return total;
 }
 
@@ -167,6 +177,7 @@ function rankWith(query: string, expected: Set<string>, formula: Formula): EvalH
     .slice(0, limit);
   const rank =
     reranked.findIndex((suggestion) => expected.has(normalizeSearchText(suggestion.value))) + 1;
+
   return {
     category: "",
     expected: "",
@@ -178,6 +189,7 @@ function rankWith(query: string, expected: Set<string>, formula: Formula): EvalH
 
 function summarize(hits: EvalHit[]): FormulaMetrics {
   const total = hits.length || 1;
+
   return {
     mrr: hits.reduce((sum, hit) => sum + (hit.rank > 0 ? 1 / hit.rank : 0), 0) / total,
     top1: hits.filter((hit) => hit.rank === 1).length / total,
@@ -188,6 +200,7 @@ function summarize(hits: EvalHit[]): FormulaMetrics {
 const hitsNew: EvalHit[] = [];
 const hitsOld: EvalHit[] = [];
 const started = performance.now();
+
 for (const entry of evalSet.queries) {
   const expected = new Set(
     [entry.expectedTitle, ...(entry.expectedAliases ?? [])].map(normalizeSearchText)
@@ -205,6 +218,7 @@ for (const entry of evalSet.queries) {
     expected: entry.expectedTitle,
   });
 }
+
 const elapsed = performance.now() - started;
 
 const metricsNew = summarize(hitsNew);
@@ -212,6 +226,7 @@ const metricsOld = summarize(hitsOld);
 const categories = [...new Set(hitsNew.map((hit) => hit.category))].map((category) => {
   const fresh = hitsNew.filter((hit) => hit.category === category);
   const legacy = hitsOld.filter((hit) => hit.category === category);
+
   return {
     category,
     new: summarize(fresh),
@@ -252,21 +267,26 @@ if (jsonOnly) {
     `old: top1=${(metricsOld.top1 * 100).toFixed(1)}% top3=${(metricsOld.top3 * 100).toFixed(1)}% MRR=${metricsOld.mrr.toFixed(3)}`
   );
   console.log("");
+
   for (const entry of categories) {
     console.log(
       `${entry.category.padEnd(18)} n=${entry.total.toString().padEnd(3)} new ${entry.new.top1 * 100}/${entry.new.top3 * 100} old ${entry.old.top1 * 100}/${entry.old.top3 * 100}`
     );
   }
+
   console.log("");
+
   for (const hit of hitsNew) {
     const mark = hit.rank === 1 ? "OK " : hit.rank > 0 ? `#${hit.rank}` : "MISS";
     console.log(
       `${mark.padEnd(4)} ${hit.query.padEnd(36)} -> ${hit.expected}  [${hit.top.join(" | ")}]`
     );
   }
+
   if (changed.length > 0) {
     console.log("");
     console.log(`rank changes (new vs old): ${changed.length}`);
+
     for (const entry of changed) {
       console.log(`  ${entry.query}: new #${entry.next || "-"} vs old #${entry.old || "-"}`);
     }

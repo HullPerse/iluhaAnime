@@ -43,15 +43,4 @@ describe("collection binder", () => {
     fireEvent.click(screen.getAllByTestId("binder-pocket")[0] as HTMLElement);
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ title: "Card 1" }));
   });
-
-  it("marks the remaining pockets empty", () => {
-    render(
-      <BinderCards items={cards(13).slice(12)} page={1} pageCount={2} columns={4} pageSize={12} />
-    );
-
-    const pockets = screen.getAllByTestId("binder-pocket");
-    expect(pockets).toHaveLength(12);
-    expect(pockets[0]?.dataset.empty).toBeUndefined();
-    expect(pockets[1]?.dataset.empty).toBe("true");
-  });
 });

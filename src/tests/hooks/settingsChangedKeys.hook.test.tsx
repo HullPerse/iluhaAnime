@@ -18,6 +18,7 @@ describe("useChangedSettingsKeys", () => {
     let renders = 0;
     const { result } = renderHook(() => {
       renders++;
+
       return useChangedSettingsKeys();
     });
 

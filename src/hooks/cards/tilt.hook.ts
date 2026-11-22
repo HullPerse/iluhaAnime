@@ -20,18 +20,23 @@ export function useCardTilt(enabled: boolean) {
     (event: ReactPointerEvent<HTMLElement>) => {
       if (!enabled) return;
       const target = (event.target as HTMLElement).closest<HTMLElement>("[data-card-face]");
+
       if (target === null) {
         if (activeCard.current !== null) {
           resetTilt(activeCard.current);
           activeCard.current = null;
         }
+
         return;
       }
+
       if (activeCard.current !== target) {
         if (activeCard.current !== null) resetTilt(activeCard.current);
         activeCard.current = target;
       }
+
       const rect = target.getBoundingClientRect();
+
       if (rect.width === 0 || rect.height === 0) return;
       const x = (event.clientX - rect.left) / rect.width - 0.5;
       const y = (event.clientY - rect.top) / rect.height - 0.5;
@@ -55,11 +60,15 @@ export function useCardTilt(enabled: boolean) {
   const leave = (event: ReactPointerEvent<HTMLElement>) => {
     move.cancel();
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-card-face]");
+
     if (target !== null) {
       resetTilt(target);
+
       if (activeCard.current === target) activeCard.current = null;
+
       return;
     }
+
     event.currentTarget.querySelectorAll<HTMLElement>("[data-card-face]").forEach(resetTilt);
     activeCard.current = null;
   };

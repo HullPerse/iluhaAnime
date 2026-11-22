@@ -15,6 +15,7 @@ export class PlayerVisibilityService {
     const exists = cell
       .get()
       .some((value) => value.replace(/\\/g, "/").replace(/\/$/, "").toLowerCase() === normalized);
+
     if (!exists) cell.set([...cell.get(), path]);
   }
 
@@ -32,6 +33,7 @@ export class PlayerVisibilityService {
 
   hidePlayerTorrent(infoHash: string): void {
     const cell = this.atoms.hiddenPlayerTorrents;
+
     if (!cell.get().includes(infoHash)) cell.set([...cell.get(), infoHash]);
   }
 
@@ -42,9 +44,11 @@ export class PlayerVisibilityService {
 
   setPlayerFolderHeight(path: string, height: number | null): void {
     const key = normalizePlayerPath(path);
+
     if (!key) return;
     const cell = this.atoms.playerFolderHeights;
     const heights = { ...cell.get() };
+
     if (height === null) delete heights[key];
     else heights[key] = height;
     cell.set(heights);
@@ -54,6 +58,7 @@ export class PlayerVisibilityService {
     if (!infoHash) return;
     const cell = this.atoms.playerTorrentHeights;
     const heights = { ...cell.get() };
+
     if (height === null) delete heights[infoHash];
     else heights[infoHash] = height;
     cell.set(heights);

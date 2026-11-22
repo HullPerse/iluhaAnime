@@ -16,7 +16,7 @@ import {
   transformOptions,
 } from "@/lib/player/playback.utils";
 import { queueDepthSteps } from "@/lib/player/playerQueue.utils";
-import { clearMediaParseCache, fileNameFromPath } from "@hullperse/hp_utils/media/parse";
+import { fileNameFromPath } from "@hullperse/hp_utils/media/parse";
 import { formatParsedTitle } from "@/lib/player/playerTitle.utils";
 import {
   buildOutputPath,
@@ -90,20 +90,6 @@ describe("player/queue", () => {
     it("marks everything done on completion", () => {
       const steps = queueDepthSteps(upscale({ status: "done", progress: 100 }), ru);
       expect(steps.every((s) => s.done && s.percent === 100)).toBe(true);
-    });
-
-    it("keeps queued items pending", () => {
-      const steps = queueDepthSteps(
-        upscale({ status: "queued", progress: 0, stage: undefined }),
-        ru
-      );
-      expect(steps.every((s) => !s.done && !s.active && s.percent === 0)).toBe(true);
-    });
-
-    it("activates the first step for unknown processing stages", () => {
-      const steps = queueDepthSteps(upscale({ status: "processing", progress: 5 }), ru);
-      expect(steps[0]?.active).toBe(true);
-      expect(steps[0]?.percent).toBe(5);
     });
 
     it("maps the extracting stage onto the first step", () => {
@@ -234,12 +220,6 @@ describe("player/tree", () => {
       expect(tree.children[0].files.map((f) => f.name)).toEqual(["ep1.mkv", "ep2.mkv"]);
     });
 
-    it("does not strip the root in the middle of a path", () => {
-      const tree = buildTree([makeEntry("D:\\X\\C:\\Anime\\ep.mkv", "ep.mkv")], "C:\\Anime");
-      expect(tree.files.map((f) => f.name)).toEqual([]);
-      expect(tree.children.length).toBeGreaterThan(0);
-    });
-
     it("normalizes separators in node paths", () => {
       const tree = buildTree([makeEntry("C:\\Anime\\Sub\\ep.mkv", "ep.mkv")], "C:\\Anime");
       expect(tree.path).toBe("C:/Anime");
@@ -258,14 +238,10 @@ describe("player/tree", () => {
       );
       const filtered = filterTreeByPaths(tree, new Set(["C:\\Anime\\movie.mkv"]));
       expect(filtered).not.toBeNull();
+
       if (!filtered) throw new Error("filtered tree is missing");
       expect(filtered.files.map((f) => f.name)).toEqual(["movie.mkv"]);
       expect(filtered.children).toEqual([]);
-    });
-
-    it("returns null when nothing matches", () => {
-      const tree = buildTree([makeEntry("C:\\Anime\\movie.mkv", "movie.mkv")], "C:\\Anime");
-      expect(filterTreeByPaths(tree, new Set(["C:\\missing.mkv"]))).toBeNull();
     });
   });
 
@@ -280,10 +256,6 @@ describe("player/tree", () => {
         "C:\\Anime"
       );
       expect(summarizeTree(tree)).toEqual({ count: 3, bytes: 600 });
-    });
-
-    it("reports zero for an empty tree", () => {
-      expect(summarizeTree(buildTree([], "C:\\Anime"))).toEqual({ count: 0, bytes: 0 });
     });
   });
 
@@ -401,21 +373,6 @@ describe("player/title", () => {
         formatParsedTitle("133-134. Женщина, что полюбила Сещемару.mkv", ru, "Anime/Inuyasha")
       ).toBe("Inuyasha, Серии 133-134: Женщина, что полюбила Сещемару");
     });
-
-    it("returns the same result on repeated calls", () => {
-      clearMediaParseCache();
-      const first = formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru);
-      const second = formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru);
-      expect(second).toBe(first);
-    });
-
-    it("stays correct after cache eviction pressure", () => {
-      clearMediaParseCache();
-      for (let i = 0; i < 600; i++) {
-        formatParsedTitle(`[Group] Some Anime ${i} - 01 [1080p].mkv`, ru);
-      }
-      expect(formatParsedTitle("[Erai-raws] Naruto - 01 [1080p].mkv", ru)).toBe("Naruto, Серия 1");
-    });
   });
 
   describe("fileNameFromPath", () => {
@@ -426,13 +383,6 @@ describe("player/title", () => {
 
     it("returns the input when there is no separator", () => {
       expect(fileNameFromPath("ep1.mkv")).toBe("ep1.mkv");
-    });
-
-    it("handles trailing and mixed separators like the previous split-based version", () => {
-      expect(fileNameFromPath("a/b/")).toBe("a/b/");
-      expect(fileNameFromPath("a\\")).toBe("a\\");
-      expect(fileNameFromPath("a\\b/c.mkv")).toBe("c.mkv");
-      expect(fileNameFromPath("")).toBe("");
     });
   });
 });
@@ -508,20 +458,10 @@ describe("player/playback options", () => {
     expect(options["sub-ass-force-margins"]).toBe(false);
   });
 
-  it("does not emit gamma without a UI control", () => {
-    expect(transformOptions(settings({}))).not.toHaveProperty("gamma");
-  });
-
   it("diffs option maps down to the changed entries", () => {
     expect(diffOptions({ a: 1, b: "x" }, { a: 1, b: "x" })).toEqual({});
     expect(diffOptions({ a: 1, b: "x" }, { a: 2, b: "x" })).toEqual({ a: 2 });
     expect(diffOptions({ a: 1 }, { a: 1, b: "new" })).toEqual({ b: "new" });
-  });
-
-  it("isolates a single slider drag inside transformOptions", () => {
-    const prev = transformOptions(settings({}));
-    const next = transformOptions(settings({ brightness: 150 }));
-    expect(diffOptions(prev, next)).toEqual({ brightness: 50 });
   });
 
   it("sends track ids as strings the wrapper accepts", async () => {

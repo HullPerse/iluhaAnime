@@ -25,14 +25,17 @@ const libFiles = import.meta.glob<string>("/src/lib/**/*.{ts,tsx}", {
 
 function findViolations(files: Record<string, string>): Array<string> {
   const hits: Array<string> = [];
+
   for (const [file, content] of Object.entries(files)) {
     content.split("\n").forEach((line, index) => {
       const bad = FORBIDDEN.filter((char) => line.includes(char));
+
       if (bad.length > 0) {
         hits.push(`${file}:${index + 1} (${bad.join("")})`);
       }
     });
   }
+
   return hits;
 }
 

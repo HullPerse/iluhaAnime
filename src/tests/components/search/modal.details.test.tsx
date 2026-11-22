@@ -83,6 +83,7 @@ const item = (): Anime => {
 
 const renderDetails = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={queryClient}>
       <TorrentDetailsModal
@@ -106,10 +107,13 @@ const imageAt = (src: string): HTMLImageElement | null => {
 const openImage = async (user: ReturnType<typeof userEvent.setup>, src: string) => {
   const img = await waitFor(() => {
     const found = imageAt(src);
+
     if (!found) throw new Error(`image not rendered: ${src}`);
+
     return found;
   });
   const button = img.closest("button");
+
   if (!button) throw new Error(`image is not zoomable: ${src}`);
   await user.click(button);
 };

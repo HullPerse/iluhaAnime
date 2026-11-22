@@ -554,6 +554,7 @@
       "titleKey": "settings.theme.animation",
       "keys": [
         "settings.theme.modal.animation",
+        "settings.theme.modal.close.outside",
         "settings.theme.spinners",
         "settings.theme.animated.counters",
         "settings.theme.animate.toasts",
@@ -661,7 +662,6 @@
   "SETTINGS_FIND_SKIP_KEYS": [
     "settings.search.preview.typed",
     "settings.search.preview.ghost",
-    "settings.search.autocomplete.footer.hint",
     "settings.theme.autocomplete.preview",
     "settings.theme.custom",
     "settings.theme.read.error",

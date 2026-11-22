@@ -31,9 +31,11 @@ export default function StreamDetail({ slug }: { slug: string }) {
   const history = useMemo(() => historyByEpisode(historyQuery.data ?? []), [historyQuery.data]);
   const latestEpisodeId = useMemo(() => {
     let latest: StreamHistoryEntry | null = null;
+
     for (const row of historyQuery.data ?? []) {
       if (!latest || row.updatedAt > latest.updatedAt) latest = row;
     }
+
     return latest?.episodeId ?? null;
   }, [historyQuery.data]);
   const [anilistOpen, setAnilistOpen] = useState<boolean>(false);
@@ -53,16 +55,19 @@ export default function StreamDetail({ slug }: { slug: string }) {
   const episodeIndex = useMemo(() => {
     if (!episodes || episodes.length === 0) return -1;
     const index = episode ? episodes.findIndex((candidate) => candidate.id === episode.id) : 0;
+
     return index === -1 ? 0 : index;
   }, [episode, episodes]);
   const neighbourIds = useMemo(() => {
     if (!episodes) return [];
+
     return [episodes[episodeIndex - 1], episodes[episodeIndex + 1]]
       .filter((candidate): candidate is StreamingEpisode => candidate !== undefined)
       .map((candidate) => candidate.id);
   }, [episodeIndex, episodes]);
   useEffect(() => {
     if (!animeId) return;
+
     for (const neighbourId of neighbourIds) ignore(prefetchEpisode(animeId, neighbourId));
   }, [animeId, neighbourIds]);
 

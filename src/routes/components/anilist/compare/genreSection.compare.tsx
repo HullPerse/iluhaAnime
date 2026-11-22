@@ -4,7 +4,9 @@ import type { GenreTaste } from "@/types/core/compare";
 
 export function GenreSection({ genres, friendName }: { genres: GenreTaste[]; friendName: string }) {
   const { t } = useI18n();
+
   if (genres.length === 0) return null;
+
   return (
     <div className="border-muted border-t p-2">
       <p className="windows95-text mb-1 text-xs font-bold">{t("anilist.compare.genres.taste")}</p>

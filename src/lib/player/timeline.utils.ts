@@ -18,12 +18,15 @@ export function bufferedSpan(
   if (!(duration > 0)) return null;
   const start = clamp01((cacheStart ?? timePos) / duration) * duration;
   const end = clamp01((cacheEnd ?? timePos + (cacheDuration ?? 0)) / duration) * duration;
+
   if (!(end - start > SPAN_EPSILON)) return null;
+
   return { start, end };
 }
 
 export function isBuffered(span: BufferedSpan | null, time: number): boolean {
   if (span === null) return false;
+
   return time >= span.start - SPAN_TOLERANCE && time <= span.end + SPAN_TOLERANCE;
 }
 
@@ -39,10 +42,12 @@ export function chapterTitleAt(
   for (let index = 0; index < chapters.length; index += 1) {
     const start = chapters[index].time;
     const end = chapters[index].end ?? chapters[index + 1]?.time ?? duration;
+
     if (time >= start && time < end) {
       return chapters[index].title;
     }
   }
+
   return undefined;
 }
 
@@ -53,16 +58,21 @@ export function nearestChapterEdge(
 ): number | null {
   let nearest: number | null = null;
   let nearestDist = Infinity;
+
   for (const chapter of chapters) {
     const candidates = [chapter.time, chapter.end ?? duration];
+
     for (const candidate of candidates) {
       const dist = Math.abs(candidate - time);
+
       if (dist < nearestDist) {
         nearestDist = dist;
         nearest = candidate;
       }
     }
   }
+
   if (nearest === null || nearestDist > CHAPTER_SNAP_SECONDS) return null;
+
   return nearest;
 }

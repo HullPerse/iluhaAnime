@@ -13,7 +13,9 @@ export function useUserAnilistData(options: { enabled?: boolean } = {}) {
     enabled: options.enabled ?? true,
     queryFn: async () => {
       const bundle = await anilistApi.getBootstrap();
+
       if (!bundle) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };
+
       return {
         user: bundle.user,
         lists: bundle.lists,

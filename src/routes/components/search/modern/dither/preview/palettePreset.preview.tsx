@@ -18,6 +18,7 @@ export function PalettePresetStrip({
   onPick: (palette: DitherRGB[]) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-row flex-wrap gap-1">
       {DITHER_PALETTE_PRESETS.map((preset) => (

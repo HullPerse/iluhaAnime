@@ -13,7 +13,9 @@ export function FindMarkedText({
   active: boolean;
 }) {
   const tokens = splitByRanges(text, ranges);
+
   if (tokens.length === 0) return <span>{text}</span>;
+
   return (
     <>
       {tokens.map((token, index) =>

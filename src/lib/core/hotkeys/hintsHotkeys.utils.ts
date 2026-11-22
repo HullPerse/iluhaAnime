@@ -23,16 +23,21 @@ const SCANNER_SELECTOR = `button, a, [role="button"], [data-vim-target], ${FOCUS
 
 function* labelStream(alphabet: string, length: number): Generator<string> {
   const indices: number[] = [];
+
   for (let i = 0; i < length; i += 1) indices.push(0);
+
   for (;;) {
     yield indices.map((index) => alphabet[index]).join("");
     let pos = length - 1;
+
     while (pos >= 0) {
       indices[pos] += 1;
+
       if (indices[pos] < alphabet.length) break;
       indices[pos] = 0;
       pos -= 1;
     }
+
     if (pos < 0) break;
   }
 }
@@ -43,23 +48,30 @@ export function labelLengthFor(
   maxLabelLength: number
 ): number {
   let length = 1;
+
   while (length < maxLabelLength && alphabetLength ** length < count) length += 1;
+
   return length;
 }
 
 export function labelCapacity(alphabet: string, maxLabelLength: number): number {
   if (alphabet.length === 0 || maxLabelLength <= 0) return 0;
+
   return alphabet.length ** maxLabelLength;
 }
 
 export function assignLabels(count: number, alphabet: string, maxLabelLength: number): string[] {
   const labels: string[] = [];
+
   if (count <= 0 || alphabet.length === 0) return labels;
   const length = labelLengthFor(count, alphabet.length, maxLabelLength);
+
   for (const label of labelStream(alphabet, length)) {
     labels.push(label);
+
     if (labels.length >= count) break;
   }
+
   return labels;
 }
 
@@ -78,23 +90,29 @@ function isRendered(element: HTMLElement): boolean {
       }) => boolean;
     }
   ).checkVisibility;
+
   if (typeof check !== "function") return true;
   const [visible, error] = attemptSync(() =>
     check.call(element, { checkOpacity: true, checkVisibilityCSS: true })
   );
+
   return error === null ? visible : true;
 }
 
 function isInViewport(rect: DOMRect): boolean {
   const width = typeof window === "undefined" ? 0 : window.innerWidth;
   const height = typeof window === "undefined" ? 0 : window.innerHeight;
+
   return rect.bottom > 0 && rect.top < height && rect.right > 0 && rect.left < width;
 }
 
 function isHintable(element: HTMLElement, rect: DOMRect): boolean {
   if (element.closest(`[${VIM_DISABLED_ATTRIBUTE}]`)) return false;
+
   if (element.matches(":disabled")) return false;
+
   if (element.getAttribute("aria-disabled") === "true") return false;
+
   return isVisible(rect);
 }
 
@@ -104,14 +122,17 @@ interface ClipAncestor {
 
 function makeClipTest(): (element: HTMLElement, rect: DOMRect) => boolean {
   const ancestors = new Map<Element, ClipAncestor>();
+
   return (element, rect) => {
     let elementPosition: string | null = null;
+
     for (
       let node = element.parentElement;
       node && node !== document.body && node !== document.documentElement;
       node = node.parentElement
     ) {
       let entry = ancestors.get(node);
+
       if (entry === undefined) {
         const laidOut = node.clientHeight > 0 || node.clientWidth > 0;
         const overflows =
@@ -127,34 +148,45 @@ function makeClipTest(): (element: HTMLElement, rect: DOMRect) => boolean {
         entry = { box: clips ? node.getBoundingClientRect() : null };
         ancestors.set(node, entry);
       }
+
       const box = entry.box;
+
       if (!box) continue;
       const outside =
         rect.bottom <= box.top ||
         rect.top >= box.bottom ||
         rect.right <= box.left ||
         rect.left >= box.right;
+
       if (!outside) continue;
+
       if (elementPosition === null) elementPosition = getComputedStyle(element).position;
+
       if (elementPosition !== "fixed") return true;
     }
+
     return false;
   };
 }
 
 function collectStickyBoxes(root: ParentNode): DOMRect[] {
   const boxes: DOMRect[] = [];
+
   for (const element of root.querySelectorAll<HTMLElement>('[class~="sticky"]')) {
     const rect = element.getBoundingClientRect();
+
     if (rect.width > 0 && rect.height > 0) boxes.push(rect);
   }
+
   return boxes;
 }
 
 function isCovered(element: HTMLElement, rect: DOMRect, sticky: readonly DOMRect[]): boolean {
   if (typeof document === "undefined") return false;
   const hitTest = document.elementFromPoint;
+
   if (typeof hitTest !== "function") return false;
+
   if (
     rect.top < 0 ||
     rect.left < 0 ||
@@ -163,6 +195,7 @@ function isCovered(element: HTMLElement, rect: DOMRect, sticky: readonly DOMRect
   ) {
     return false;
   }
+
   const nearSticky = sticky.some(
     (box) =>
       rect.top < box.bottom &&
@@ -170,9 +203,12 @@ function isCovered(element: HTMLElement, rect: DOMRect, sticky: readonly DOMRect
       rect.left < box.right &&
       box.left < rect.right
   );
+
   if (!nearSticky) return false;
   const hit = hitTest.call(document, rect.left + rect.width / 2, rect.top + rect.height / 2);
+
   if (hit === null) return false;
+
   return hit !== element && !element.contains(hit);
 }
 
@@ -181,18 +217,25 @@ const FOCUS_INPUT_TYPES = new Set(["text", "search", "url", "tel", "email", "pas
 function variantsFor(element: HTMLElement): HintVariant[] {
   if (isFocusTarget(element)) return ["focus"];
   const variants: HintVariant[] = ["plain"];
+
   if (element.hasAttribute(VIM_HINT_ATTRIBUTES.ctrlClick)) variants.push("ctrl");
+
   if (element.hasAttribute(VIM_HINT_ATTRIBUTES.contextMenu)) variants.push("contextmenu");
+
   return variants;
 }
 
 function isFocusTarget(element: HTMLElement): boolean {
   if (element instanceof HTMLTextAreaElement) return true;
+
   if (element instanceof HTMLSelectElement) return true;
+
   if (element.matches('[contenteditable="true"]')) return true;
+
   if (element instanceof HTMLInputElement) {
     return FOCUS_INPUT_TYPES.has(element.type);
   }
+
   return false;
 }
 
@@ -215,14 +258,19 @@ export function scanHintTargets(
 
   for (const element of root.querySelectorAll<HTMLElement>(SCANNER_SELECTOR)) {
     const rect = element.getBoundingClientRect();
+
     if (!isVisible(rect) || !isInViewport(rect)) continue;
+
     if (!isHintable(element, rect)) continue;
+
     if (isClipped(element, rect) || isCovered(element, rect, stickyBoxes)) continue;
     const variants = variantsFor(element);
+
     if (badgeCount + variants.length > max) {
       overflow += 1;
       continue;
     }
+
     collected.push({ element, rect, variants });
     badgeCount += variants.length;
   }
@@ -232,8 +280,10 @@ export function scanHintTargets(
       for (const contentRoot of contentRoots) {
         if (contentRoot.contains(element)) return 0;
       }
+
       return 1;
     };
+
     collected.sort(
       (a, b) =>
         rank(a.element) - rank(b.element) || a.rect.top - b.rect.top || a.rect.left - b.rect.left
@@ -243,12 +293,14 @@ export function scanHintTargets(
   const labels = assignLabels(badgeCount, alphabet, maxLabelLength);
   const badges: HintBadge[] = [];
   let cursor = 0;
+
   for (const { element, variants } of collected) {
     for (const variant of variants) {
       badges.push({ element, label: labels[cursor] ?? "", variant });
       cursor += 1;
     }
   }
+
   return { badges, overflow };
 }
 
@@ -273,6 +325,7 @@ export function badgeWidth(layout: HintBadgeLayout): number {
   const grown = layout.pinned && layout.description.length > 0;
   const chars = grown ? layout.label.length + layout.description.length : layout.label.length;
   const text = grown ? Math.min(PINNED_BADGE_MAX_PX, chars * BADGE_CHAR_PX) : chars * BADGE_CHAR_PX;
+
   return text + BADGE_PADDING_PX + (layout.variant === "plain" ? 0 : BADGE_ICON_PX);
 }
 
@@ -288,9 +341,11 @@ export function resolveBadgeCollisions(layouts: readonly HintBadgeLayout[]): Hin
     maxPasses: MAX_COLLISION_PASSES,
     anchored: (index) => {
       const item = layouts[index];
+
       return item !== undefined && item.pinned && item.description.length > 0;
     },
   });
+
   return layouts.map((item, index) => ({ ...item, left: left[index] ?? item.left }));
 }
 
@@ -302,10 +357,13 @@ export function measureBadgeLayouts(
 ): HintBadgeLayout[] {
   const seen = new Map<HTMLElement, number>();
   const layouts: HintBadgeLayout[] = [];
+
   for (const badge of badges) {
     if (!badge.element.isConnected) continue;
+
     if (!isRendered(badge.element)) continue;
     const rect = badge.element.getBoundingClientRect();
+
     if (rect.width < MIN_HINT_TARGET_PX || rect.height < MIN_HINT_TARGET_PX) continue;
     const index = seen.get(badge.element) ?? 0;
     seen.set(badge.element, index + 1);
@@ -319,6 +377,7 @@ export function measureBadgeLayouts(
       left: rect.left + index * offset,
     });
   }
+
   return layouts;
 }
 
@@ -327,8 +386,10 @@ export function hintLayoutsEqual(
   b: readonly HintBadgeLayout[]
 ): boolean {
   if (a.length !== b.length) return false;
+
   return a.every((item, index) => {
     const other = b[index];
+
     return (
       item.label === other.label &&
       item.variant === other.variant &&
@@ -352,11 +413,15 @@ export function reduceHintKey(
 ): HintKeyResult {
   const next = buffer + letter;
   const badge = findBadge(badges, next);
+
   if (badge && !hasLongerLabelPrefix(badges, next)) {
     return alt ? { outcome: "pin", badge, buffer: "" } : { outcome: "activate", badge, buffer: "" };
   }
+
   if (hasLabelPrefix(badges, next)) return { outcome: "buffer", buffer: next };
+
   if (hasLabelPrefix(badges, letter)) return { outcome: "buffer", buffer: letter };
+
   return { outcome: "clear", buffer: "" };
 }
 
@@ -365,8 +430,11 @@ export function resolveHintDescription(
   translate: (key: TranslationKey) => string
 ): string {
   const key = element.getAttribute(VIM_HINT_ATTRIBUTES.label);
+
   if (key) return translate(toLocaleKey(key));
   const aria = element.getAttribute("aria-label");
+
   if (aria && aria.trim().length > 0) return aria.trim();
+
   return element.textContent?.replace(/\s+/gu, " ").trim() ?? "";
 }

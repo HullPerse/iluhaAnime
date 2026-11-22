@@ -24,6 +24,7 @@ describe("settings/find index", () => {
 
   it("has no duplicate entries", () => {
     const seen = new Set<string>();
+
     for (const entry of SETTINGS_FIND_ENTRIES) {
       const id = `${entry.kind}:${entry.key}`;
       expect(seen.has(id), `duplicate ${id}`).toBe(false);

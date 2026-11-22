@@ -7,6 +7,7 @@ import { settingsAtoms } from "@/store/settings.store";
 
 export function useKeybindTitle(title: string, keybindId: string): string {
   const overrides = useCell(settingsAtoms.keybindOverrides);
+
   return useMemo(
     () => formatKeybindTitle(title, activeChordForKeybind(overrides, keybindId)),
     [title, overrides, keybindId]
@@ -15,8 +16,10 @@ export function useKeybindTitle(title: string, keybindId: string): string {
 
 export function useKeybindChord(keybindId: string): string | null {
   const overrides = useCell(settingsAtoms.keybindOverrides);
+
   return useMemo(() => {
     const chord = activeChordForKeybind(overrides, keybindId);
+
     return chord ? humanizeChord(chord) : null;
   }, [overrides, keybindId]);
 }

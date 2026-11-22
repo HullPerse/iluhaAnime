@@ -37,6 +37,7 @@ export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
 
   const handleRetry = () => {
     const [, resetError] = attemptSync(() => reset());
+
     if (resetError !== null) window.location.reload();
   };
 

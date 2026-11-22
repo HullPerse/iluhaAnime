@@ -20,7 +20,9 @@ function withProfile(
 ): CoverCandidate[] {
   return candidates.map((candidate) => {
     const profile = profileById.get(candidate.id);
+
     if (!profile) return candidate;
+
     return {
       ...candidate,
       ...(profile.userScore !== undefined ? { userScore: profile.userScore } : {}),
@@ -38,13 +40,17 @@ export function findLocalMatch(
   const titleKey = normCoverKey(parsed.title);
   const seasonQualified =
     parsed.season !== undefined && parsed.season > 1 && searchKey !== titleKey;
+
   for (const wanted of [searchKey, seasonQualified ? "" : titleKey]) {
     if (!wanted) continue;
+
     for (const entry of entries) {
       const names = new Set([entry.title, ...entry.aliases].map(normCoverKey));
+
       if (names.has(wanted)) return { id: entry.id, title: entry.title };
     }
   }
+
   return null;
 }
 
@@ -95,13 +101,17 @@ export async function resolveCover(
   const format = formatFor(parsed.kind);
   const extras = parsed.year ? { seasonYear: parsed.year } : {};
   const local = localTitle?.trim();
+
   if (local) {
     const found = await backend.search({ query: local, format, ...extras });
     const pick = pickCoverCandidate(parsed, found, rejected, learnedTitle, trustedIds);
+
     if (pick) return { pick, candidates: found.slice(0, COVER_MAX_CANDIDATES) };
   }
+
   const seen = new Map<number, CoverCandidate>();
   const wait = backend.delay ?? ((ms: number) => sleep(ms).done);
+
   for (let attempt = 0; attempt < 2; attempt += 1) {
     for (const query of buildCoverQueries(parsed, localTitle, rawTitle)) {
       const found = await backend.search(query);
@@ -110,12 +120,17 @@ export async function resolveCover(
         ? withProfile([...seen.values()], profileById)
         : [...seen.values()];
       const pick = pickCoverCandidate(parsed, scored, rejected, learnedTitle, trustedIds);
+
       if (pick) return { pick, candidates: scored.slice(0, COVER_MAX_CANDIDATES) };
     }
+
     if (seen.size > 0) break;
+
     if (attempt === 0) await wait(COVER_RETRY_DELAY_MS);
   }
+
   const all = profileById ? withProfile([...seen.values()], profileById) : [...seen.values()];
+
   return {
     pick: pickCoverCandidate(parsed, all, rejected, learnedTitle, trustedIds),
     candidates: all.slice(0, COVER_MAX_CANDIDATES),
@@ -129,7 +144,9 @@ function formatFor(kind?: string): string {
 function normalizeMovieQuery(title: string, kind?: string): string | null {
   if (kind !== "movie") return null;
   const rest = title.replace(/^gekijouban\s+/i, "").trim();
+
   if (!rest || rest === title || /movie/i.test(rest)) return null;
+
   return `${rest} Movie`;
 }
 
@@ -147,18 +164,21 @@ const MUSIC_JUNK_RX: RegExp[] = [
 export function cleanMusicSegment(segment: string): string {
   let clean = segment;
   let prev = "";
+
   while (prev !== clean) {
     prev = clean;
+
     for (const pattern of MUSIC_JUNK_RX) clean = clean.replace(pattern, " ");
     clean = clean
       .replace(/,\s*,/g, ",")
       .replace(/\s*[-,:;]\s*$/, "")
       .trim();
   }
+
   return clean.replace(/\s{2,}/g, " ").trim();
 }
 
-export function stripBracketGroups(value: string): string {
+function stripBracketGroups(value: string): string {
   return value
     .replace(/\[[^\]]*\]|\([^)]*\)/g, " ")
     .replace(/\s{2,}/g, " ")
@@ -174,7 +194,9 @@ export function buildCoverQueries(
   const queries: CoverQuery[] = [];
   const push = (query: string, extra?: Partial<CoverQuery>): void => {
     const trimmed = query.trim();
+
     if (!trimmed) return;
+
     if (queries.some((entry) => entry.query.toLowerCase() === trimmed.toLowerCase())) return;
     queries.push({
       query: trimmed,
@@ -183,21 +205,30 @@ export function buildCoverQueries(
       ...extra,
     });
   };
+
   if (localTitle) push(localTitle);
+
   for (const alt of parsed.altTitles ?? []) {
     const cleaned = cleanMusicSegment(alt);
+
     if (cleaned) push(cleaned);
   }
+
   push(parsed.searchTitle);
   push(parsed.title);
   const colonHead = parsed.title.includes(": ") ? (parsed.title.split(":")[0]?.trim() ?? "") : "";
+
   if (colonHead) push(colonHead);
   const movieForm = normalizeMovieQuery(parsed.searchTitle, parsed.kind);
+
   if (movieForm) push(movieForm);
   const titleMovieForm =
     parsed.title === parsed.searchTitle ? null : normalizeMovieQuery(parsed.title, parsed.kind);
+
   if (titleMovieForm) push(titleMovieForm);
+
   if (rawTitle) push(stripBracketGroups(rawTitle));
+
   return queries;
 }
 
@@ -208,11 +239,13 @@ export function withTimeout<T>(task: Promise<T>, ms: number, onTimeout: () => T)
   const timeout = new Promise<T>((resolve) => {
     timer = scheduleTask("timeout", ms, () => resolve(onTimeout()));
   });
+
   return Promise.race([task, timeout]).finally(() => timer?.cancel());
 }
 
 function franchiseHead(title: string): string[] {
   const head = title.includes(": ") ? (title.split(":")[0] ?? "") : title;
+
   return head
     .toLowerCase()
     .split(" ")
@@ -221,11 +254,15 @@ function franchiseHead(title: string): string[] {
 
 function franchiseScore(parsed: CoverParsed, candidate: CoverCandidate): number | null {
   const words = franchiseHead(parsed.title);
+
   if (words.length < 2) return null;
   const haystack = candidateHaystack(candidate);
   const wantFormat = formatFor(parsed.kind);
+
   if (!words.every((word) => haystack.some((part) => part.includes(word)))) return null;
+
   if (candidate.format && candidate.format.toUpperCase() !== wantFormat) return null;
+
   return 40;
 }
 
@@ -251,6 +288,7 @@ export function normalizeResolvedCover(key: string, entry: ResolvedCover): Norma
   const names = (entry.names ?? [])
     .map((name) => normCoverKey(name))
     .filter((name) => name.length > 0);
+
   return {
     id: entry.id,
     coverUrl: entry.coverUrl,
@@ -269,11 +307,16 @@ export function findResolvedAlias(
   const wanted = new Set(
     lookup.names.map((name) => normCoverKey(name)).filter((name) => name.length > 0)
   );
+
   if (wanted.size === 0) return null;
+
   for (const [key, entry] of Object.entries(resolved)) {
     const candidate = normalizeResolvedCover(key, entry);
+
     if (candidate.season !== lookup.season) continue;
+
     if (!candidate.names.some((name) => wanted.has(name))) continue;
+
     if (
       lookup.year !== undefined &&
       candidate.year !== undefined &&
@@ -281,8 +324,10 @@ export function findResolvedAlias(
     ) {
       continue;
     }
+
     return candidate;
   }
+
   return null;
 }
 
@@ -309,8 +354,11 @@ const SEASON_ROMAN_WORDS: readonly string[] = [
 
 function seasonOrdinalWord(season: number): string {
   if (season === 1) return "1st";
+
   if (season === 2) return "2nd";
+
   if (season === 3) return "3rd";
+
   return `${season}th`;
 }
 
@@ -322,6 +370,7 @@ function seasonTitleBoost(season: number | undefined, haystack: string[]): numbe
   const words = new Set(haystack.flatMap((part) => part.split(" ")));
   const joined = haystack.join(" ");
   const ordinal = seasonOrdinalWord(season);
+
   if (
     words.has(`s${season}`) ||
     words.has(SEASON_ROMAN_WORDS[season - 1] ?? "") ||
@@ -330,6 +379,7 @@ function seasonTitleBoost(season: number | undefined, haystack: string[]): numbe
   ) {
     return 30;
   }
+
   return 0;
 }
 
@@ -341,9 +391,11 @@ function extendsBaseWithSeason(parsed: CoverParsed, candidate: CoverCandidate): 
     (part) => part.length > 0
   );
   const names = [candidate.romaji, candidate.english ?? ""].map(normCoverText);
+
   return names.some((name) =>
     bases.some((base) => {
       if (!name.startsWith(`${base} `)) return false;
+
       return TRAILING_SEASON_RX.test(name.slice(base.length + 1));
     })
   );
@@ -356,22 +408,27 @@ function scoreCoverText(
 ): number {
   const title = normCoverText(parsed.title);
   const search = normCoverText(parsed.searchTitle);
+
   if (!title) return 0;
   let score = 0;
+
   if (haystack.some((part) => part === title || part === search)) score += 50;
   else if (haystack.some((part) => part.includes(title) || title.includes(part))) score += 30;
   else {
     const words = title.split(" ").filter((word) => word.length > 2);
     const hits = words.filter((word) => haystack.some((part) => part.includes(word))).length;
+
     if (!(words.length > 0 && hits === words.length)) return score;
     score += 20;
   }
+
   if (parsed.arc) {
     const arcWords = parsed.arc
       .toLowerCase()
       .replace(/-/g, " ")
       .split(" ")
       .filter((w) => w.length > 2 && w !== "hen");
+
     if (
       arcWords.length > 0 &&
       arcWords.every((word) => haystack.some((part) => part.includes(word)))
@@ -379,12 +436,16 @@ function scoreCoverText(
       score += 25;
     }
   }
+
   const wantFormat = formatFor(parsed.kind);
+
   if (candidate.format && candidate.format.toUpperCase() === wantFormat) score += 15;
   score += seasonTitleBoost(parsed.season, haystack);
+
   if (parsed.season === undefined && extendsBaseWithSeason(parsed, candidate)) {
     score -= UNMARKED_SEASON_PENALTY;
   }
+
   if (
     parsed.year !== undefined &&
     candidate.seasonYear !== null &&
@@ -394,6 +455,7 @@ function scoreCoverText(
     else if (Math.abs(candidate.seasonYear - parsed.year) === 1) score += 5;
     else score -= 10;
   }
+
   return score;
 }
 
@@ -407,7 +469,9 @@ const STATUS_BOOST: Record<string, number> = {
 function profileBoost(candidate: CoverCandidate): number | null {
   if (candidate.listStatus === "DROPPED") return null;
   let boost = candidate.listStatus ? (STATUS_BOOST[candidate.listStatus] ?? 0) : 0;
+
   if (candidate.favourite) boost += 10;
+
   if (
     candidate.userScore !== null &&
     candidate.userScore !== undefined &&
@@ -415,6 +479,7 @@ function profileBoost(candidate: CoverCandidate): number | null {
   ) {
     boost += 5;
   }
+
   return boost;
 }
 
@@ -426,10 +491,14 @@ export function scoreCoverCandidate(
 ): number {
   if (trustedIds.has(candidate.id)) return 100;
   const haystack = candidateHaystack(candidate);
+
   if (haystack.length === 0) return 0;
+
   if (learnedTitle && haystack.includes(normCoverText(learnedTitle))) return 100;
   const boost = profileBoost(candidate);
+
   if (boost === null) return -1000;
+
   return scoreCoverText(parsed, candidate, haystack) + boost;
 }
 
@@ -441,20 +510,26 @@ export function pickCoverCandidate(
   trustedIds: ReadonlySet<number> = NO_TRUSTED
 ): { candidate: CoverCandidate; score: number } | null {
   let best: { candidate: CoverCandidate; score: number } | null = null;
+
   for (const candidate of candidates) {
     if (rejected.has(candidate.id)) continue;
     const score = scoreCoverCandidate(parsed, candidate, learnedTitle, trustedIds);
+
     if (score >= COVER_SCORE_THRESHOLD && (!best || score > best.score)) {
       best = { candidate, score };
     }
   }
+
   if (best) return best;
+
   for (const candidate of candidates) {
     if (rejected.has(candidate.id)) continue;
     const score = franchiseScore(parsed, candidate);
+
     if (score !== null && (!best || score > best.score)) {
       best = { candidate, score };
     }
   }
+
   return best;
 }

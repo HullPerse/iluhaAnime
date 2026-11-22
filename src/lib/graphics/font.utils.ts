@@ -4,17 +4,20 @@ export const DEFAULT_FONT_FAMILY = '"MS Sans Serif", "Microsoft Sans Serif", "Se
 
 function quoteFont(name: string): string {
   const escaped = name.replace(/"/g, '\\"');
+
   return `"${escaped}"`;
 }
 
 export function toCssFontFamily(font: string | null): string {
   if (!font) return DEFAULT_FONT_FAMILY;
+
   return `${quoteFont(font)}, ${DEFAULT_FONT_FAMILY}`;
 }
 
 export function resolveFontFamily(): string {
   if (typeof window === "undefined" || !document.documentElement) return DEFAULT_FONT_FAMILY;
   const css = getComputedStyle(document.documentElement).getPropertyValue("--font-family").trim();
+
   return css.length > 0 ? css : DEFAULT_FONT_FAMILY;
 }
 
@@ -31,20 +34,26 @@ export function applyFontFamily(font: string | null): void {
 export function getStoredAppFont(): string | null {
   const [font, error] = attemptSync((): string | null => {
     const direct = localStorage.getItem("appFont");
+
     if (direct && direct.trim().length > 0) return direct;
     const raw = localStorage.getItem("settings");
+
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
+
       if (parsed && typeof parsed === "object") {
         const obj = parsed as Record<string, unknown>;
         const state = (obj.state as Record<string, unknown> | undefined) ?? obj;
         const stored = state.appFont;
+
         if (typeof stored === "string" && stored.trim().length > 0) return stored;
       }
     }
+
     return null;
   });
 
   if (error) return null;
+
   return font;
 }

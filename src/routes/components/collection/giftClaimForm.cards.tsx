@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { giftTotals } from "@/lib/cards/gift.utils";
 import type { CardGiftDeepLink } from "@/types/core/deeplink";
 
 import GiftStacks from "@/routes/components/collection/giftStacks.cards";
@@ -18,8 +19,7 @@ export default function GiftClaimForm({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const totalCopies = gift.cards.reduce((sum, card) => sum + card.copies, 0);
-  const totalValue = gift.cards.reduce((sum, card) => sum + card.value * card.copies, 0);
+  const { copies: totalCopies, value: totalValue } = giftTotals(gift.cards);
 
   return (
     <>

@@ -40,6 +40,7 @@ const itemFor = (source: Source): Anime => {
 
 const renderSearch = () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return renderHook(() => useSearchQuery(), {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -57,8 +58,11 @@ beforeEach(() => {
   mockInvoke.mockReset();
   mockInvoke.mockImplementation(async (command: unknown) => {
     if (command === "search_erairaws") return [ITEM_A];
+
     if (command === "search_rutracker") return [ITEM_B];
+
     if (typeof command === "string" && command.includes("session")) return true;
+
     return null;
   });
 });
@@ -68,11 +72,13 @@ describe("useSearchQuery logout", () => {
     let finishLogout!: () => void;
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (typeof command === "string" && command.includes("session")) return true;
+
       if (command === "rutracker_logout") {
         return new Promise<void>((resolve) => {
           finishLogout = resolve;
         });
       }
+
       return null;
     });
     const { result } = renderSearch();
@@ -95,7 +101,9 @@ describe("useSearchQuery logout", () => {
   it("restores the signed-in state when the logout command fails", async () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (typeof command === "string" && command.includes("session")) return true;
+
       if (command === "rutracker_logout") throw new Error("keyring locked");
+
       return null;
     });
     const { result } = renderSearch();
@@ -152,8 +160,11 @@ describe("useSearchQuery result source", () => {
           resolveSecond = resolve;
         });
       }
+
       if (command === commandFor(firstSource)) return [itemFor(firstSource)];
+
       if (typeof command === "string" && command.includes("session")) return true;
+
       return null;
     });
     act(() => {
@@ -183,7 +194,9 @@ describe("useSearchQuery result source", () => {
           resolvers.push(resolve);
         });
       }
+
       if (typeof command === "string" && command.includes("session")) return true;
+
       return null;
     });
     act(() => {
@@ -191,6 +204,7 @@ describe("useSearchQuery result source", () => {
     });
     await act(async () => {
       const resolveFirst = resolvers.at(0);
+
       if (!resolveFirst) throw new Error("missing pending search");
       resolveFirst([itemFor(firstSource)]);
     });
@@ -206,6 +220,7 @@ describe("useSearchQuery result source", () => {
     expect(result.current.resultSource).toBe(fetched);
     await act(async () => {
       const resolveLast = resolvers.at(-1);
+
       if (!resolveLast) throw new Error("missing pending search");
       resolveLast([itemFor(other)]);
     });

@@ -49,9 +49,12 @@ interface SeenState {
 
 function readSortState(): Partial<SortState> {
   const [raw] = attemptSync(() => localStorage.getItem(SORT_STORAGE_KEY));
+
   if (!raw) return {};
   const [parsed] = attemptSync((): unknown => JSON.parse(raw));
+
   if (!isRecord(parsed)) return {};
+
   return {
     sort: CARD_SORT_VALUES.has(String(parsed.sort)) ? (parsed.sort as CardsSort) : undefined,
     sortDir: DIR_VALUES.has(String(parsed.sortDir)) ? (parsed.sortDir as CardsSortDir) : undefined,
@@ -66,11 +69,14 @@ function readSortState(): Partial<SortState> {
 
 function readSeenState(): Partial<SeenState> {
   const [raw] = attemptSync(() => localStorage.getItem(SEEN_STORAGE_KEY));
+
   if (!raw) return {};
   const [parsed] = attemptSync((): unknown => JSON.parse(raw));
+
   if (!isRecord(parsed)) return {};
   const at = (value: unknown): number | undefined =>
     typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+
   return {
     packsReadAt: at(parsed.packsReadAt),
     albumReadAt: at(parsed.albumReadAt),

@@ -51,8 +51,10 @@ function ToastItemView({
   const startExit = useCallback((): void => {
     if (!animateToasts || toastRef.current === null) {
       onHide(item.id);
+
       return;
     }
+
     const animation = toastRef.current.animate([{ opacity: 1 }, { opacity: 0 }], {
       duration: 150,
       easing: "ease-out",
@@ -69,15 +71,21 @@ function ToastItemView({
     const ticker = createInterval(() => {
       if (pausedRef.current) {
         setRemainingMs(remainingRef.current);
+
         return;
       }
+
       const left = Math.max(0, deadlineRef.current - Date.now());
+
       if (left <= 0) {
         startExit();
+
         return;
       }
+
       setRemainingMs(left);
     }, COUNTDOWN_TICK_MS);
+
     return () => ticker.cancel();
   }, [startExit]);
 
@@ -91,10 +99,13 @@ function ToastItemView({
   const resume = () => {
     if (!pausedRef.current) return;
     pausedRef.current = false;
+
     if (remainingRef.current <= 0) {
       startExit();
+
       return;
     }
+
     deadlineRef.current = Date.now() + remainingRef.current;
   };
 

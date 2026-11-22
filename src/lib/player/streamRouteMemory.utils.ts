@@ -15,12 +15,14 @@ type RouteMemory = Record<string, RouteEntry>;
 
 function storage(): Storage | null {
   const [store] = attemptSync(() => (typeof localStorage === "undefined" ? null : localStorage));
+
   return store;
 }
 
 function isEntry(value: unknown): value is RouteEntry {
   if (typeof value !== "object" || value === null) return false;
   const entry = value as Record<string, unknown>;
+
   return (
     (entry.route === "direct" || entry.route === "proxy") &&
     typeof entry.at === "number" &&
@@ -30,26 +32,33 @@ function isEntry(value: unknown): value is RouteEntry {
 
 function readMemory(now: number): RouteMemory {
   const store = storage();
+
   if (!store) return {};
   const [raw] = attemptSync(() => store.getItem(STORAGE_KEY));
+
   if (!raw) return {};
   const [parsed] = attemptSync((): unknown => JSON.parse(raw));
+
   if (typeof parsed !== "object" || parsed === null) return {};
   const memory: RouteMemory = {};
+
   for (const [key, value] of Object.entries(parsed)) {
     if (isEntry(value) && now - value.at <= TTL_MS) memory[key] = value;
   }
+
   return memory;
 }
 
 function writeMemory(memory: RouteMemory): void {
   const store = storage();
+
   if (!store) return;
   attemptSync(() => store.setItem(STORAGE_KEY, JSON.stringify(memory)));
 }
 
 function hostOf(mediaUrl: string): string {
   const [host] = attemptSync(() => new URL(mediaUrl).host);
+
   return host ?? "";
 }
 
@@ -80,6 +89,7 @@ export function rememberStreamRoute(
   const route: StreamRoute = proxyUrl?.trim() ? "proxy" : "direct";
   const memory = readMemory(now);
   const previous = memory[key];
+
   if (previous && previous.route === route && now - previous.at < TTL_MS / 2) return;
   memory[key] = { route, at: now };
   const kept = Object.entries(memory)

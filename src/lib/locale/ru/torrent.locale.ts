@@ -18,7 +18,7 @@ const torrent = {
   "torrent.bulk.limits.title": "Лимиты для выбранных",
   "torrent.bulk.apply": "Применить",
   "torrent.bulk.recreate.message":
-    "У {{count}} из них всё ещё нет файлов. Пересоздание добавит торрент заново по magnet и потеряет трекеры, выбранные файлы и приоритеты; если файлы могут вернуться, проверьте позже.",
+    "У {{count}} торрентов нет файлов. Пересоздать? Трекеры, файлы и приоритеты сбросятся.",
   "torrent.bulk.title": "Массовое действие",
   "torrent.checking.file": "Проверяется: {{name}}",
   "torrent.checking.files": "Проверка файлов...",
@@ -42,7 +42,7 @@ const torrent = {
   "torrent.delete.message": "Удалить скачанные файлы вместе с торрентом?",
   "torrent.delete.message.many": "Удалить выбранные торренты?",
   "torrent.delete.unfinished":
-    "Не докачано: {{size}} на диске. Если оставить файлы, плеер их не откроет; удалить можно позже в Настройки → Торренты.",
+    "Не докачано: {{size}}. Файлы останутся; удалить можно в Настройках.",
   "torrent.delete.title": "Удаление торрента",
   "torrent.delete.with.files": "Удалить с файлами",
   "torrent.diagnostics.trackers": "Трекеры",
@@ -75,7 +75,7 @@ const torrent = {
   "torrent.files.error": "Не удалось загрузить файлы",
   "torrent.files.on.disk": "На диске: {{size}}",
   "torrent.files.sparse.unsupported":
-    "Диск не поддерживает разреженные файлы: загрузка сразу занимает полный размер. Выберите папку на NTFS.",
+    "Диск не поддерживает разреженные файлы: загрузка займёт полный размер. Нужен NTFS.",
   "torrent.filter.placeholder": "Фильтр...",
   "torrent.keep.files": "Оставить файлы",
   "torrent.keep.unfinished": "Оставить недокачанное",
@@ -143,7 +143,7 @@ const torrent = {
   "torrent.recreate": "Пересоздать торрент",
   "torrent.recreate.confirm": "Пересоздать",
   "torrent.recreate.message":
-    "Пересоздание добавит торрент заново по magnet: трекеры, выбранные файлы и приоритеты потеряются.",
+    "Пересоздание добавит торрент по magnet: трекеры, файлы и приоритеты сбросятся.",
   "torrent.recreate.title": "Пересоздание торрента",
   "torrent.redownload": "Загрузить заново",
   "torrent.resume": "Продолжить скачивание",
@@ -181,7 +181,6 @@ const torrent = {
   "torrent.queue.moved": "{{name}}: позиция {{position}} из {{total}}",
   "torrent.queue.moved.folder": "Папка {{name}}: позиция {{position}} из {{total}}",
   "torrent.queue.done": "Готово",
-  "torrent.queue.empty.done": "Скачивать больше нечего.",
   "torrent.queue.badge": "Очередь: {{count}}",
   "torrent.queue.position": "Позиция в очереди: {{position}}",
   "torrent.sort.asc": "По возрастанию",

@@ -30,6 +30,7 @@ export function CompareTabs({
       label: `${t("anilist.compare.only.name", { name: friendName })} (${summary.onlyFriend.length})`,
     },
   ];
+
   return (
     <div className="border-muted shrink-0 border-t p-2">
       <Tabs ariaLabel={t("anilist.compare.compare")} tabs={tabs} activeTab={tab} onChange={onTab} />

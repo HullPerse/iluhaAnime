@@ -34,12 +34,14 @@ interface ProbeReport extends LiveProbeReply {
 
 function cell(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === "") return "—";
+
   return String(value).replaceAll("|", "\\|");
 }
 
 function statusRow(report: ProbeReport): string {
   const diagnosis = report.diagnosis;
   const http = diagnosis?.https;
+
   return [
     report.id,
     diagnosis?.verdict ?? "error",
@@ -67,6 +69,7 @@ async function runProbes(
           };
         }
       ).__TAURI_INTERNALS__;
+
       if (!internals) throw new Error("Tauri runtime not present in page");
 
       const queue = [...args.probes];
@@ -79,7 +82,9 @@ async function runProbes(
       const worker = async (): Promise<void> => {
         while (queue.length > 0) {
           const probe = queue.shift();
+
           if (!probe) return;
+
           try {
             const invokeArgs: Record<string, unknown> = {
               url: probe.url,
@@ -87,6 +92,7 @@ async function runProbes(
               method: probe.method,
               expectedStatus: probe.expectedStatus,
             };
+
             if (probe.body !== undefined) invokeArgs.body = probe.body;
             const diagnosis = await internals.invoke("network_diagnose", invokeArgs);
             out.push({ id: probe.id, diagnosis, error: null });
@@ -101,6 +107,7 @@ async function runProbes(
       };
 
       await Promise.all(Array.from({ length: 4 }, worker));
+
       return out;
     },
     { probes: [...probes], proxyUrl }
@@ -116,8 +123,10 @@ function buildReports(
   proxyUrl: string | null
 ): ProbeReport[] {
   const byId = new Map(replies.map((reply) => [reply.id, reply]));
+
   return probes.map((probe) => {
     const reply = byId.get(probe.id);
+
     return {
       id: probe.id,
       url: probe.url,
@@ -205,6 +214,7 @@ export const diagnostics: Scenario = {
 
     await step("run all live probes through a local SOCKS5 proxy", async () => {
       const proxy = await startSocks5Proxy();
+
       try {
         const replies = await runProbes(page, inputs, proxy.url);
         proxyReports = buildReports(DIAGNOSTIC_PROBES, replies, "proxy", proxy.url);
@@ -212,6 +222,7 @@ export const diagnostics: Scenario = {
         const failed = proxyReports.filter(
           (report) => report.diagnosis === null || report.error !== null
         );
+
         if (failed.length > 0) {
           throw new Error(
             `proxy probes failed: ${failed
@@ -219,12 +230,15 @@ export const diagnostics: Scenario = {
               .join(", ")}`
           );
         }
+
         if (proxy.requests.length < inputs.length) {
           throw new Error(
             `proxy saw ${proxy.requests.length} requests for ${inputs.length} probes`
           );
         }
+
         const nonDomain = proxy.requests.filter((request) => request.atyp !== 3);
+
         if (nonDomain.length > 0) {
           throw new Error(
             `proxy received ${nonDomain.length} non-domain targets; remote DNS was not used`
@@ -263,9 +277,11 @@ export const diagnostics: Scenario = {
             `expected ${DIAGNOSTIC_PROBES.length} ${mode} reports, got ${entries.length}`
           );
         }
+
         const missing = DIAGNOSTIC_PROBES.filter(
           (probe) => !entries.some((report) => report.id === probe.id)
         );
+
         if (missing.length > 0) {
           throw new Error(
             `missing ${mode} reports: ${missing.map((probe) => probe.id).join(", ")}`

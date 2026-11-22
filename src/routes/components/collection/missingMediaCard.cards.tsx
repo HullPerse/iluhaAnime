@@ -11,6 +11,7 @@ export default function MissingMediaCard({
   kind: "anime" | "manga";
 }) {
   const { t } = useI18n();
+
   return (
     <div className="cards-window cards-missing-media" data-testid="collection-main-missing">
       <div className="cards-window-bar" title={title}>

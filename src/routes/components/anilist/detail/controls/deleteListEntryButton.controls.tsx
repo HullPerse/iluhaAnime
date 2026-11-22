@@ -28,25 +28,31 @@ export function DeleteListEntryButton({
 
   const handleDelete = async () => {
     const userId = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData())?.user?.id;
+
     if (!userId) {
       onError(t("anilist.controls.delete.error"));
+
       return;
     }
+
     setDeleting(true);
-    try {
+    await (async () => {
       const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
       removeListEntry(queryClient, animeId);
       const [, error] = await attempt(anilistApi.deleteEntry(animeId, userId));
+
       if (error) {
         queryClient.setQueryData(queryKeys.anilistData(), previous);
         onError(t("anilist.controls.delete.error"));
+
         return;
       }
+
       onSaved?.();
       onClose?.();
-    } finally {
+    })().finally(() => {
       setDeleting(false);
-    }
+    });
   };
 
   return (

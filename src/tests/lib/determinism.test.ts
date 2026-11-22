@@ -12,15 +12,19 @@ function shuffled<T>(items: readonly T[], seed: number): T[] {
   let state = seed * 2654435761;
   const draw = () => {
     state = (state * 1103515245 + 12345) & 0x7fffffff;
+
     return state / 0x7fffffff;
   };
+
   const out = [...items];
+
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(draw() * (i + 1));
     const swap = out[j];
     out[j] = out[i];
     out[i] = swap;
   }
+
   return out;
 }
 
@@ -127,6 +131,7 @@ const ANIME_INDEX: SearchAnimeSuggestion[] = [
 describe("determinism", () => {
   it("parses the same media path identically on every run", () => {
     const first = MEDIA_PATHS.map(parseMediaPath).map(canonicalJson);
+
     for (let run = 0; run < 20; run++) {
       expect(MEDIA_PATHS.map(parseMediaPath).map(canonicalJson)).toEqual(first);
     }
@@ -134,6 +139,7 @@ describe("determinism", () => {
 
   it("builds the same torrent tree for any file order", () => {
     const reference = canonicalJson(buildTorrentTree(TORRENT_FILES));
+
     for (const seed of SEEDS) {
       expect(canonicalJson(buildTorrentTree(shuffled(TORRENT_FILES, seed)))).toBe(reference);
     }
@@ -143,6 +149,7 @@ describe("determinism", () => {
     const reference = canonicalJson(
       getSearchSuggestions("fri", { animeIndex: ANIME_INDEX, limit: 5 })
     );
+
     for (const seed of SEEDS) {
       const options = { animeIndex: shuffled(ANIME_INDEX, seed), limit: 5 };
       expect(canonicalJson(getSearchSuggestions("fri", options))).toBe(reference);

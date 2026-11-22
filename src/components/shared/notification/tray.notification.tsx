@@ -21,7 +21,9 @@ import NotificationPanel from "@/components/shared/notification/panel.notificati
 
 function announcementText(item: NotificationItem | null | undefined): string {
   if (!item) return "";
+
   if (!item.message) return item.title;
+
   return `${item.title}. ${item.message}`;
 }
 
@@ -42,10 +44,13 @@ export default function NotificationTray() {
     async (item: NotificationItem) => {
       if (!item.target) return;
       const result = await openNotificationTarget(item.target);
+
       if (result === "tab-disabled") {
         showError(t("common.error"), t("anilist.details.link.invalid"));
+
         return;
       }
+
       if (result === "opened") setOpen(false);
     },
     [t]
@@ -57,7 +62,9 @@ export default function NotificationTray() {
         setOpen(false);
       }
     };
+
     if (open) document.addEventListener("mousedown", handler);
+
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 

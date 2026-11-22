@@ -12,5 +12,6 @@ export function AnimatedNumber({
 }) {
   const animateCounters = useCell(settingsAtoms.animateCounters);
   const shown = useTweenedValue(value, animateCounters ? TWEEN_MS : 0);
+
   return <>{format(shown)}</>;
 }

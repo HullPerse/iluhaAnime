@@ -20,9 +20,12 @@ function log(message: string) {
 
 function argValue(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
+
   if (index === -1) return undefined;
   const value = process.argv[index + 1];
+
   if (!value || value.startsWith("--")) throw new Error(`--${name} needs a value`);
+
   return value;
 }
 
@@ -30,19 +33,25 @@ const SIGNATURE = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
+
   for (let index = 0; index < 256; index += 1) {
     let value = index;
+
     for (let bit = 0; bit < 8; bit += 1) {
       value = value & 1 ? 0xed_b8_83_20 ^ (value >>> 1) : value >>> 1;
     }
+
     table[index] = value >>> 0;
   }
+
   return table;
 })();
 
 function crc32(bytes: Uint8Array): number {
   let crc = 0xff_ff_ff_ff;
+
   for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+
   return (crc ^ 0xff_ff_ff_ff) >>> 0;
 }
 
@@ -50,10 +59,12 @@ function concat(parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((sum, part) => sum + part.length, 0);
   const out = new Uint8Array(total);
   let at = 0;
+
   for (const part of parts) {
     out.set(part, at);
     at += part.length;
   }
+
   return out;
 }
 
@@ -63,6 +74,7 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
   const body = concat([new TextEncoder().encode(type), data]);
   const tail = new Uint8Array(4);
   new DataView(tail.buffer).setUint32(0, crc32(body));
+
   return concat([head, body, tail]);
 }
 
@@ -75,12 +87,14 @@ function readChunks(bytes: Uint8Array): ChunkInfo[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const out: ChunkInfo[] = [];
   let at = SIGNATURE.length;
+
   while (at + 8 <= bytes.length) {
     const length = view.getUint32(at);
     const type = String.fromCodePoint(...bytes.subarray(at + 4, at + 8));
     out.push({ type, data: bytes.subarray(at + 8, at + 8 + length) });
     at += 12 + length;
   }
+
   return out;
 }
 
@@ -89,7 +103,9 @@ function paeth(left: number, up: number, upLeft: number): number {
   const toLeft = Math.abs(estimate - left);
   const toUp = Math.abs(estimate - up);
   const toUpLeft = Math.abs(estimate - upLeft);
+
   if (toLeft <= toUp && toLeft <= toUpLeft) return left;
+
   return toUp <= toUpLeft ? up : upLeft;
 }
 
@@ -99,26 +115,32 @@ function unfilter(kind: number, line: Uint8Array, previous: Uint8Array, bytesPer
     const up = previous[index];
     const upLeft = index >= bytesPerPixel ? previous[index - bytesPerPixel] : 0;
     const value = line[index];
+
     switch (kind) {
       case 0: {
         break;
       }
+
       case 1: {
         line[index] = (value + left) & 0xff;
         break;
       }
+
       case 2: {
         line[index] = (value + up) & 0xff;
         break;
       }
+
       case 3: {
         line[index] = (value + ((left + up) >> 1)) & 0xff;
         break;
       }
+
       case 4: {
         line[index] = (value + paeth(left, up, upLeft)) & 0xff;
         break;
       }
+
       default: {
         throw new Error(`unknown PNG filter ${kind}`);
       }
@@ -148,8 +170,10 @@ function expandPixel(
     rgba[target + 1] = palette[index * 3 + 1];
     rgba[target + 2] = palette[index * 3 + 2];
     rgba[target + 3] = transparency && index < transparency.length ? transparency[index] : 255;
+
     return;
   }
+
   rgba[target] = line[source];
   rgba[target + 1] = line[source + 1];
   rgba[target + 2] = line[source + 2];
@@ -160,39 +184,49 @@ function decodePng(bytes: Uint8Array): Raster {
   if (!SIGNATURE.every((byte, index) => bytes[index] === byte)) {
     throw new Error("not a PNG");
   }
+
   const info = readChunks(bytes);
   const header = info.find((entry) => entry.type === "IHDR");
+
   if (!header) throw new Error("PNG has no IHDR");
   const view = new DataView(header.data.buffer, header.data.byteOffset, header.data.byteLength);
   const width = view.getUint32(0);
   const height = view.getUint32(4);
   const [depth, colour, compression, filtering, interlace] = header.data.subarray(8, 13);
+
   if (depth !== 8 || compression !== 0 || filtering !== 0 || interlace !== 0) {
     throw new Error(`unsupported PNG: depth ${depth} interlace ${interlace}`);
   }
+
   const channels = colour === 6 ? 4 : colour === 2 ? 3 : colour === 3 ? 1 : 0;
+
   if (channels === 0) throw new Error(`unsupported PNG colour type ${colour}`);
 
   const palette = info.find((entry) => entry.type === "PLTE")?.data;
   const transparency = info.find((entry) => entry.type === "tRNS")?.data;
+
   if (colour === 3 && !palette) throw new Error("palette PNG has no PLTE");
   const compressed = concat(info.filter((entry) => entry.type === "IDAT").map((e) => e.data));
   const raw = new Uint8Array(inflateSync(compressed));
 
   const stride = width * channels;
+
   if (raw.length !== (stride + 1) * height) {
     throw new Error(`PNG payload is ${raw.length} bytes, expected ${(stride + 1) * height}`);
   }
+
   const rgba = new Uint8Array(width * height * 4);
   const line = new Uint8Array(stride);
   const previous = new Uint8Array(stride);
   let at = 0;
+
   for (let row = 0; row < height; row += 1) {
     const kind = raw[at];
     at += 1;
     line.set(raw.subarray(at, at + stride));
     at += stride;
     unfilter(kind, line, previous, channels);
+
     for (let column = 0; column < width; column += 1) {
       expandPixel(
         line,
@@ -204,8 +238,10 @@ function decodePng(bytes: Uint8Array): Raster {
         transparency
       );
     }
+
     previous.set(line);
   }
+
   return { width, height, rgba };
 }
 
@@ -215,9 +251,11 @@ function encodePng({ width, height, rgba }: Raster): Uint8Array {
     const raw = new Uint8Array((stride + 1) * height);
     const previous = new Uint8Array(stride);
     const line = new Uint8Array(stride);
+
     for (let row = 0; row < height; row += 1) {
       const start = row * stride;
       raw[row * (stride + 1)] = kind;
+
       for (let index = 0; index < stride; index += 1) {
         const value = rgba[start + index];
         const left = index >= 4 ? rgba[start + index - 4] : 0;
@@ -227,9 +265,11 @@ function encodePng({ width, height, rgba }: Raster): Uint8Array {
           kind === 1 ? left : kind === 2 ? up : kind === 4 ? paeth(left, up, upLeft) : 0;
         line[index] = (value - predicted) & 0xff;
       }
+
       raw.set(line, row * (stride + 1) + 1);
       previous.set(rgba.subarray(start, start + stride));
     }
+
     return new Uint8Array(deflateSync(raw, { level: 9 }));
   });
   const deflated = candidates.reduce((best, next) => (next.length < best.length ? next : best));
@@ -239,6 +279,7 @@ function encodePng({ width, height, rgba }: Raster): Uint8Array {
   view.setUint32(4, height);
   header[8] = 8;
   header[9] = 6;
+
   return concat([
     SIGNATURE,
     chunk("IHDR", header),
@@ -250,29 +291,38 @@ function encodePng({ width, height, rgba }: Raster): Uint8Array {
 async function download(code: string): Promise<Uint8Array> {
   await mkdir(CACHE_DIR, { recursive: true });
   const path = join(CACHE_DIR, `${code}.png`);
+
   if (!force) {
     const cached = await readFile(path).catch(() => null);
+
     if (cached?.byteLength) return cached;
   }
+
   const response = await fetch(`${CDN}/16x12/${code}.png`);
+
   if (!response.ok) throw new Error(`no art for ${code}: ${response.status}`);
   const bytes = new Uint8Array(await response.arrayBuffer());
   await writeFile(path, bytes);
+
   return bytes;
 }
 
 async function geoipCountries(path: string): Promise<string[]> {
   if (!existsSync(path)) throw new Error(`${path} is missing, run \`bun run data:geoip\``);
   const raw = gunzipSync(await readFile(path));
+
   if (new TextDecoder().decode(raw.subarray(0, 4)) !== "ILG1") {
     throw new Error(`${path} is not an ILG1 table`);
   }
+
   const count = raw[5] | (raw[6] << 8);
   const codes: string[] = [];
+
   for (let index = 0; index < count; index += 1) {
     const at = 15 + index * 2;
     codes.push(String.fromCodePoint(raw[at], raw[at + 1]).toLowerCase());
   }
+
   return [...new Set(codes.filter((code) => code !== "xx"))].sort();
 }
 
@@ -308,6 +358,7 @@ async function main() {
     const originX = (index % COLUMNS) * CELL_WIDTH;
     const originY = Math.floor(index / COLUMNS) * CELL_HEIGHT;
     cells.set(code, { x: originX, y: originY });
+
     for (let row = 0; row < CELL_HEIGHT; row += 1) {
       const from = row * CELL_WIDTH * 4;
       const to = ((originY + row) * sheetWidth + originX) * 4;
@@ -316,12 +367,15 @@ async function main() {
   });
 
   const missing = codes.filter((code) => !cells.has(code));
+
   if (missing.length > 0) throw new Error(`no sprite cell for ${missing.join(" ")}`);
 
   const png = encodePng({ width: sheetWidth, height: sheetHeight, rgba: sheet });
   const back = decodePng(png);
+
   if (back.width !== sheetWidth || back.height !== sheetHeight)
     throw new Error("sheet did not round-trip");
+
   if (back.rgba.some((byte, index) => byte !== sheet[index])) {
     throw new Error("sheet pixels changed on round-trip");
   }

@@ -34,13 +34,16 @@ export function sortAnimeResults(
 ): Anime[] | undefined {
   if (!data) return undefined;
   const multiplier = direction === "asc" ? 1 : -1;
+
   if (sortKey === "size") {
     return data
       .map((item) => ({ bytes: parseSize(item.size), item }))
       .sort((a, b) => (a.bytes - b.bytes) * multiplier)
       .map((entry) => entry.item);
   }
+
   const compare = SORT_COMPARATORS[sortKey];
+
   return [...data].sort((a, b) => compare(a, b) * multiplier);
 }
 
@@ -59,6 +62,7 @@ function passesQuality(item: Anime, quality: string): boolean {
 function passesLanguage(item: Anime, language: string): boolean {
   if (language === "all") return true;
   const langs = detectLanguages(item.title).map((l) => l.code);
+
   return langs.includes(language);
 }
 
@@ -67,12 +71,14 @@ function passesSize(item: Anime, sizeMin: number, sizeMax: number): boolean {
   const bytes = parseSize(item.size);
   const minBytes = sizeMin * 1_048_576;
   const maxBytes = sizeMax > 0 ? sizeMax * 1_048_576 : Infinity;
+
   return bytes >= minBytes && bytes <= maxBytes;
 }
 
 function passesCodec(item: Anime, codec: string): boolean {
   if (codec === "all") return true;
   const lower = item.title.toLowerCase();
+
   return lower.includes(codec.toLowerCase());
 }
 
@@ -81,6 +87,7 @@ export function filterAnimeResults(
   filters: SearchFilters
 ): Anime[] | undefined {
   if (!data) return undefined;
+
   return data.filter(
     (item) =>
       passesSeeders(item, filters.minSeeders) &&
@@ -95,11 +102,14 @@ export function filterAnimeResults(
 export function dedupAnimeResults(data: Anime[] | undefined): Anime[] | undefined {
   if (!data) return undefined;
   const best = new Map<string, Anime>();
+
   for (const item of data) {
     const key = `${item.title.toLowerCase().replace(/\s+/g, " ")}|${item.size}`;
     const current = best.get(key);
+
     if (!current || item.seeders > current.seeders) best.set(key, item);
   }
+
   return [...best.values()];
 }
 

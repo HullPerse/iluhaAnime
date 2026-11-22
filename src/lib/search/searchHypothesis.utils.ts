@@ -14,11 +14,15 @@ const TRAILING_NUMBER_RE = /\s(\d{1,4})$/;
 
 function trailingRomanSeason(query: string): number | null {
   const tokens = query.trim().split(/\s+/);
+
   if (tokens.length < 2) return null;
   const last = tokens.at(-1) ?? "";
+
   if (!/^[ivxlcdm]+$/i.test(last)) return null;
   const value = romanToInt(last);
+
   if (value === null || value < 1 || value > MAX_SEASON) return null;
+
   return value;
 }
 
@@ -40,14 +44,18 @@ function buildInterpretations(query: string, parsed: ParsedTitleAttributes): Int
     season: parsed.season,
     year: parsed.year,
   };
+
   if (parsed.explicit && parsed.remainder) {
     return [{ ...base, prior: 0.9, remainder: parsed.remainder }];
   }
+
   if (parsed.explicit) return [{ ...base, prior: 0.9, remainder: query.trim() }];
   const trailing = parsed.remainder.match(TRAILING_NUMBER_RE);
   const bare = trailing?.[1] === undefined ? null : Number(trailing[1]);
+
   if (bare !== null && Number.isInteger(bare) && bare <= MAX_EPISODE_AMBIGUOUS) {
     const stripped = parsed.remainder.replace(TRAILING_NUMBER_RE, "").trim();
+
     if (stripped) {
       return [
         { ...base, episode: bare, prior: 0.6, remainder: stripped },
@@ -55,9 +63,12 @@ function buildInterpretations(query: string, parsed: ParsedTitleAttributes): Int
       ];
     }
   }
+
   const roman = trailingRomanSeason(parsed.remainder);
+
   if (roman !== null) {
     const stripped = stripTrailingToken(parsed.remainder);
+
     if (stripped) {
       return [
         { ...base, prior: 0.55, remainder: stripped, season: roman },
@@ -65,6 +76,7 @@ function buildInterpretations(query: string, parsed: ParsedTitleAttributes): Int
       ];
     }
   }
+
   return [{ ...base, prior: 0.4, remainder: parsed.remainder }];
 }
 
@@ -79,29 +91,39 @@ function scoreRemainder(
       ? typed.map((entry) => normalizeSearchText(entry.title))
       : [anime.title, ...anime.aliases].map(normalizeSearchText);
   let best: number | null = null;
+
   for (let index = 0; index < normalizedTitles.length; index++) {
     const title = normalizedTitles[index] ?? "";
     const match = matchNormalizedTitle(null, normalizedRemainder, title, words);
+
     if (match != null) {
       const scored = match + titleKindBonus(typed[index]?.kind ?? "alias");
+
       if (best === null || scored > best) best = scored;
     }
   }
+
   return best;
 }
 
 function titleSeasonNumber(normalizedTitle: string): number | null {
   const tokens = normalizedTitle.split(" ");
   const last = tokens.at(-1) ?? "";
+
   if (/^\d{1,2}$/.test(last)) {
     const value = Number(last);
+
     return value >= 1 && value <= 50 ? value : null;
   }
+
   const ordinal = last.match(/^(\d{1,2})(?:st|nd|rd|th)$/);
+
   if (ordinal?.[1] && tokens.at(-2) === "season") {
     const value = Number(ordinal[1]);
+
     return value >= 1 && value <= 50 ? value : null;
   }
+
   return null;
 }
 
@@ -116,11 +138,13 @@ export function resolveTitleQuery(
   options: { animeIndex?: SearchAnimeSuggestion[]; limit?: number } = {}
 ): TitleHypothesis[] {
   const trimmed = query.trim();
+
   if (!trimmed) return [];
   const limit = Math.max(1, options.limit ?? 3);
   const parsed = parseTitleAttributes(trimmed);
   const interpretations = buildInterpretations(trimmed, parsed);
   const index = options.animeIndex;
+
   if (!index || index.length === 0) {
     return interpretations.map((interp) => ({
       animeId: null,
@@ -132,24 +156,30 @@ export function resolveTitleQuery(
       year: interp.year,
     }));
   }
+
   const out: TitleHypothesis[] = [];
+
   for (const interp of interpretations) {
     const remainder = interp.remainder
       .replace(/\bgekijouban\b/gi, " ")
       .replace(/\s+/g, " ")
       .trim();
     const normalized = normalizeSearchText(remainder);
+
     if (!normalized) continue;
     const words = normalized.split(" ");
     let bestAnime: SearchAnimeSuggestion | null = null;
     let bestScore = -Infinity;
+
     for (const anime of index) {
       const scored = scoreRemainder(normalized, words, anime);
+
       if (scored != null && scored > bestScore) {
         bestScore = scored;
         bestAnime = anime;
         continue;
       }
+
       if (
         scored != null &&
         scored === bestScore &&
@@ -161,6 +191,7 @@ export function resolveTitleQuery(
         bestAnime = anime;
       }
     }
+
     if (bestAnime) {
       out.push({
         animeId: bestAnime.id,
@@ -173,5 +204,6 @@ export function resolveTitleQuery(
       });
     }
   }
+
   return out.sort((left, right) => right.score - left.score).slice(0, limit);
 }

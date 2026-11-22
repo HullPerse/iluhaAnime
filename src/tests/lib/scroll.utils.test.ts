@@ -6,11 +6,14 @@ const created: HTMLElement[] = [];
 
 function el(tag = "div", props: Record<string, unknown> = {}): HTMLElement {
   const node = document.createElement(tag);
+
   for (const [key, value] of Object.entries(props)) {
     Object.defineProperty(node, key, { value, configurable: true });
   }
+
   document.body.append(node);
   created.push(node);
+
   return node;
 }
 
@@ -21,6 +24,7 @@ afterEach(() => {
 function makeScrollable(node: HTMLElement, scroll = 200, client = 100): HTMLElement {
   Object.defineProperty(node, "scrollHeight", { value: scroll, configurable: true });
   Object.defineProperty(node, "clientHeight", { value: client, configurable: true });
+
   return node;
 }
 

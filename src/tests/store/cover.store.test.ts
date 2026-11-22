@@ -4,6 +4,7 @@ import { coverKey, createCoverCorrectionsStore } from "@/store/cover.store";
 
 function memoryStorage(): Storage {
   const data = new Map<string, string>();
+
   return {
     get length() {
       return data.size;
@@ -76,6 +77,7 @@ describe("resolved covers", () => {
   it("stores picks and evicts the oldest past the cap", () => {
     const storage = memoryStorage();
     const store = createCoverCorrectionsStore(() => storage);
+
     for (let index = 0; index < 502; index += 1) {
       store.setResolved(`title${index}|0`, {
         id: index,
@@ -84,6 +86,7 @@ describe("resolved covers", () => {
         at: index,
       });
     }
+
     const resolved = store.atoms.resolved.get();
     expect(Object.keys(resolved)).toHaveLength(500);
     expect(resolved["title0|0"]).toBeUndefined();
@@ -132,9 +135,11 @@ describe("resolved covers", () => {
   it("caps the blob map", () => {
     const storage = memoryStorage();
     const store = createCoverCorrectionsStore(() => storage);
+
     for (let index = 0; index < 502; index += 1) {
       store.setBlob(`http://cover/${index}`, `blob${index}`);
     }
+
     const blobs = store.atoms.blobs.get();
     expect(Object.keys(blobs)).toHaveLength(500);
     expect(blobs["http://cover/0"]).toBeUndefined();

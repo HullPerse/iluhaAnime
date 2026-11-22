@@ -21,6 +21,7 @@ export async function loadSidecarTracks(
   isCurrent: () => boolean = () => playbackAtoms.path.get() === videoPath
 ): Promise<void> {
   if (!settingsAtoms.autoLoadSidecarTracks.get()) return;
+
   if (!mediaFileExtension(fileNameFromPath(videoPath))) return;
 
   const [tracks, error] = await attempt(
@@ -31,10 +32,13 @@ export async function loadSidecarTracks(
       subfolders: settingsAtoms.sidecarScanSubfolders.get(),
     })
   );
+
   if (error) {
     reportBackgroundError("player.sidecar.scan", error);
+
     return;
   }
+
   if (!isCurrent()) return;
 
   const loaded = new Set(
@@ -44,9 +48,11 @@ export async function loadSidecarTracks(
       .filter((path): path is string => typeof path === "string")
       .map(normalizePath)
   );
+
   for (const track of tracks) {
     if (!isCurrent()) return;
     const key = normalizePath(track.path);
+
     if (loaded.has(key)) continue;
     loaded.add(key);
     const [, addError] = await attempt(
@@ -54,6 +60,7 @@ export async function loadSidecarTracks(
         ? addExternalSubtitleAuto(track.path, videoPath)
         : addExternalAudioAuto(track.path, videoPath)
     );
+
     if (addError) reportBackgroundError("player.sidecar.add", addError);
   }
 }

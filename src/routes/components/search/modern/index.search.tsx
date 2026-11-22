@@ -44,19 +44,25 @@ function SearchModern() {
   useLayoutEffect(() => {
     if (panel === null || mascot === null) {
       setDimmed(false);
+
       return;
     }
+
     const measure = () => {
       const next = shouldDimMascot(mascot.getBoundingClientRect(), panel.getBoundingClientRect());
       setDimmed((prev) => (prev === next ? prev : next));
     };
+
     measure();
+
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(panel);
     observer.observe(mascot);
     const stage = stageRef.current;
+
     if (stage !== null) observer.observe(stage);
+
     return () => observer.disconnect();
   }, [panel, mascot]);
 
@@ -65,6 +71,7 @@ function SearchModern() {
   if (isLoading) {
     return <TabLoader className="absolute inset-0 z-20 flex items-center justify-center" />;
   }
+
   return (
     <section ref={stageRef} className="relative flex h-full w-full">
       {mascotVisible && (

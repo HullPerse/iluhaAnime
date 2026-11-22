@@ -74,6 +74,7 @@ export function TorrentQueueModal({
         files.filter((file) => file.selected && !file.completed).map((file) => file.index)
       ),
     };
+
     return { ...snapshot, baseline: snapshot };
   });
   const rows = queue.rows;
@@ -91,12 +92,15 @@ export function TorrentQueueModal({
   const blocks = useMemo(() => queueBlocks(activeRows, byIndex), [activeRows, byIndex]);
   const rowBlocks = useMemo(() => {
     const map = new Map<number, { block: QueueBlock; at: number }>();
+
     for (const block of blocks) {
       for (let at = block.start; at <= block.end; at++) {
         const index = activeRows[at];
+
         if (index !== undefined) map.set(index, { block, at });
       }
     }
+
     return map;
   }, [blocks, activeRows]);
   const positions = useMemo(
@@ -114,11 +118,13 @@ export function TorrentQueueModal({
   const dirty = useMemo(() => {
     const now = queueIncludedOrder(activeRows, included);
     const then = queueIncludedOrder(queue.baseline.rows, queue.baseline.included);
+
     return now.length !== then.length || now.some((index, at) => index !== then[at]);
   }, [activeRows, included, queue.baseline]);
 
   const announceFile = (next: number[], index: number) => {
     const file = byIndex.get(index);
+
     if (!file) return;
     const nextPositions = queuePositions(next, included, byIndex);
     setAnnouncement(
@@ -146,12 +152,14 @@ export function TorrentQueueModal({
   const applyRows = (next: number[], target: QueueDragTarget) => {
     if (next === activeRows) return;
     setQueue((prev) => ({ ...prev, rows: next }));
+
     if (target.kind === "file") {
       announceFile(next, target.index);
     } else {
       const file = byIndex.get(target.first);
       announceFolder(next, file ? queueDir(file.name) : "");
     }
+
     const nextDisplay = queueDisplay(
       next,
       queueBlocks(next, byIndex),
@@ -164,6 +172,7 @@ export function TorrentQueueModal({
         ? item.kind === "file" && item.index === target.index
         : item.kind === "folder" && item.first === target.first
     );
+
     if (at !== -1) scrollRef.current?.scrollToIndex(at, { align: "auto" });
   };
 
@@ -192,35 +201,46 @@ export function TorrentQueueModal({
       queue.baseline.included,
       !sequential
     );
+
     if (payload.order.length === 0) return;
     setBusy(true);
-    try {
+    await (async () => {
       const applied = await onApply(payload);
+
       if (applied) {
         onClose();
+
         return;
       }
+
       setConfirm(false);
-    } finally {
+    })().finally(() => {
       setBusy(false);
-    }
+    });
   };
 
   const requestClose = () => {
     if (busy) return false;
+
     if (!dirty) return true;
     setConfirm(true);
+
     return false;
   };
 
   const handleFileKeyDown = (event: KeyboardEvent<HTMLDivElement>, index: number) => {
     if (event.target !== event.currentTarget) return;
+
     if (event.key === "Enter" && !event.altKey) {
       event.preventDefault();
+
       if (!busy) ignore(save());
+
       return;
     }
+
     if (!event.altKey) return;
+
     if (event.key === "ArrowUp") {
       event.preventDefault();
       moveFileStep(index, -1);
@@ -238,13 +258,18 @@ export function TorrentQueueModal({
 
   const handleFolderKeyDown = (event: KeyboardEvent<HTMLDivElement>, first: number) => {
     if (event.target !== event.currentTarget) return;
+
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       const file = byIndex.get(first);
+
       if (file) toggleCollapsed(queueDir(file.name));
+
       return;
     }
+
     if (!event.altKey) return;
+
     if (event.key === "ArrowUp") {
       event.preventDefault();
       moveBlockStep(first, -1);
@@ -264,8 +289,10 @@ export function TorrentQueueModal({
     if (byIndex.get(index)?.completed) return;
     setQueue((prev) => {
       const next = new Set(prev.included);
+
       if (next.has(index)) next.delete(index);
       else next.add(index);
+
       return { ...prev, included: next };
     });
   };
@@ -273,8 +300,10 @@ export function TorrentQueueModal({
   const toggleCollapsed = (dir: string) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
+
       if (next.has(dir)) next.delete(dir);
       else next.add(dir);
+
       return next;
     });
   };
@@ -289,6 +318,7 @@ export function TorrentQueueModal({
   const beginDrag = (event: PointerEvent<HTMLSpanElement>, target: QueueDragTarget) => {
     if (event.button !== 0 || dragRef.current) return;
     const list = listRef.current;
+
     if (!list) return;
     event.preventDefault();
     event.stopPropagation();
@@ -306,26 +336,34 @@ export function TorrentQueueModal({
     };
     const pointerHit = (clientY: number): QueueHint | null => {
       const tree = treeRef.current;
+
       if (!tree) return null;
       const rect = list.getBoundingClientRect();
+
       if (clientY < rect.top || clientY > rect.bottom) return null;
       const hit = queuePointHit(
         display,
         clientY - tree.getBoundingClientRect().top,
         QUEUE_ROW_HEIGHT
       );
+
       if (!hit || !canQueueDrop(activeRows, byIndex, target, hit.target)) return null;
+
       return hit;
     };
+
     const update = () => {
       setGhost((prev) => (prev ? { ...prev, y: state.clientY - grabY } : prev));
       const next = pointerHit(state.clientY);
       setHint((prev) => {
         if (!prev || !next) return next;
+
         if (sameQueueTarget(prev.target, next.target) && prev.place === next.place) return prev;
+
         return next;
       });
     };
+
     const stop = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
@@ -334,40 +372,50 @@ export function TorrentQueueModal({
       window.removeEventListener("blur", stop);
       cancelAnimationFrame(state.raf);
       state.stop = () => undefined;
+
       if (dragRef.current === state) dragRef.current = null;
       setDrag(null);
       setGhost(null);
       setHint(null);
     };
+
     const onMove = (moveEvent: globalThis.PointerEvent) => {
       if (moveEvent.pointerId !== state.pointerId) return;
       state.clientY = moveEvent.clientY;
       update();
     };
+
     const onUp = (upEvent: globalThis.PointerEvent) => {
       if (upEvent.pointerId !== state.pointerId) return;
       state.clientY = upEvent.clientY;
       const hit = pointerHit(state.clientY);
       stop();
+
       if (hit)
         applyRows(queueApplyDrop(activeRows, byIndex, target, hit.target, hit.place), target);
     };
+
     const onKey = (keyEvent: globalThis.KeyboardEvent) => {
       if (keyEvent.key !== "Escape") return;
       keyEvent.preventDefault();
       stop();
     };
+
     const tick = () => {
       const rect = list.getBoundingClientRect();
       let delta = 0;
+
       if (state.clientY < rect.top + QUEUE_SCROLL_EDGE) delta = -QUEUE_SCROLL_STEP;
       else if (state.clientY > rect.bottom - QUEUE_SCROLL_EDGE) delta = QUEUE_SCROLL_STEP;
+
       if (delta !== 0) {
         list.scrollTop += delta;
         update();
       }
+
       state.raf = requestAnimationFrame(tick);
     };
+
     state.stop = stop;
     dragRef.current = state;
     window.addEventListener("pointermove", onMove);

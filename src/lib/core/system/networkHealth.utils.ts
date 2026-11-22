@@ -19,6 +19,7 @@ const CONNECTIVITY_ERROR =
 
 export function isConnectivityError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
+
   return CONNECTIVITY_ERROR.test(message);
 }
 
@@ -26,6 +27,7 @@ export function isConnectivityError(error: unknown): boolean {
 export function noteNetworkSuccess(): void {
   failures = 0;
   firstFailureAt = 0;
+
   if (!networkAtoms.reachable.get()) networkAtoms.reachable.set(true);
 }
 
@@ -36,11 +38,14 @@ export function noteNetworkSuccess(): void {
 export function noteNetworkFailure(error: unknown): void {
   if (!isConnectivityError(error)) return;
   const now = Date.now();
+
   if (firstFailureAt === 0 || now - firstFailureAt > FAILURE_WINDOW_MS) {
     firstFailureAt = now;
     failures = 0;
   }
+
   failures += 1;
+
   if (failures >= FAILURE_THRESHOLD) networkAtoms.reachable.set(false);
 }
 
@@ -51,11 +56,15 @@ export async function probeNetwork(probe: () => Promise<boolean>): Promise<boole
   const [reachable, error] = await attempt(probe()).finally(() => {
     networkAtoms.checking.set(false);
   });
+
   if (error !== null) {
     noteNetworkFailure(error);
+
     return false;
   }
+
   if (reachable) noteNetworkSuccess();
   else networkAtoms.reachable.set(false);
+
   return reachable;
 }

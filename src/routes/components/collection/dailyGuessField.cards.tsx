@@ -27,6 +27,7 @@ function fieldVisibility({
 }): { showList: boolean; showLoading: boolean; showState: boolean } {
   const open = focused && !dismissed && selected === null;
   const typing = query.trim().length >= 2;
+
   return {
     showList: open && suggestionCount > 0,
     showLoading: open && typing && loading,
@@ -50,9 +51,9 @@ export default function DailyGuessField({
   selected: DailyGuessSuggestion | null;
 }) {
   const { t } = useI18n();
-  const [focused, setFocused] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [focused, setFocused] = useState<boolean>(false);
+  const [dismissed, setDismissed] = useState<boolean>(false);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
@@ -84,17 +85,24 @@ export default function DailyGuessField({
     setActiveIndex(-1);
   };
 
+  const chooseAt = (index: number) => {
+    const suggestion = suggestions[index];
+
+    if (suggestion) choose(suggestion);
+  };
+
   const navigation = createListNavigationHandler<HTMLInputElement>({
     activeIndex: showList ? activeIndex : -1,
     count: showList ? suggestions.length : 0,
     enabled: showList,
     setActiveIndex,
-    onEnter: (index) => choose(suggestions[index] as DailyGuessSuggestion),
-    onTab: (index) => choose(suggestions[index] as DailyGuessSuggestion),
+    onEnter: chooseAt,
+    onTab: chooseAt,
     onEscape: () => {
       if (!showList) return false;
       setDismissed(true);
       setActiveIndex(-1);
+
       return true;
     },
   });

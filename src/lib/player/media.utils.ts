@@ -11,6 +11,7 @@ export function joinMediaPath(basePath: string, relativePath: string): string {
 export async function openFileInPlayer(filePath: string) {
   const normalized = filePath.replaceAll(/\//g, "\\");
   const [, error] = await attempt(openPath(normalized));
+
   if (error !== null) {
     showError(tr("player.folder.open.failed"), String(error));
   }

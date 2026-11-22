@@ -19,12 +19,14 @@ export default function AniListGlobalSortBar({
     score: "anilist.route.sort.score",
     year: "anilist.route.sort.year",
   };
+
   return (
     <section className="windows95-border bg-primary flex flex-row items-center gap-2 px-1 py-0.5">
       <span className="windows95-text text-hint text-xs">{t("anilist.route.sorting")}</span>
       {(["relevance", "title", "score", "year"] as const).map((s) => {
         const isActive = sort.key === s;
         const isRelevance = s === "relevance";
+
         return (
           <Button
             key={s}
@@ -34,10 +36,13 @@ export default function AniListGlobalSortBar({
             onClick={() => {
               if (isRelevance) {
                 onSortChange({ key: "relevance", dir: "desc" });
+
                 return;
               }
+
               onSortChange((prev) => {
                 if (!isActive) return { key: s, dir: prev.dir };
+
                 return { key: s, dir: prev.dir === "asc" ? "desc" : "asc" };
               });
             }}

@@ -22,6 +22,7 @@ export function PaletteSection({
   onPick: (color: string) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <section className="windows95-border flex flex-col gap-1 p-1">
       <div className="flex items-center gap-1">
@@ -45,6 +46,7 @@ export function PaletteSection({
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = "";
+
           if (file) onFile(file);
         }}
       />

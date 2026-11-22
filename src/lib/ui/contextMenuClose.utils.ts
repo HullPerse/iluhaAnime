@@ -2,6 +2,7 @@ const menuClosers = new Set<() => void>();
 
 export const registerContextMenuCloser = (close: () => void): (() => void) => {
   menuClosers.add(close);
+
   return () => {
     menuClosers.delete(close);
   };

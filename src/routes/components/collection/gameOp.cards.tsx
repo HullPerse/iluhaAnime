@@ -13,12 +13,8 @@ import { clipEnd, clipStart, windowSecondsFor } from "@/lib/daily/clip.utils";
 import type { DailyHintView, DailyOpGuessView, DailyOpView } from "@/types/api/daily";
 import { ClipPlayer } from "@/routes/components/collection/gameClip.cards";
 
-import {
-  FramePips,
-  GuessHistory,
-  HintsRail,
-  Result,
-} from "@/routes/components/collection/gameFrames.cards";
+import { FramePips, GuessHistory, Result } from "@/routes/components/collection/gameFrames.cards";
+import { HintsRail } from "@/routes/components/collection/hintsRail.cards";
 import DailyGuessField from "@/routes/components/collection/dailyGuessField.cards";
 import type { DailyGuessSuggestion, GuessHistoryItem } from "@/types/ui/daily";
 
@@ -34,16 +30,16 @@ export default function GameOp({
   const { t } = useI18n();
   const guess = useGuessDailyOp(day);
   const skip = useSkipDailyOp(day);
-  const [attempts, setAttempts] = useState(initial.attempts);
-  const [result, setResult] = useState(initial.result);
-  const [showFullClip, setShowFullClip] = useState(false);
+  const [attempts, setAttempts] = useState<number>(initial.attempts);
+  const [result, setResult] = useState<DailyOpView["result"]>(initial.result);
+  const [showFullClip, setShowFullClip] = useState<boolean>(false);
   const [viewAttempt, setViewAttempt] = useState<number | null>(null);
   const [hints, setHints] = useState<DailyHintView[]>(initial.hints);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<string>("");
   const [selected, setSelected] = useState<DailyGuessSuggestion | null>(null);
   const [history, setHistory] = useState<GuessHistoryItem[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const durationRef = useRef(0);
+  const durationRef = useRef<number>(0);
   const clipUrl = convertFileSrc(initial.clipPath);
   useDailyRewardNotice(result, t);
 
@@ -56,6 +52,7 @@ export default function GameOp({
   const resetClip = () => {
     const video = videoRef.current;
     const duration = durationRef.current;
+
     if (!video || duration <= 0) return;
     video.pause();
     video.currentTime = clipStart(duration, initial.startFraction);
@@ -65,10 +62,12 @@ export default function GameOp({
     setAttempts(view.state.attempts);
     setViewAttempt(null);
     setHints(view.state.hints);
+
     if (view.state.result !== null) {
       setResult(view.state.result);
       setShowFullClip(true);
     }
+
     resetClip();
     setQuery("");
     setSelected(null);
@@ -77,9 +76,11 @@ export default function GameOp({
   const handlePlay = () => {
     const video = videoRef.current;
     const duration = durationRef.current;
+
     if (!video || duration <= 0) return;
     const start = clipStart(duration, initial.startFraction);
     const windowEnd = clipEnd(duration, start, windowSecondsFor(shownAttempt, initial.maxAttempts));
+
     if (video.currentTime < start - 0.05 || video.currentTime >= windowEnd - 0.05) {
       video.currentTime = start;
     }
@@ -88,9 +89,11 @@ export default function GameOp({
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     const duration = durationRef.current;
+
     if (!video || duration <= 0) return;
     const start = clipStart(duration, initial.startFraction);
     const windowEnd = clipEnd(duration, start, windowSecondsFor(shownAttempt, initial.maxAttempts));
+
     if (video.currentTime >= windowEnd) video.pause();
   };
 
@@ -98,6 +101,7 @@ export default function GameOp({
     setViewAttempt(slot);
     const video = videoRef.current;
     const duration = durationRef.current;
+
     if (!video || duration <= 0) return;
     video.currentTime = clipStart(duration, initial.startFraction);
     ignore(video.play());
@@ -105,6 +109,7 @@ export default function GameOp({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+
     if (selected === null || pending) return;
     const guessed = selected;
     guess.mutate(

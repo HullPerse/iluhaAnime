@@ -10,6 +10,7 @@ export function computeVideoMargins(
   rect: ViewportRect | undefined
 ): VideoMargins {
   if (!rect) return { ...ZERO_MARGINS };
+
   return {
     top: ratio(rect.top, viewportHeight),
     bottom: ratio(viewportHeight - rect.bottom, viewportHeight),
@@ -20,6 +21,7 @@ export function computeVideoMargins(
 
 function ratio(offset: number, size: number): number {
   if (!(size > 0)) return 0;
+
   return Math.min(1, Math.max(0, offset / size));
 }
 

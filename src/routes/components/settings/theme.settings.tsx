@@ -118,32 +118,44 @@ export default function SettingsTheme() {
     input.accept = ".json";
     input.onchange = async () => {
       const file = input.files?.[0];
+
       if (!file) return;
       const [text, textError] = await attempt(file.text());
+
       if (textError) {
         setImportError(t("settings.theme.read.error"));
+
         return;
       }
+
       const parsed = parseThemeFile(text, (name) =>
         findTheme(name, builtins, themeAtoms.customThemes.get())
       );
+
       if (!parsed) {
         setImportError(t("settings.theme.import.error"));
+
         return;
       }
+
       if (parsed.kind === "theme") {
         addCustomTheme(parsed.theme);
         setImportError("");
+
         return;
       }
+
       if (!findTheme(parsed.base, builtins, themeAtoms.customThemes.get())) {
         setImportError(t("settings.theme.patch.base.error"));
+
         return;
       }
+
       setThemePatch(parsed.base, parsed.patch);
       setTheme(parsed.base);
       setImportError("");
     };
+
     input.click();
   };
 

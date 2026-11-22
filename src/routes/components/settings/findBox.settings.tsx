@@ -28,6 +28,7 @@ export function FindBox({
     if (optionCount === 0) return;
     onActiveChange(Math.min(Math.max(activeIndex + delta, 0), optionCount - 1));
   };
+
   return (
     <Input
       ref={inputRef}
@@ -37,31 +38,43 @@ export function FindBox({
         if (e.key === "Escape") {
           e.stopPropagation();
           onChange("");
+
           return;
         }
+
         if (e.key === "Enter") {
           if (e.nativeEvent.isComposing) return;
           e.preventDefault();
           onJumpSelected();
+
           return;
         }
+
         if (e.key === "ArrowDown") {
           e.preventDefault();
           moveOption(1);
+
           return;
         }
+
         if (e.key === "ArrowUp") {
           e.preventDefault();
           moveOption(-1);
+
           return;
         }
+
         if (e.key === "Home") {
           e.preventDefault();
+
           if (optionCount > 0) onActiveChange(0);
+
           return;
         }
+
         if (e.key === "End") {
           e.preventDefault();
+
           if (optionCount > 0) onActiveChange(optionCount - 1);
         }
       }}
@@ -72,7 +85,6 @@ export function FindBox({
       aria-autocomplete="list"
       placeholder={t("settings.find.placeholder")}
       aria-label={t("settings.find.placeholder")}
-      title={t("settings.find.footer.hint")}
       autoFocus
       spellCheck={false}
     />

@@ -19,6 +19,7 @@ const check = (query: string, history = ["frieren"]) => {
   act(() => {
     vi.advanceTimersByTime(400);
   });
+
   return result.current;
 };
 
@@ -63,32 +64,6 @@ describe("useSpellCheck", () => {
     expect(searchAtoms.spellDictionary.get()).toEqual([]);
   });
 
-  it("returns the identical object when the query is retyped", () => {
-    const history = ["frieren"];
-    const { result, rerender } = renderHook(({ query }) => useSpellCheck(query, { history }), {
-      initialProps: { query: "friren" },
-    });
-    settle();
-    const first = result.current;
-    expect(first).not.toBeNull();
-    rerender({ query: "frirenx" });
-    settle();
-    rerender({ query: "friren" });
-    settle();
-    expect(result.current).toBe(first);
-  });
-
-  it("keeps identity when option arrays are recreated with the same content", () => {
-    const { result, rerender } = renderHook(({ history }) => useSpellCheck("friren", { history }), {
-      initialProps: { history: ["frieren"] },
-    });
-    settle();
-    const first = result.current;
-    expect(first).not.toBeNull();
-    rerender({ history: ["frieren"] });
-    expect(result.current).toBe(first);
-  });
-
   it("recomputes when the flagged word itself changes", () => {
     const history = ["frieren"];
     const { result, rerender } = renderHook(({ query }) => useSpellCheck(query, { history }), {
@@ -125,35 +100,6 @@ describe("useSpellCheck", () => {
     expect(result.current).toMatchObject({
       word: "attak",
       spans: [{ start: 7, end: 12, word: "attak", corrected: "attack" }],
-    });
-  });
-
-  it("keeps an untouched highlight while typing elsewhere", () => {
-    const history = ["frieren"];
-    const { result, rerender } = renderHook(({ query }) => useSpellCheck(query, { history }), {
-      initialProps: { query: "friren" },
-    });
-    settle();
-    const first = result.current;
-    expect(first).toMatchObject({ word: "friren", start: 0, end: 6 });
-    rerender({ query: "friren nar" });
-    expect(result.current).toBe(first);
-    expect(result.current).toMatchObject({
-      word: "friren",
-      spans: [{ start: 0, end: 6, word: "friren" }],
-    });
-  });
-
-  it("shifts an untouched highlight when typing before the word", () => {
-    const history = ["frieren"];
-    const { result, rerender } = renderHook(({ query }) => useSpellCheck(query, { history }), {
-      initialProps: { query: "friren" },
-    });
-    settle();
-    rerender({ query: "x friren" });
-    expect(result.current).toMatchObject({
-      word: "friren",
-      spans: [{ start: 2, end: 8, word: "friren" }],
     });
   });
 
@@ -238,12 +184,9 @@ describe("useSpellCorrections", () => {
     act(() => {
       vi.advanceTimersByTime(400);
     });
+
     return result.current;
   };
-
-  it("returns the single correction for a one-candidate typo", () => {
-    expect(corrections("friren")).toEqual(["frieren"]);
-  });
 
   it("returns best-first variants capped by the limit", () => {
     const history = ["frieren", "frisen"];

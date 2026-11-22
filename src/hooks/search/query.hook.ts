@@ -83,6 +83,7 @@ export function useSearchQuery(): SearchQueryController {
   const [maxPage, setMaxPage] = useState<number>(Number.POSITIVE_INFINITY);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [selectedTorrent, setSelectedTorrent] = useState<SelectedSearchTorrent | null>(null);
+
   if (lastDefaultSource !== defaultSource) {
     setLastDefaultSource(defaultSource);
     setSource(resolveInitialSource(visibleSources, defaultSource) as Source);
@@ -93,6 +94,7 @@ export function useSearchQuery(): SearchQueryController {
 
   useEffect(() => {
     setPresenceSearching(submittedQuery.trim().length > 0);
+
     return () => setPresenceSearching(false);
   }, [submittedQuery]);
 
@@ -138,6 +140,7 @@ export function useSearchQuery(): SearchQueryController {
 
   const fetchBySource = (): Promise<Anime[]> => {
     fetchSourceRef.current = source;
+
     return torrentApi.searchBySource(source, {
       query: submittedQuery,
       page: nyaaPage,
@@ -163,6 +166,7 @@ export function useSearchQuery(): SearchQueryController {
   useEffect(() => {
     if (!isError || source !== "rutracker") return;
     const message = error instanceof Error ? error.message : String(error ?? "");
+
     if (!message.trim().startsWith("blocked:")) return;
     queryClient.setQueryData<{ rutracker: boolean; nekobt: boolean }>(
       queryKeys.searchSessionsScope(),
@@ -222,11 +226,14 @@ export function useSearchQuery(): SearchQueryController {
   const runLogout = async (key: keyof SearchSessionsData, logout: () => Promise<void>) => {
     setSession(key, false);
     const [, error] = await attempt(logout());
+
     if (error) {
       setSession(key, true);
       reportBackgroundError(`search.logout.${key}`, error);
+
       return;
     }
+
     setSession(key, false);
   };
 
@@ -244,6 +251,7 @@ export function useSearchQuery(): SearchQueryController {
     setSubmittedQuery("");
     resetFilters();
   };
+
   const resetSearch = () => {
     setSearchParams("");
     setSubmittedQuery("");
@@ -287,6 +295,7 @@ export function useSearchQuery(): SearchQueryController {
   const searchHistory = useCell(searchAtoms.history);
   const didYouMean = useMemo(() => {
     if (!submittedQuery || isLoading || (data?.length ?? 0) > 0) return null;
+
     return (
       suggestSpellingWithReason(submittedQuery, {
         animeIndex,
@@ -298,15 +307,19 @@ export function useSearchQuery(): SearchQueryController {
   const applySubmitQuery = useCallback((query: string) => {
     const { cleanQuery, tags } = parseTorrentTags(query);
     const text = cleanQuery || query.trim();
+
     if (tags.length > 0) {
       const mapped = torrentTagsToFilters(tags);
+
       if (Object.keys(mapped.filters).length > 0) setFilters(mapped.filters);
       setSearchParams(text);
+
       if (mapped.source) {
         setSource(mapped.source);
         setNyaaPage(1);
       }
     }
+
     setSubmittedQuery(text);
     setSearchRequest((request) => request + 1);
     setMaxPage(Number.POSITIVE_INFINITY);

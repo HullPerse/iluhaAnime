@@ -18,6 +18,7 @@ import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke } = await import("@/tests/mocks");
+
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -126,6 +127,7 @@ describe("filter presets", () => {
 describe("learning counters", () => {
   function callArgs(command: string): Record<string, unknown> | undefined {
     const call = mockInvoke.mock.calls.find((entry) => entry[0] === command);
+
     return call?.[1] as Record<string, unknown> | undefined;
   }
 

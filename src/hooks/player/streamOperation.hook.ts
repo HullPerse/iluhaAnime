@@ -14,9 +14,10 @@ import type { StreamOpen } from "@/types/player/videoPlayer";
 
 /** Only the latest selection owned by a mounted player may replace its session. */
 export function useStreamOperation() {
-  const mounted = useRef(true);
+  const mounted = useRef<boolean>(true);
   useEffect(() => {
     mounted.current = true;
+
     return () => {
       mounted.current = false;
     };
@@ -24,11 +25,14 @@ export function useStreamOperation() {
 
   return useCallback(async (build: (current: StreamOpen) => Promise<StreamOpen | null>) => {
     const base = streamSession.get();
+
     if (!base) return false;
     const request = beginStreamRequest();
     const current = () => mounted.current && streamRequest.get() === request;
     const [next, failure] = await attempt(build(base));
+
     if (!current() || streamSession.get() !== base) return false;
+
     if (failure || !next) {
       if (failure) reportBackgroundError("player.stream.resolve", failure);
       addNotification(
@@ -36,24 +40,32 @@ export function useStreamOperation() {
         "error",
         failure?.message ?? tr("stream.noNextEpisode")
       );
+
       return false;
     }
+
     playbackAtoms.streamResume.set(next.resume ?? 0);
     const [, openFailure] = await attempt(openStream(next));
+
     if (!current()) return false;
     const latest = streamSession.get();
+
     if (
       latest !== base &&
       (latest?.watchKey !== next.watchKey || latest.mediaUrl !== next.mediaUrl)
     )
       return false;
+
     if (openFailure) {
       playbackAtoms.streamResume.set(null);
       reportBackgroundError("player.stream.open", openFailure);
       addNotification(tr("stream.playFailed"), "error", openFailure.message);
+
       return false;
     }
+
     streamSession.set(next);
+
     return true;
   }, []);
 }

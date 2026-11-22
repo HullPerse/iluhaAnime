@@ -9,7 +9,9 @@ export function resolveLoadPosition(
   entryPosition: number | undefined
 ): number {
   if (reload) return reload.position;
+
   if (resume !== undefined) return resume;
+
   return entryPosition ?? 0;
 }
 
@@ -19,6 +21,7 @@ export function needsExactSeek(
   inside: boolean
 ): boolean {
   if (reload) return position > 1;
+
   return inside;
 }
 

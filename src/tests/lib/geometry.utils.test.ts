@@ -67,6 +67,7 @@ describe("nearestIndex", () => {
 
   it("matches a brute-force scan on a long list", () => {
     const values = Array.from({ length: 400 }, (_, index) => index * 3 + 0.5);
+
     for (const target of [0, 1, 42.5, 599, 1_000, 1_198]) {
       const best = values.reduce(
         (winner, value, index) =>

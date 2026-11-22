@@ -45,6 +45,7 @@ export default function MediaNews({
         const isVk = attachment.kind === "vk";
         const youtubeId = attachment.kind === "youtube" ? youtubeIdOf(attachment.embedUrl) : null;
         const target = attachment.embedUrl ?? attachment.pageUrl ?? attachment.previewUrl;
+
         return (
           <button
             key={index}

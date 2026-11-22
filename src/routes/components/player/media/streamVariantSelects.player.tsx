@@ -44,21 +44,20 @@ export function StreamVariantSelects({
 
   const prefetch = (rows: StreamVariant[], id: string) => {
     const variant = variantOf(rows, id);
+
     if (!variant) return;
     const variantId = buildVariantId(variant);
     ignore(
       attempt(loadSources(session.episodeId, variantId)).then(([sources]) => {
         if (!sources) return undefined;
         const source = pickSource(sources, session.quality);
+
         if (!source) return undefined;
+
         return warmStreamUrl(
           source.url,
           source.headers,
-          playbackProxyUrl(
-            source.variantId || variantId,
-            getAnimelibProxyUrl(),
-            source.url
-          )
+          playbackProxyUrl(source.variantId || variantId, getAnimelibProxyUrl(), source.url)
         );
       })
     );
@@ -66,9 +65,11 @@ export function StreamVariantSelects({
 
   const pick = async (variant: StreamVariant) => {
     const id = buildVariantId(variant);
+
     if (id === session.variantId) return;
     setPending(id);
     const opened = await switchVariant(variant);
+
     if (!opened) setPending(null);
   };
 
@@ -83,6 +84,7 @@ export function StreamVariantSelects({
         onOptionHover={(id) => prefetch(voices, id)}
         onSelect={(id) => {
           const variant = variantOf(voices, id);
+
           if (variant) ignore(pick(variant));
         }}
       />
@@ -95,6 +97,7 @@ export function StreamVariantSelects({
         onOptionHover={(id) => prefetch(subtitles, id)}
         onSelect={(id) => {
           const variant = variantOf(subtitles, id);
+
           if (variant) ignore(pick(variant));
         }}
       />

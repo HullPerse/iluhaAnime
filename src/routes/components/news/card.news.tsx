@@ -35,6 +35,7 @@ export default function CardNews({
     const type = item.attachments.find((attachment) => attachment.kind);
 
     if (!type) return undefined;
+
     return type.previewUrl;
   };
 

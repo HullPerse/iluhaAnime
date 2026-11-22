@@ -6,9 +6,11 @@ const NORMALIZED_PATH_CACHE = createLruCache<string, string>(5000);
 
 function memoizedNormalize(path: string): string {
   const cached = NORMALIZED_PATH_CACHE.get(path);
+
   if (cached !== undefined) return cached;
   const normalized = normalizePlayerPath(path);
   NORMALIZED_PATH_CACHE.set(path, normalized);
+
   return normalized;
 }
 
@@ -18,8 +20,10 @@ export function normalizePlayerPath(path: string): string {
 
 export function isPlayerPathHidden(path: string, hiddenPaths: string[]): boolean {
   const normalized = normalizePlayerPath(path);
+
   return hiddenPaths.some((hiddenPath) => {
     const hidden = normalizePlayerPath(hiddenPath);
+
     return normalized === hidden || normalized.startsWith(`${hidden}/`);
   });
 }
@@ -34,6 +38,7 @@ export function filterTreeByHiddenPaths(
 ): FolderNode | null {
   if (hiddenPaths.length === 0) return tree;
   const hidden = hiddenPaths.map(normalizePlayerPath);
+
   return filterNode(tree, hidden);
 }
 
@@ -48,6 +53,7 @@ function filterNode(tree: FolderNode, hidden: string[]): FolderNode | null {
     .filter((child): child is FolderNode => child !== null);
 
   if (files.length === 0 && children.length === 0) return null;
+
   if (
     files.length === tree.files.length &&
     children.length === tree.children.length &&
@@ -55,5 +61,6 @@ function filterNode(tree: FolderNode, hidden: string[]): FolderNode | null {
   ) {
     return tree;
   }
+
   return { ...tree, files, children };
 }

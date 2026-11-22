@@ -28,6 +28,7 @@ const CHORDS = [
 
 function makeDefs(count: number): Array<{ id: string; chord: string; repeat: "once" | "hold" }> {
   const out: Array<{ id: string; chord: string; repeat: "once" | "hold" }> = [];
+
   for (let i = 0; i < count; i++) {
     const mods = i % 4 === 0 ? "ctrl+" : i % 4 === 1 ? "alt+" : i % 4 === 2 ? "ctrl+Shift+" : "";
     out.push({
@@ -36,6 +37,7 @@ function makeDefs(count: number): Array<{ id: string; chord: string; repeat: "on
       repeat: i % 2 === 0 ? "once" : "hold",
     });
   }
+
   return out;
 }
 
@@ -51,12 +53,14 @@ const MISS_KEYS = [
 group("hotkeys @hotkeys @quick", () => {
   bench("parse 20 chords x2k", () => {
     let sum = 0;
+
     for (let i = 0; i < 2000; i++) {
       for (const chord of CHORDS) {
         const parsed = parseChord(chord);
         sum += parsed ? chordKey(parsed).length : 0;
       }
     }
+
     return sum;
   });
 
@@ -66,22 +70,26 @@ group("hotkeys @hotkeys @quick", () => {
 
   bench("dispatch hits 40 keys x1k", () => {
     let sum = 0;
+
     for (let i = 0; i < 1000; i++) {
       for (const key of HIT_KEYS) {
         const hit = REGISTRY.get(key);
         sum += hit ? hit.id.length : 0;
       }
     }
+
     return sum;
   });
 
   bench("dispatch misses x10k", () => {
     let sum = 0;
+
     for (let i = 0; i < 10_000; i++) {
       for (const key of MISS_KEYS) {
         if (REGISTRY.get(key) === undefined) sum += 1;
       }
     }
+
     return sum;
   });
 });

@@ -22,6 +22,7 @@ const renderBar = (overrides: Partial<AniSortProps> = {}) => {
     ...overrides,
   };
   render(<AniListSortBar {...props} />);
+
   return props;
 };
 
@@ -29,6 +30,7 @@ const openMenu = async () => {
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "Еще действия" }));
   await screen.findByRole("menuitem", { name: "История активности" });
+
   return user;
 };
 

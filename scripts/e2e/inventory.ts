@@ -11,7 +11,9 @@ const inventory = await buildMediaInventory();
 writeFileSync(join(outDir, "media-inventory.json"), JSON.stringify(inventory, null, 2));
 console.log(`[media] root: ${inventory.root}`);
 console.log(`[media] scanned=${inventory.scannedCount} probed=${inventory.probedCount}`);
+
 for (const { file, reasons } of inventory.selected) {
   console.log(`[media] ${reasons.join(", ")}: ${file.path}`);
 }
+
 console.log(`[media] report: ${outDir}`);

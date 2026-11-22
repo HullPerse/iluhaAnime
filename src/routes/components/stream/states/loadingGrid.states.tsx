@@ -2,6 +2,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 
 export function StreamLoadingGrid({ count = 12 }: { count?: number }) {
   const { t } = useI18n();
+
   return (
     <section
       className="windows95-border bg-field min-h-0 w-full flex-1 overflow-hidden p-1"

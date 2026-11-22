@@ -101,9 +101,13 @@ beforeEach(() => {
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_anime_franchise")
       return Promise.resolve({ root_id: 21, nodes: [], edges: [] });
+
     if (command === "get_anime_recommendations") return Promise.resolve([]);
+
     if (command === "get_anilist_friend_scores") return Promise.resolve([]);
+
     if (command === "get_anilist_custom_lists") return Promise.resolve([]);
+
     if (command === "get_character_detail")
       return Promise.resolve({
         id: 11,
@@ -114,6 +118,7 @@ beforeEach(() => {
         site_url: null,
         media: [],
       });
+
     return Promise.reject(new Error(`unexpected command ${command}`));
   });
 });
@@ -143,6 +148,7 @@ describe("AniListDetailView mount inventory", () => {
 
     await waitFor(() => {
       const commands = invokeMock.mock.calls.map(([command]) => String(command));
+
       for (const expected of EXPECTED_COMMANDS) {
         expect(commands).toContain(expected);
       }

@@ -31,6 +31,7 @@ type DeepLinkActionKeys =
   | "consumeGiftReceipt";
 
 type DeepLinkData = Omit<DeepLinkStore, DeepLinkActionKeys>;
+
 type DeepLinkAtoms = { [K in keyof DeepLinkData]: Cell<DeepLinkData[K]> };
 
 const DEFAULT_DEEPLINK_DATA: DeepLinkData = {
@@ -97,6 +98,7 @@ export const deeplinkAtoms = deeplinks.atoms;
 export function subscribeDeepLink(listener: () => void): () => void {
   return deeplinks.subscribeAll(listener);
 }
+
 export const openAnimeDeepLink = deeplinks.openAnime;
 export const consumeDeepLink = deeplinks.consume;
 export const openTorrentDeepLink = deeplinks.openTorrent;

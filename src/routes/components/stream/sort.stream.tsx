@@ -40,8 +40,10 @@ export default function StreamSortBar({
   const pick = (key: StreamSortBy) => {
     if (key !== sortBy) {
       setStreamSort(key, STREAM_SORT_DEFAULT_DIR[key]);
+
       return;
     }
+
     setStreamSort(key, sortType === "asc" ? "desc" : "asc");
   };
 

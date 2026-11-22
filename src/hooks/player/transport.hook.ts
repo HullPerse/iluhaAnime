@@ -33,6 +33,7 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
 
   const onPlay = useCallback(() => {
     if (!playbackAtoms.hasFile.get()) return;
+
     if (playbackAtoms.eofReached.get()) {
       setFinished(false);
       setSeekTarget(0);
@@ -42,8 +43,10 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
         .catch(() => {
           setPlaybackPaused(true);
         });
+
       return;
     }
+
     setPlaybackPaused(false);
     setPaused(false).catch(() => setPlaybackPaused(true));
   }, [setFinished]);
@@ -56,18 +59,23 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
   const onPlayPause = useCallback(() => {
     if (playbackAtoms.paused.get()) {
       onPlay();
+
       return;
     }
+
     onPause();
   }, [onPause, onPlay]);
 
   const onFileNext = useCallback(() => {
     setFinished(false);
     setLoadingFile(true);
+
     if (streaming) {
       ignore(streamNext.goNext());
+
       return;
     }
+
     setPlaybackPaused(true);
     ignore(setPaused(true));
     ignore(nextFile());
@@ -94,6 +102,7 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
   const onVolume = useCallback((value: number) => {
     const clamped = Math.min(1, Math.max(0, value));
     setVolume(clamped);
+
     if (playbackAtoms.muted.get()) {
       setPlaybackMuted(false);
       setMpvProperty("mute", false).catch(() => setPlaybackMuted(true));
@@ -118,6 +127,7 @@ export function usePlayerTransport(options: PlayerTransportOptions): PlayerTrans
       const timePos = playbackAtoms.timePos.get();
       const paused = playbackAtoms.paused.get();
       setHwdec(mode);
+
       if (!playbackAtoms.hasFile.get() || playlistIndex < 0) return;
       hwdecReloadRef.current = { position: timePos, paused };
       setLoadingFile(true);

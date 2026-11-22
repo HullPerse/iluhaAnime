@@ -41,18 +41,23 @@ const renderSection = (onPlay = vi.fn()) => {
       <TorrentFilesSection id={1} files={FILES} type="player" path="D:/media" onPlay={onPlay} />
     </QueryClientProvider>
   );
+
   return { onPlay };
 };
 
 const folderRow = (name: string): HTMLElement => {
   const node = document.querySelector<HTMLElement>(`[data-tree-path="${name}0"]`);
+
   if (!node) throw new Error(`folder row missing: ${name}`);
+
   return node;
 };
 
 const fileRow = (index: number): HTMLElement => {
   const node = document.querySelector<HTMLElement>(`[data-tree-path="file:${index}"]`);
+
   if (!node) throw new Error(`file row missing: ${index}`);
+
   return node;
 };
 
@@ -108,6 +113,7 @@ describe("TorrentFilesSection ring", () => {
     renderSection();
     const folder = folderRow("A");
     const toggle = folder.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!toggle) throw new Error("activation target missing");
     const spy = vi.fn();
     toggle.addEventListener("click", spy);
@@ -150,6 +156,7 @@ describe("TorrentFilesSection ring", () => {
     renderSection();
     const outside = document.createElement("button");
     document.body.append(outside);
+
     try {
       outside.focus();
       const event = new KeyboardEvent("keydown", {
@@ -240,6 +247,7 @@ describe("TorrentFilesSection row visuals", () => {
     renderSection();
     openFolder("A");
     const button = fileRow(0).querySelector<HTMLElement>("button");
+
     if (!button) throw new Error("row button missing");
 
     fireEvent.mouseDown(button);
@@ -258,8 +266,10 @@ describe("TorrentFilesSection row actions", () => {
     const holder = row.querySelector<HTMLElement>(`[data-file-action="${action}"]`);
     const button =
       holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+
     if (!button) throw new Error(`action target missing: ${action}`);
     row.focus();
+
     return { row, button };
   };
 
@@ -305,6 +315,7 @@ describe("TorrentFilesSection row actions", () => {
     const holder = row.querySelector<HTMLElement>('[data-file-action="builtin"]');
     const button =
       holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+
     if (!button) throw new Error("action target missing: builtin");
     row.focus();
 
@@ -331,6 +342,7 @@ describe("TorrentFilesSection row actions", () => {
     const holder = row.querySelector<HTMLElement>('[data-file-action="search"]');
     const button =
       holder?.tagName === "BUTTON" ? holder : holder?.querySelector<HTMLElement>("button");
+
     if (!button) throw new Error("action target missing: search");
     const spy = vi.fn();
     button.addEventListener("click", spy);
@@ -357,6 +369,7 @@ describe("TorrentFilesSection row actions", () => {
     openFolder("A");
     const row = fileRow(0);
     const name = row.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!name) throw new Error("activation target missing");
     const spy = vi.fn();
     name.addEventListener("contextmenu", spy);
@@ -385,7 +398,9 @@ describe("TorrentFilesSection file menu", () => {
 
   const menuitem = (name: string): HTMLElement => {
     const found = menuitems().find((entry) => entry.textContent === name);
+
     if (!found) throw new Error(`menu entry missing: ${name}`);
+
     return found;
   };
 
@@ -393,8 +408,10 @@ describe("TorrentFilesSection file menu", () => {
     openFolder("A");
     const row = fileRow(index);
     const target = row.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!target) throw new Error("activation target missing");
     fireEvent.contextMenu(target);
+
     return row;
   };
 
@@ -409,6 +426,7 @@ describe("TorrentFilesSection file menu", () => {
     const { onPlay } = renderSection();
     const row = openMenu(0);
     const holder = row.querySelector<HTMLElement>('[data-file-action="builtin"]');
+
     if (!holder) throw new Error("builtin button missing");
     const spy = vi.fn();
     holder.addEventListener("click", spy);
@@ -435,6 +453,7 @@ describe("TorrentFilesSection file menu", () => {
     openFolder("A");
     const row = fileRow(0);
     const target = row.querySelector<HTMLElement>("[data-tree-activate]");
+
     if (!target) throw new Error("activation target missing");
 
     expect(fireEvent.contextMenu(target, { ctrlKey: true })).toBe(false);

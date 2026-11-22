@@ -31,6 +31,7 @@ export function TitleRows({
 }) {
   const { t } = useI18n();
   const [showAll, setShowAll] = useState<boolean>(false);
+
   if (rows.length === 0) {
     return (
       <div className="border-muted border-t">
@@ -38,7 +39,9 @@ export function TitleRows({
       </div>
     );
   }
+
   const visible = showAll ? rows : rows.slice(0, 60);
+
   return (
     <div className="border-muted border-t p-1">
       <div className="text-hint grid w-full grid-cols-[2rem_minmax(0,1fr)_3.25rem_3.25rem_3.5rem] items-center gap-1 px-1 text-xs">

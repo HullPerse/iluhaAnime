@@ -114,6 +114,7 @@ function FranchiseGraphSection({
   );
   const collapsed = useMemo(() => {
     if (!filtered) return null;
+
     return collapseGraph(filtered, relationMap, animeId, 10, expandedGroups);
   }, [filtered, relationMap, animeId, expandedGroups]);
 
@@ -150,28 +151,35 @@ function FranchiseGraphSection({
     const matches = collapsed
       ? filterFranchiseNodesBySearch(collapsed.graph.nodeMap, searchQuery)
       : null;
+
     if (!matches || !collapsed || collapsed.aggregators.size === 0) return matches;
     const lower = searchQuery.toLowerCase().trim();
+
     for (const [aggId, info] of collapsed.aggregators) {
       if (matches.has(aggId)) continue;
+
       for (const node of filtered?.nodeMap.values() ?? []) {
         if (relationGroup(relationMap.get(node.id) ?? "UNKNOWN") !== info.group) continue;
+
         if (node.title.toLowerCase().includes(lower)) {
           matches.add(aggId);
           break;
         }
       }
     }
+
     return matches;
   }, [collapsed, filtered, relationMap, searchQuery]);
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
       setContainerWidth(entry.contentRect.width || 800);
     });
     ro.observe(el);
+
     return () => ro.disconnect();
   }, []);
 
@@ -191,7 +199,9 @@ function FranchiseGraphSection({
 
   useEffect(() => {
     if (!expanded || listView) return;
+
     if (resetKey < 0) return;
+
     if (!collapsed || collapsed.graph.nodeMap.size === 0) return;
 
     const { simNodes, initialPositions } = buildSimNodes(
@@ -211,6 +221,7 @@ function FranchiseGraphSection({
     });
 
     simRef.current = sim;
+
     return () => {
       sim.stop();
       simRef.current = null;
@@ -235,17 +246,21 @@ function FranchiseGraphSection({
       const scale = getScale();
       const dx = (e.clientX - dragging.startMouseX) / scale;
       const dy = (e.clientY - dragging.startMouseY) / scale;
+
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragMovedRef.current = true;
       dragPointRef.current = { x: dragging.startNodeX + dx, y: dragging.startNodeY + dy };
+
       if (dragRafRef.current !== null) return;
       dragRafRef.current = scheduleTask("raf", 0, () => {
         dragRafRef.current = null;
         const point = dragPointRef.current;
         dragPointRef.current = null;
+
         if (!point) return;
         setPositions((prev) => {
           const next = new Map(prev);
           next.set(dragging.id, point);
+
           return next;
         });
       });
@@ -260,6 +275,7 @@ function FranchiseGraphSection({
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -268,7 +284,9 @@ function FranchiseGraphSection({
 
   useEffect(() => {
     if (!expanded || listView || positions.size === 0) return;
+
     if (!collapsed?.graph.nodeMap.has(animeId)) return;
+
     if (zoomedAnimeIdRef.current === animeId) return;
     zoomedAnimeIdRef.current = animeId;
     focusCurrent();
@@ -276,7 +294,9 @@ function FranchiseGraphSection({
 
   useEffect(() => {
     if (listView || positions.size === 0) return;
+
     if (!collapsed?.graph.nodeMap.has(animeId)) return;
+
     if (!focusAfterLayoutRef.current) return;
     focusAfterLayoutRef.current = false;
     focusCurrent();
@@ -285,17 +305,23 @@ function FranchiseGraphSection({
   const handleNodeClick = useCallback(
     (nodeId: number) => {
       if (dragMovedRef.current) return;
+
       if (nodeId < 0) {
         const info = collapsed?.aggregators.get(nodeId);
+
         if (!info) return;
         setExpandedGroups((prev) => {
           const next = new Set(prev);
+
           if (next.has(info.group)) next.delete(info.group);
           else next.add(info.group);
+
           return next;
         });
+
         return;
       }
+
       onRelated?.(nodeId);
     },
     [onRelated, collapsed]
@@ -308,6 +334,7 @@ function FranchiseGraphSection({
     dragMovedRef.current = false;
     simRef.current?.alpha(0).stop();
     const p = positionsRef.current.get(nodeId);
+
     if (!p) return;
     setDragging({
       id: nodeId,
@@ -321,8 +348,10 @@ function FranchiseGraphSection({
   const toggleFilter = (group: RelationFilter) => {
     setActiveFilters((prev) => {
       const next = new Set(prev);
+
       if (next.has(group)) next.delete(group);
       else next.add(group);
+
       return next;
     });
   };

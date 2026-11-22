@@ -3,6 +3,7 @@ import type { ModalPager } from "@/types/core/ui";
 
 export function zoomedFrameAt(frames: PreviewFrame[], index: number | null): PreviewFrame | null {
   if (index === null) return null;
+
   return frames[index] ?? null;
 }
 
@@ -15,6 +16,7 @@ export function framePager(
   if (index === null || frames.length < 2) return undefined;
   const step = (delta: number) => () =>
     setIndex((prev) => (prev === null ? prev : (prev + delta + frames.length) % frames.length));
+
   return {
     index,
     total: frames.length,

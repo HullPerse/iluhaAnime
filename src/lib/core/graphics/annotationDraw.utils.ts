@@ -13,7 +13,9 @@ function fontFor(family: string, size: number): string {
 
 function strokePoints(points: CropPoint[]): CropPoint[] {
   const first = points[0];
+
   if (!first) return points;
+
   return [first, first, ...points.slice(1)];
 }
 
@@ -35,13 +37,17 @@ export function paintStroke(
   const path = strokePoints(points);
   context.beginPath();
   const [start, ...rest] = path;
+
   if (start) {
     context.moveTo(start.x, start.y);
+
     if (rest.length === 0) {
       context.lineTo(start.x, start.y);
     }
+
     for (const point of rest) context.lineTo(point.x, point.y);
   }
+
   context.stroke();
   context.restore();
 }
@@ -70,13 +76,16 @@ export function measureText(
   text: string
 ): { width: number; height: number } {
   const height = size * ANNOTATION_TEXT_LINE_HEIGHT;
+
   if (!context || typeof context.measureText !== "function") {
     return { width: text.length * size * TEXT_WIDTH_FACTOR, height };
   }
+
   context.save();
   context.font = fontFor(family, size);
   const measured = context.measureText(text);
   context.restore();
+
   return { width: Math.max(size * 0.4, measured.width), height };
 }
 
@@ -88,14 +97,18 @@ function paintOne(
 ): void {
   if (item.kind === "text") {
     paintText(context, item, family);
+
     return;
   }
+
   if (item.tool === "blur") {
     if (item.id === draftId) {
       paintStroke(context, item.points, BLUR_DRAFT_COLOR, item.size);
     }
+
     return;
   }
+
   paintStroke(
     context,
     item.points,
@@ -113,6 +126,7 @@ export function paintAnnotations(
 ): void {
   if (!context) return;
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
   for (const item of items) paintOne(context, item, family, draftId);
 }
 
@@ -122,11 +136,13 @@ export function paintBlurMask(
 ): void {
   if (!context) return;
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
   for (const item of items) {
     if (isBlurItem(item)) {
       paintStroke(context, (item as StrokeItem).points, BLUR_MASK_COLOR, item.size);
       continue;
     }
+
     if (item.kind === "stroke" && item.tool === "eraser") {
       paintStroke(context, item.points, BLUR_MASK_COLOR, item.size, true);
     }
@@ -135,6 +151,8 @@ export function paintBlurMask(
 
 export function blurPreviewSigma(items: AnnotationItem[]): number {
   const blur = items.find(isBlurItem);
+
   if (!blur || blur.kind !== "stroke") return 0;
+
   return blurSigmaFor(blur.size);
 }

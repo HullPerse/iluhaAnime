@@ -35,23 +35,27 @@ export function normalizeScoreToHundred(
   format: AnilistScoreFormat
 ): number | null {
   const ten = normalizeToTen(score, format);
+
   return ten == null ? null : Math.round(ten * 100) / 10;
 }
 
-export function pearsonCorrelation(xs: readonly number[], ys: readonly number[]): number | null {
+function pearsonCorrelation(xs: readonly number[], ys: readonly number[]): number | null {
   if (xs.length !== ys.length || xs.length < 2) return null;
   const n = xs.length;
   let sumX = 0;
   let sumY = 0;
+
   for (let i = 0; i < n; i += 1) {
     sumX += xs[i];
     sumY += ys[i];
   }
+
   const meanX = sumX / n;
   const meanY = sumY / n;
   let num = 0;
   let dx = 0;
   let dy = 0;
+
   for (let i = 0; i < n; i += 1) {
     const x = xs[i] - meanX;
     const y = ys[i] - meanY;
@@ -59,17 +63,23 @@ export function pearsonCorrelation(xs: readonly number[], ys: readonly number[])
     dx += x * x;
     dy += y * y;
   }
+
   if (dx === 0 || dy === 0) return null;
   const r = num / Math.sqrt(dx * dy);
+
   if (r > 1) return 1;
+
   if (r < -1) return -1;
+
   return r;
 }
 
 function mean(values: readonly number[]): number {
   if (values.length === 0) return 0;
   let sum = 0;
+
   for (const value of values) sum += value;
+
   return sum / values.length;
 }
 
@@ -77,43 +87,58 @@ function averageRanks(values: readonly number[]): number[] {
   const order = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
   const ranks = Array.from({ length: values.length }, () => 0);
   let start = 0;
+
   while (start < order.length) {
     const first = order[start];
+
     if (!first) break;
     let end = start;
+
     while (end + 1 < order.length) {
       const next = order[end + 1];
+
       if (!next || next.value !== first.value) break;
       end += 1;
     }
+
     const rank = (start + end + 2) / 2;
+
     for (let index = start; index <= end; index += 1) {
       const item = order[index];
+
       if (item) ranks[item.index] = rank;
     }
+
     start = end + 1;
   }
+
   return ranks;
 }
 
 export function spearmanCorrelation(xs: readonly number[], ys: readonly number[]): number | null {
   if (xs.length !== ys.length || xs.length < COMPARE_MIN_RANK_SAMPLES) return null;
+
   return pearsonCorrelation(averageRanks(xs), averageRanks(ys));
 }
 
 export function meanAbsoluteGap(xs: readonly number[], ys: readonly number[]): number | null {
   if (xs.length !== ys.length || xs.length === 0) return null;
   let total = 0;
+
   for (let index = 0; index < xs.length; index += 1) {
     total += Math.abs(xs[index] - ys[index]);
   }
+
   return round1(total / xs.length);
 }
 
 function compareConfidence(count: number): CompareConfidence {
   if (count <= 0) return "none";
+
   if (count < COMPARE_LOW_CONFIDENCE_SCORED) return "low";
+
   if (count < COMPARE_HIGH_CONFIDENCE_SCORED) return "medium";
+
   return "high";
 }
 
@@ -133,9 +158,11 @@ function directionAgreement(
   let neutral = 0;
   const mineMean = mean(mine);
   const friendMean = mean(friend);
+
   for (let index = 0; index < mine.length; index += 1) {
     const mineSide = mine[index] - mineMean;
     const friendSide = friend[index] - friendMean;
+
     if (Math.abs(mineSide) < 0.05 || Math.abs(friendSide) < 0.05) {
       neutral += 1;
     } else if (mineSide > 0 === friendSide > 0) {
@@ -144,7 +171,9 @@ function directionAgreement(
       split += 1;
     }
   }
+
   const decisive = agree + split;
+
   return {
     score: decisive >= COMPARE_MIN_DIRECTION_PAIRS ? Math.round((agree / decisive) * 100) : null,
     agree,
@@ -189,6 +218,7 @@ export function buildTasteMatch(mine: readonly number[], friend: readonly number
           available.reduce((sum, part) => sum + (part.value ?? 0) * part.weight, 0) / totalWeight
         )
       : null;
+
   return {
     score,
     gapScore,
@@ -205,39 +235,51 @@ export function buildTasteMatch(mine: readonly number[], friend: readonly number
 
 export function compareVerdict(score: number | null): CompareVerdict {
   if (score == null) return "unknown";
+
   if (score >= COMPARE_VERDICT_THRESHOLDS.identical) return "identical";
+
   if (score >= COMPARE_VERDICT_THRESHOLDS.close) return "close";
+
   if (score >= COMPARE_VERDICT_THRESHOLDS.mixed) return "mixed";
+
   return "opposite";
 }
 
 export function metricScore(metric: CompareMetric, summary: CompareSummary): number | null {
   if (metric === "delta") return summary.deltaScore;
+
   if (metric === "iluha") return summary.iluhaAffinity;
+
   return summary.malAffinity;
 }
 
 export function formatNormalizedScore(score: number | null): string {
   if (score == null) return "-";
+
   return (score / 10).toFixed(1);
 }
 
 export function formatSignedDelta(delta: number | null): string {
   if (delta == null) return "-";
   const value = delta / 10;
+
   if (Math.abs(value) < 0.05) return "0.0";
+
   return `${value > 0 ? "+" : ""}${value.toFixed(1)}`;
 }
 
 export function formatSignedPercent(value: number | null): string {
   if (value == null) return "-";
   const rounded = Math.round(value);
+
   return `${rounded > 0 ? "+" : ""}${rounded}%`;
 }
 
 export function compareDiff(gap: number | null, threshold: number): CompareDiffKind {
   if (gap == null) return "unknown";
+
   if (gap <= 0.05) return "same";
+
   return gap <= threshold ? "close" : "far";
 }
 
@@ -261,6 +303,7 @@ function comparedScores(
   const myScore = mine ? normalizeScoreToHundred(mine.score, myFormat) : null;
   const friendScore = friend ? normalizeScoreToHundred(friend.score, friendFormat) : null;
   const signedDelta = myScore != null && friendScore != null ? myScore - friendScore : null;
+
   return {
     mine: myScore,
     mineRaw,
@@ -280,6 +323,7 @@ function toCompared(
 ): ComparedTitle {
   const scores = comparedScores(mine, friend, myFormat, friendFormat);
   const media = (mine ?? friend)?.media;
+
   return {
     id,
     title: media?.title ?? `#${id}`,
@@ -296,11 +340,13 @@ function toCompared(
 
 function indexEntries(lists: AniListCollection[]): Map<number, AniListEntry> {
   const map = new Map<number, AniListEntry>();
+
   for (const list of lists) {
     for (const entry of list.entries) {
       if (!map.has(entry.media.id)) map.set(entry.media.id, entry);
     }
   }
+
   return map;
 }
 
@@ -319,15 +365,19 @@ export function buildCompareSummary(
   const shared: ComparedTitle[] = [];
   const onlyMine: ComparedTitle[] = [];
   const onlyFriend: ComparedTitle[] = [];
+
   for (const [id, friendEntry] of friendIndex) {
     const myEntry = myIndex.get(id);
+
     if (myEntry) shared.push(toCompared(id, myEntry, friendEntry, myFormat, friendFormat));
     else onlyFriend.push(toCompared(id, undefined, friendEntry, myFormat, friendFormat));
     myIndex.delete(id);
   }
+
   for (const [id, myEntry] of myIndex) {
     onlyMine.push(toCompared(id, myEntry, undefined, myFormat, friendFormat));
   }
+
   const scored = shared.filter((row) => row.mine != null && row.friend != null);
   const mineScores = scored.map((row) => row.mine as number);
   const friendScores = scored.map((row) => row.friend as number);
@@ -350,6 +400,7 @@ export function buildCompareSummary(
     libraryOverlap,
     taste,
   };
+
   if (meanDelta == null) return empty;
   const deltaScore = round1(100 - meanDelta);
   const pearsonScore = pearson == null ? null : Math.round(((pearson + 1) / 2) * 100);
@@ -357,6 +408,7 @@ export function buildCompareSummary(
     pearsonScore == null
       ? deltaScore
       : Math.round(ILUHA_DELTA_WEIGHT * deltaScore + ILUHA_PEARSON_WEIGHT * pearsonScore);
+
   return {
     ...empty,
     malAffinity: pearson == null ? null : Math.round(pearson * 100),
@@ -368,9 +420,13 @@ export function buildCompareSummary(
 function sortShared(rows: ComparedTitle[]): ComparedTitle[] {
   return [...rows].sort((a, b) => {
     if (a.delta == null && b.delta == null) return a.title.localeCompare(b.title);
+
     if (a.delta == null) return 1;
+
     if (b.delta == null) return -1;
+
     if (b.delta !== a.delta) return b.delta - a.delta;
+
     return a.title.localeCompare(b.title);
   });
 }
@@ -387,16 +443,21 @@ export function topGenreOverlap(
   const myCounts = countGenres(mine);
   const friendCounts = countGenres(friend);
   const rows: GenreOverlap[] = [];
+
   for (const [genre, count] of myCounts) {
     const other = friendCounts.get(genre);
+
     if (other != null && other > 0) rows.push({ genre, mine: count, friend: other });
   }
+
   rows.sort((a, b) => b.mine + b.friend - (a.mine + a.friend) || a.genre.localeCompare(b.genre));
+
   return rows.slice(0, limit);
 }
 
 function countGenres(lists: AniListCollection[]): Map<string, number> {
   const counts = new Map<string, number>();
+
   for (const list of lists) {
     for (const entry of list.entries) {
       for (const genre of entry.media.genres) {
@@ -404,6 +465,7 @@ function countGenres(lists: AniListCollection[]): Map<string, number> {
       }
     }
   }
+
   return counts;
 }
 
@@ -417,10 +479,13 @@ function genreAverages(
   format: AnilistScoreFormat
 ): Map<string, GenreAverage> {
   const averages = new Map<string, GenreAverage>();
+
   for (const list of lists) {
     for (const entry of list.entries) {
       const score = normalizeScoreToHundred(entry.score, format);
+
       if (score == null) continue;
+
       for (const genre of entry.media.genres) {
         const current = averages.get(genre) ?? { sum: 0, count: 0 };
         current.sum += score;
@@ -429,6 +494,7 @@ function genreAverages(
       }
     }
   }
+
   return averages;
 }
 
@@ -442,8 +508,10 @@ export function topGenreTaste(
   const mineAverages = genreAverages(mine, myFormat);
   const friendAverages = genreAverages(friend, friendFormat);
   const rows: GenreTaste[] = [];
+
   for (const [genre, mineAverage] of mineAverages) {
     const friendAverage = friendAverages.get(genre);
+
     if (!friendAverage || friendAverage.count === 0 || mineAverage.count === 0) continue;
     const mineScore = round1(mineAverage.sum / mineAverage.count);
     const friendScore = round1(friendAverage.sum / friendAverage.count);
@@ -456,18 +524,22 @@ export function topGenreTaste(
       delta: round1(mineScore - friendScore),
     });
   }
+
   rows.sort(
     (a, b) =>
       b.mineCount + b.friendCount - (a.mineCount + a.friendCount) ||
       Math.abs(b.delta) - Math.abs(a.delta) ||
       a.genre.localeCompare(b.genre)
   );
+
   return rows.slice(0, limit);
 }
 
 export function filterCompareRows(rows: readonly ComparedTitle[], query: string): ComparedTitle[] {
   const normalized = query.trim().toLowerCase();
+
   if (!normalized) return [...rows];
+
   return rows.filter(
     (row) =>
       row.title.toLowerCase().includes(normalized) ||
@@ -477,15 +549,21 @@ export function filterCompareRows(rows: readonly ComparedTitle[], query: string)
 
 function compareNullableDesc(a: number | null, b: number | null): number {
   if (a == null && b == null) return 0;
+
   if (a == null) return 1;
+
   if (b == null) return -1;
+
   return b - a;
 }
 
 function compareNullableAsc(a: number | null, b: number | null): number {
   if (a == null && b == null) return 0;
+
   if (a == null) return 1;
+
   if (b == null) return -1;
+
   return a - b;
 }
 
@@ -493,6 +571,7 @@ const withTitleTiebreak =
   (compare: (a: ComparedTitle, b: ComparedTitle) => number) =>
   (a: ComparedTitle, b: ComparedTitle) => {
     const primary = compare(a, b);
+
     return primary !== 0 ? primary : a.title.localeCompare(b.title);
   };
 
@@ -515,5 +594,6 @@ export function sharedFavourites(
   friend: FavouriteAnime[]
 ): FavouriteAnime[] {
   const ids = new Set(friend.map((item) => item.id));
+
   return mine.filter((item) => ids.has(item.id));
 }

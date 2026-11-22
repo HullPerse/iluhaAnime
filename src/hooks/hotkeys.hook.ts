@@ -27,9 +27,11 @@ export function useHotkeys<TId extends string>(
 
   useEffect(() => {
     const current = stateRef.current;
+
     if (hotkeySignature(current.defs) !== signature) return;
     const readOptions = () => stateRef.current.options;
     const node = readOptions().target?.current ?? window;
+
     return subscribeHotkeys(node, {
       defs: current.defs,
       capture: readOptions().capture,
@@ -51,15 +53,19 @@ export function useResolvedHotkeys<TId extends string>(
     const rows = resolveKeybinds(overrides);
     const byId = new Map(rows.map((row) => [row.entry.id, row]));
     const out: HotkeyDef<TId>[] = [];
+
     for (const def of defs) {
       const row = byId.get(def.keybindId);
+
       if (!row || (!row.overridden && !row.shadowedBy)) {
         out.push({ id: def.id, chord: def.chord, repeat: def.repeat });
         continue;
       }
+
       if (row.activeChord === null) continue;
       out.push({ id: def.id, chord: row.activeChord, repeat: def.repeat });
     }
+
     return out;
   }, [defs, overrides]);
   useHotkeys(resolved, options);

@@ -3,11 +3,13 @@ import type { TorrentView } from "@/types/torrent/torrent";
 
 export function CommentsPanel({ view }: { view: TorrentView }) {
   const { t } = useI18n();
+
   if (view.comments.length === 0) {
     return (
       <span className="windows95-text text-hint text-xs">{t("search.details.no.comments")}</span>
     );
   }
+
   return (
     <div className="grid max-h-80 grid-cols-1 gap-1 overflow-y-auto lg:grid-cols-2">
       {view.comments.map((comment, index) => (

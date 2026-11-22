@@ -164,6 +164,7 @@ function TorrentRoute() {
       ignore: (event) => ignoreTabCycle(event),
       onAction: (id) => {
         const next = stepTabId(LIFECYCLE_TABS, lifecycleFilter, id === "tab-next" ? 1 : -1);
+
         if (next) setLifecycleFilter(next);
       },
     }
@@ -177,6 +178,7 @@ function TorrentRoute() {
 
   const lifecycleTorrents = useMemo(() => {
     if (lifecycleFilter === "all") return torrents;
+
     return torrents.filter((t) => getTorrentLifecycle(t.state, t.finished) === lifecycleFilter);
   }, [torrents, lifecycleFilter]);
 
@@ -184,6 +186,7 @@ function TorrentRoute() {
     const list = filterQuery.trim()
       ? lifecycleTorrents.filter((t) => t.name.toLowerCase().includes(filterQuery.toLowerCase()))
       : lifecycleTorrents;
+
     return sortTorrents(list, sortBy, sortAsc, torrentOrder);
   }, [lifecycleTorrents, filterQuery, sortBy, sortAsc, torrentOrder]);
 
@@ -213,6 +216,7 @@ function TorrentRoute() {
     setSelected((prev) => pruneSelection(prev, filteredTorrents));
     setExpanded((prev) => {
       const pruned = pruneSelection(prev, filteredTorrents);
+
       return pruned === prev ? prev : new Set(pruned);
     });
   }, [filteredTorrents]);
@@ -249,12 +253,16 @@ function TorrentRoute() {
       ignore: (event) => isTextEntryTarget(event.target),
       onAction: (id) => {
         if (bulkBusy) return;
+
         if (id === "torrent-recheck-errors") {
           if (problemTorrents.length > 0) ignore(runBulk("recheck", problemTorrents));
+
           return;
         }
+
         if (selectedTorrents.length === 0) return;
         const paused = selectedTorrents.filter((torrent) => torrent.state === "paused");
+
         if (paused.length > 0) ignore(runBulk("resume", paused));
         else ignore(runBulk("pause", selectedTorrents));
       },
@@ -280,11 +288,13 @@ function TorrentRoute() {
     const list = filteredTorrentsRef.current;
     const index = list.findIndex((t) => t.id === id);
     const neighbor = index === -1 ? undefined : list[index + delta];
+
     if (!neighbor) return;
     moveTorrentOrder(id, neighbor.id);
   }, []);
   const handleQueueDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
+
     if (!over || active.id === over.id) return;
     moveTorrentOrderTo(Number(active.id), Number(over.id));
   }, []);
@@ -302,6 +312,7 @@ function TorrentRoute() {
   useFolderContentChanged(
     (payload) => {
       const ids = new Set<number>();
+
       for (const change of payload.changes) {
         for (const torrent of torrents) {
           if (torrent.save_dir && isSameOrInside(torrent.save_dir, change.path)) {
@@ -309,6 +320,7 @@ function TorrentRoute() {
           }
         }
       }
+
       if (ids.size > 0) requestRefresh([...ids]);
     },
     { errorTag: "torrent" }
@@ -327,6 +339,7 @@ function TorrentRoute() {
 
   const summary = useMemo(() => {
     const { active, seeding } = countLiveTorrents(torrents);
+
     return {
       active,
       seeding,
@@ -340,6 +353,7 @@ function TorrentRoute() {
     "tauri://drag-drop",
     (event) => {
       const files = event.payload.paths.filter((path) => path.toLowerCase().endsWith(".torrent"));
+
       if (files.length > 0) queueTorrentFiles(files);
     },
     { errorTag: "drag-drop" }
@@ -347,6 +361,7 @@ function TorrentRoute() {
 
   useEffect(() => {
     const { limits: prefs } = getSettingsSnapshot();
+
     if (prefs.download !== null || prefs.upload !== null) {
       setSpeedLimits(prefs);
     }
@@ -360,13 +375,16 @@ function TorrentRoute() {
         ? ` download ${formatSpeed(totalDl)} upload ${formatSpeed(totalUl)}`
         : "";
     const next = `iluhaAnime${suffix}`;
+
     if (document.title !== next) document.title = next;
   }, [torrents]);
 
   const applySpeedLimits = useCallback(() => {
     const download = downloadInput === "" ? null : Number(downloadInput);
     const upload = uploadInput === "" ? null : Number(uploadInput);
+
     if (download !== null && (isNaN(download) || download <= 0)) return;
+
     if (upload !== null && (isNaN(upload) || upload <= 0)) return;
     setSpeedLimits({ download, upload });
   }, [downloadInput, uploadInput]);
@@ -374,8 +392,10 @@ function TorrentRoute() {
   const toggleSelected = useCallback((id: number, value: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);
+
       if (value) next.add(id);
       else next.delete(id);
+
       return next;
     });
   }, []);
@@ -383,8 +403,10 @@ function TorrentRoute() {
   const toggleExpanded = useCallback((id: number) => {
     setExpanded((prev) => {
       const next = new Set(prev);
+
       if (next.has(id)) next.delete(id);
       else next.add(id);
+
       return next;
     });
   }, []);

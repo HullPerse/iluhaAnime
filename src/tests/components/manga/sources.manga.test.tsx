@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import MangaSources from "@/routes/components/manga/sources.manga";
+import MangaSources from "@/routes/components/manga/sources/view.sources";
 
 const { getSources, setSource } = vi.hoisted(() => ({
   getSources: vi.fn(),

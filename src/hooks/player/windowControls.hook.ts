@@ -46,6 +46,7 @@ export function useWindowControls({
   const applyViewMode = useCallback(
     (mode: PlayerViewMode) => {
       setViewMode(mode);
+
       if (mode !== "normal") setCinema(false);
     },
     [setCinema, setViewMode]
@@ -74,6 +75,7 @@ export function useWindowControls({
           } else if (cinema) {
             setCinema(false);
           }
+
           return null;
         })
     );

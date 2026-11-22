@@ -15,6 +15,7 @@ export function applyFolderSelection(
   target: boolean
 ): number[] {
   const folder = new Set(folderIndices);
+
   return files
     .filter((file) => file.completed || (folder.has(file.index) ? target : file.selected))
     .map((file) => file.index);
@@ -22,9 +23,11 @@ export function applyFolderSelection(
 
 export function collectFileIndices(node: CollectableNode): number[] {
   const indices = node.files.map((f) => f.index);
+
   for (const child of node.children) {
     indices.push(...collectFileIndices(child));
   }
+
   return indices;
 }
 
@@ -63,6 +66,7 @@ export function buildTorrentTree(
   for (const file of files) {
     const parts = file.name.replaceAll(/\\/g, "/").split("/");
     const fileName = parts.pop();
+
     if (fileName === undefined) continue;
 
     let node = root;
@@ -74,6 +78,7 @@ export function buildTorrentTree(
         child = { children: [], files: [], name: part };
         node.children.push(child);
       }
+
       node = child;
     }
 
@@ -83,8 +88,10 @@ export function buildTorrentTree(
   function sortTree(node: TorrentTreeNode) {
     node.files.sort((a, b) => a.displayName.localeCompare(b.displayName));
     node.children.sort((a, b) => a.name.localeCompare(b.name));
+
     for (const child of node.children) sortTree(child);
   }
+
   for (const child of root.children) sortTree(child);
 
   return {
@@ -107,6 +114,7 @@ export function groupFilesByDirectory(
 ): FileGroup[] {
   if (order === "torrent") {
     const sorted = [...files].sort((a, b) => a.index - b.index);
+
     return sorted.length === 0
       ? []
       : [{ dir: "", files: sorted.map((file) => ({ ...file, displayName: file.name })) }];
@@ -116,13 +124,16 @@ export function groupFilesByDirectory(
 
   for (const file of files) {
     const idx = file.name.search(/[/\\]/);
+
     if (idx === -1) {
       const dir = "";
+
       if (!groups.has(dir)) groups.set(dir, { dir, files: [] });
       groups.get(dir)?.files.push({ ...file, displayName: file.name });
     } else {
       const dir = file.name.slice(0, idx);
       const displayName = file.name.slice(idx + 1);
+
       if (!groups.has(dir)) groups.set(dir, { dir, files: [] });
       groups.get(dir)?.files.push({ ...file, displayName });
     }
@@ -131,7 +142,9 @@ export function groupFilesByDirectory(
   return [...groups.entries()]
     .sort(([a], [b]) => {
       if (a === "") return -1;
+
       if (b === "") return 1;
+
       return a.localeCompare(b);
     })
     .map(([, group]) => ({
@@ -148,21 +161,28 @@ export function flattenTorrentTree(
   depth = 0
 ): Item[] {
   const items: Item[] = [];
+
   if (depth === 0 && rootFiles) {
     const files = fileFilter ? rootFiles.filter(fileFilter) : rootFiles;
+
     for (const file of files) {
       items.push({ kind: "file", file, depth: 0 });
     }
   }
+
   for (const node of nodes) {
     items.push({ kind: "folder", node, depth });
+
     if (open.has(node.name + depth)) {
       const files = fileFilter ? node.files.filter(fileFilter) : node.files;
+
       for (const file of files) {
         items.push({ kind: "file", file, depth: depth + 1 });
       }
+
       items.push(...flattenTorrentTree(node.children, open, fileFilter, undefined, depth + 1));
     }
   }
+
   return items;
 }

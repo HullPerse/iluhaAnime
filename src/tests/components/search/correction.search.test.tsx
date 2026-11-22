@@ -11,6 +11,7 @@ import { mockInvoke } from "@/tests/mocks";
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke: invoke } = await import("@/tests/mocks");
+
   return {
     invoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -40,6 +41,7 @@ afterEach(() => {
 
 const renderModal = (cover: TorrentCoverState, onClose: () => void) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
   return render(
     <QueryClientProvider client={client}>
       <CoverCorrectionModal torrentTitle="Modal Test Show" cover={cover} onClose={onClose} />
@@ -81,6 +83,7 @@ describe("CoverCorrectionModal", () => {
           },
         ];
       }
+
       return null;
     });
     renderModal(coverState(), vi.fn());

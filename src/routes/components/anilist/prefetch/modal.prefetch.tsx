@@ -34,11 +34,13 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
     readAppCache<PrefetchSnapshot>("anilist", "prefetch")
       .then((record) => {
         if (mountedRef.current && record?.payload) setStored(record.payload);
+
         return null;
       })
       .catch((error: unknown) =>
         reportBackgroundError("srcroutescomponentsanilistprefetchmodal.prefetch", error)
       );
+
     return () => {
       mountedRef.current = false;
       unlistenRef.current?.();
@@ -47,6 +49,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
   }, []);
   const persistSnapshot = (ids: number[], payload: PrefetchProgressPayload) => {
     const now = Date.now();
+
     if (now - lastWriteRef.current < 2000) return;
     lastWriteRef.current = now;
     writeAppCache("anilist", "prefetch", {
@@ -57,6 +60,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       reportBackgroundError("prefetch.persist", error)
     );
   };
+
   const start = async (ids: number[] = animeIds) => {
     if (running) return;
     const seeds = [...new Set(ids)];
@@ -77,6 +81,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
           ...formatProgressLog(event.payload.items, t("anilist.prefetch.no.relations")),
         ]);
         persistSnapshot(seeds, event.payload);
+
         if (event.payload.total > 0 && event.payload.done >= event.payload.total) {
           deleteAppCache("anilist", "prefetch").catch((error) =>
             reportBackgroundError("prefetch.cleanup", error)
@@ -92,6 +97,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       .then((unlisten) => {
         if (mountedRef.current) unlistenRef.current = unlisten;
         else unlisten();
+
         return null;
       })
       .catch((error: unknown) =>
@@ -99,6 +105,7 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
       );
     let keepListening = false;
     const [result, prefetchError] = await attempt(anilistApi.prefetchRelations(seeds));
+
     if (prefetchError) {
       if (mountedRef.current) {
         if (prefetchError.message.includes("already running")) {
@@ -118,17 +125,21 @@ export default function PrefetchRelationsModal({ animeIds, onClose }: Props) {
         .syncFranchiseToIndex()
         .catch((error) => reportBackgroundError("franchise.sync", error));
     }
+
     if (!keepListening) {
       const [unlisten] = await attempt(unlistenPromise);
       unlisten?.();
     }
+
     if (mountedRef.current && !keepListening) setRunning(false);
   };
 
   const cancel = async () => {
     const [, error] = await attempt(anilistApi.cancelPrefetch());
+
     if (error) addNotification(t("anilist.prefetch.cancel.failed"), "error", error.message);
   };
+
   return (
     <Modal header={t("anilist.prefetch.title")} onClose={onClose}>
       <div className="flex w-full max-w-full flex-col gap-2">

@@ -25,48 +25,66 @@ export function useStreamTrackPrefs(
   useEffect(() => {
     if (!stream || !enabled || tracks.length === 0) return;
     const key = `${stream.mediaId}:${stream.episodeId}:${stream.variantId}:${stream.quality}`;
+
     if (appliedRef.current === key) {
       onRestored?.();
+
       return;
     }
+
     let cancelled = false;
     const apply = async () => {
       const prefs = await streamApi.prefsGet(stream.sourceId, stream.mediaId);
+
       if (cancelled) return;
+
       if (!prefs) {
         appliedRef.current = key;
+
         return;
       }
+
       const selected: Array<["audio" | "sub", number | "no", string | undefined]> = [];
+
       if (prefs.audioLang) {
         const audio = findTrackByPreference(tracks, "audio", prefs.audioLang);
+
         if (audio) {
           await selectTrack("audio", audio.id);
           selected.push(["audio", audio.id, trackIdentity(audio) || undefined]);
         }
       }
+
       if (cancelled) return;
+
       if (!prefs.subEnabled || prefs.subLang === "no") {
         await selectTrack("sub", "no");
         selected.push(["sub", "no", undefined]);
       } else {
         const sub = prefs.subLang ? findTrackByPreference(tracks, "sub", prefs.subLang) : null;
+
         if (sub) {
           await selectTrack("sub", sub.id);
           selected.push(["sub", sub.id, trackIdentity(sub) || undefined]);
         }
       }
+
       if (cancelled) return;
       appliedRef.current = key;
+
       for (const [kind, id, identity] of selected) markTrackSelected(kind, id, identity);
     };
+
     ignore(
       attempt(apply()).then(([, failure]) => {
         if (failure) reportBackgroundError("player.track.restore", failure);
+
         if (!cancelled) onRestored?.();
+
         return undefined;
       })
     );
+
     return () => {
       cancelled = true;
     };

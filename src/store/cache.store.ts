@@ -24,6 +24,7 @@ type CacheActionKeys =
   | "removeSeedPreference";
 
 type CacheData = Omit<CacheStore, CacheActionKeys>;
+
 type CacheAtoms = { [K in keyof CacheData]: Cell<CacheData[K]> };
 
 const DEFAULT_CACHE_DATA: CacheData = {
@@ -37,53 +38,69 @@ const DEFAULT_CACHE_DATA: CacheData = {
 function readNumberRecord(value: unknown): Record<number, number> {
   if (!isRecord(value)) return {};
   const result: Record<number, number> = {};
+
   for (const [key, entry] of Object.entries(value)) {
     const id = Number(key);
+
     if (Number.isInteger(id) && typeof entry === "number" && Number.isFinite(entry)) {
       result[id] = entry;
     }
   }
+
   return result;
 }
 
 function readBooleanRecord(value: unknown): Record<number, boolean> {
   if (!isRecord(value)) return {};
   const result: Record<number, boolean> = {};
+
   for (const [key, entry] of Object.entries(value)) {
     const id = Number(key);
+
     if (Number.isInteger(id) && typeof entry === "boolean") result[id] = entry;
   }
+
   return result;
 }
 
 function readFolderNode(value: unknown): FolderNode | null {
   if (!isRecord(value)) return null;
+
   if (typeof value.name !== "string" || typeof value.path !== "string") return null;
+
   if (!Array.isArray(value.files) || !Array.isArray(value.children)) return null;
   const files = value.files.flatMap((file) => {
     if (!isRecord(file)) return [];
+
     if (typeof file.path !== "string" || typeof file.name !== "string") return [];
+
     if (typeof file.size !== "number" || !Number.isFinite(file.size)) return [];
+
     return [{ path: file.path, name: file.name, size: file.size }];
   });
   const children = value.children.flatMap((child) => {
     const node = readFolderNode(child);
+
     return node ? [node] : [];
   });
+
   return { name: value.name, path: value.path, files, children };
 }
 
 function readFolderTrees(value: unknown): CacheData["folderTrees"] {
   if (!Array.isArray(value)) return [];
+
   return value.flatMap((entry) => {
     if (!isRecord(entry) || typeof entry.path !== "string") return [];
     const tree = readFolderNode(entry.tree);
+
     return tree ? [{ path: entry.path, tree }] : [];
   });
 }
 
 function readCacheData(raw: unknown): CacheData {
   if (!isRecord(raw)) return { ...DEFAULT_CACHE_DATA };
+
   return {
     episodeTracker: readNumberRecord(raw.episodeTracker),
     folderTrees: readFolderTrees(raw.folderTrees),
@@ -99,12 +116,16 @@ function readLegacyCache(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("cache"));
+
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
+
   return { data: state, schemaVersion: CACHE_SCHEMA_VERSION };
 }
 
@@ -157,6 +178,7 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
       const kept = torrentOrder.filter((id) => known.has(id));
       const missing = [...ids].filter((id) => !torrentOrder.includes(id)).sort((a, b) => a - b);
       const next = [...kept, ...missing];
+
       if (
         next.length === torrentOrder.length &&
         next.every((id, index) => id === torrentOrder[index])
@@ -168,6 +190,7 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
       const torrentOrder = atoms.torrentOrder.get();
       const from = torrentOrder.indexOf(id);
       const to = torrentOrder.indexOf(neighborId);
+
       if (from === -1 || to === -1 || from === to) return;
       const next = [...torrentOrder];
       [next[from], next[to]] = [next[to], next[from]];
@@ -177,8 +200,10 @@ export function createCacheSignalStore(options: CacheSignalOptions = {}): CacheS
       const torrentOrder = atoms.torrentOrder.get();
       const from = torrentOrder.indexOf(id);
       const to = torrentOrder.indexOf(targetId);
+
       if (from === -1 || to === -1) return;
       const next = moveItem(torrentOrder, from, to);
+
       if (next === torrentOrder) return;
       atoms.torrentOrder.set(next);
     },

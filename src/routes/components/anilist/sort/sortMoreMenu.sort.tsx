@@ -35,6 +35,7 @@ export function SortMoreMenu({
   onDisplayChange: (mode: "scroll" | "pagination") => void;
 }) {
   const { t } = useI18n();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

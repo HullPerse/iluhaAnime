@@ -45,12 +45,15 @@ async function withCoverSearchSlot<T>(task: () => Promise<T>): Promise<T> {
       coverSearchQueue.push(resolve);
     });
   }
+
   activeCoverSearches += 1;
   const [value, error] = await attempt(task()).finally(() => {
     activeCoverSearches -= 1;
     coverSearchQueue.shift()?.();
   });
+
   if (error !== null) throw error;
+
   return value;
 }
 
@@ -63,33 +66,42 @@ async function fetchCoverSearch(query: CoverQuery): Promise<CoverCandidate[]> {
       perPage: 5,
     })
   );
+
   if (error !== null) {
     reportBackgroundError("cover.search", error);
+
     return [];
   }
+
   return media.map(mediaToCandidate);
 }
 
 async function searchBackend(query: CoverQuery): Promise<CoverCandidate[]> {
   const key = coverSearchKey(query);
   const cached = coverSearchCache.get(key);
+
   if (cached && Date.now() - cached.at < COVER_SEARCH_TTL_MS) return cached.data;
   const inflight = coverSearchInflight.get(key);
+
   if (inflight) return inflight;
   const task = withCoverSearchSlot(() => fetchCoverSearch(query))
     .then((data) => {
       coverSearchCache.set(key, { at: Date.now(), data });
+
       while (coverSearchCache.size > COVER_SEARCH_CACHE_MAX) {
         const oldest = coverSearchCache.keys().next().value;
+
         if (oldest === undefined) break;
         coverSearchCache.delete(oldest);
       }
+
       return data;
     })
     .finally(() => {
       coverSearchInflight.delete(key);
     });
   coverSearchInflight.set(key, task);
+
   return task;
 }
 
@@ -108,18 +120,24 @@ async function pagePoster(
   if (!url) return null;
   const [host] = attemptSync(() => new URL(url).host.toLowerCase());
   const site = host ?? "unparseable";
+
   if (source === "rutracker" && site !== "rutracker.org") return null;
+
   if (source === "nekobt" && site !== "nekobt.to") return null;
+
   if (source === "erai-raws" && site !== "erai-raws.info" && site !== "www.erai-raws.info")
     return null;
+
   if (source !== "rutracker" && source !== "nekobt" && source !== "erai-raws") return null;
   const task = torrentApi
     .getTorrentPoster(source, url, proxy || undefined)
     .then((poster) => poster ?? null)
     .catch((error: unknown) => {
       reportBackgroundError("cover.poster", error);
+
       return null;
     });
+
   return withTimeout(task, POSTER_TIMEOUT_MS, () => null);
 }
 
@@ -179,10 +197,13 @@ function useCoverCascade(
     queryFn: async () => {
       const stored = coverCorrectionsAtoms.resolved.get();
       const hit = stored[key];
+
       if (hit && !rejected.has(hit.id)) {
         const candidate = { id: hit.id, romaji: hit.title, coverUrl: hit.coverUrl };
+
         return { pick: { candidate, score: 100 }, candidates: [candidate] };
       }
+
       const season = snapshot.season ?? 0;
       const lookupNames = [
         snapshot.title,
@@ -194,10 +215,13 @@ function useCoverCascade(
         names: lookupNames,
         ...(snapshot.year !== undefined ? { year: snapshot.year } : {}),
       });
+
       if (alias && !rejected.has(alias.id)) {
         const candidate = { id: alias.id, romaji: alias.title, coverUrl: alias.coverUrl };
+
         return { pick: { candidate, score: 100 }, candidates: [candidate] };
       }
+
       const resolution = await resolveCover(
         snapshot,
         { search: searchBackend },
@@ -211,6 +235,7 @@ function useCoverCascade(
         }
       );
       const pick = resolution.pick;
+
       if (pick && !rejected.has(pick.candidate.id)) {
         const names = [...new Set(lookupNames.map((name) => normCoverKey(name)))].filter(
           (name) => name.length > 0
@@ -225,12 +250,14 @@ function useCoverCascade(
           ...(snapshot.year !== undefined ? { year: snapshot.year } : {}),
         });
       }
+
       return resolution;
     },
     enabled,
     retry: false,
   });
 }
+
 interface CoverContext {
   parsedTitle: string;
   key: string;
@@ -270,6 +297,7 @@ function useCoverContext(
   );
   const profileById = useMemo(() => {
     const map = new Map<number, CoverProfile>();
+
     for (const entry of animeIndex) {
       map.set(entry.id, {
         userScore: entry.score,
@@ -277,6 +305,7 @@ function useCoverContext(
         favourite: entry.favourite,
       });
     }
+
     return map;
   }, [animeIndex]);
 
@@ -321,16 +350,21 @@ function toCoverState(
   isPage: boolean
 ): TorrentCoverState {
   const base = { coverUrl, remoteUrl, candidates: states.candidates, coverKey: key };
+
   if (override) return { ...base, status: "override", anilistId: override.id };
+
   if (isPage && states.posterUrl) {
     return { ...base, status: "page", anilistId: null };
   }
+
   if (states.pickId !== null) {
     return { ...base, status: "resolved", anilistId: states.pickId };
   }
+
   if (states.posterLoading || states.cascadeLoading) {
     return { ...base, status: "pending", coverUrl: null, anilistId: null };
   }
+
   return { ...base, status: "empty", coverUrl: null, anilistId: null };
 }
 
@@ -343,7 +377,9 @@ function shouldUseCascade(
   posterLoading: boolean
 ): boolean {
   if (!anilistEnabled || parsedTitle.length === 0) return false;
+
   if (force) return true;
+
   return !override && posterData == null && !posterLoading;
 }
 
@@ -353,7 +389,9 @@ function firstCoverUrl(
   resolved: { pick?: { candidate: { coverUrl?: string | null } } | null } | undefined
 ): string | null {
   if (override?.coverUrl) return override.coverUrl;
+
   if (poster) return poster;
+
   return resolved?.pick?.candidate.coverUrl ?? null;
 }
 
@@ -368,13 +406,7 @@ export function useTorrentCover(
     forceCascade?: boolean;
   } = {}
 ): TorrentCoverState {
-  const {
-    mode = "full",
-    source = "",
-    url = null,
-    pageUrl = null,
-    forceCascade = false,
-  } = options;
+  const { mode = "full", source = "", url = null, pageUrl = null, forceCascade = false } = options;
   const pageEnabled = mode !== "off";
   const anilistEnabled = mode === "full";
   const sourceProxies = useCell(settingsAtoms.searchProxyUrls);
@@ -403,6 +435,7 @@ export function useTorrentCover(
 
   const remoteUrl = firstCoverUrl(ctx.override, poster.data ?? null, resolved.data);
   const { cachedUrl } = useCoverCache(remoteUrl);
+
   return toCoverState(
     ctx.key,
     cachedUrl,

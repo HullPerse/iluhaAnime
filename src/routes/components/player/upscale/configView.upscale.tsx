@@ -81,6 +81,7 @@ export default function UpscaleConfigView({
   onStartConvert: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-col">
       <div className="shrink-0">

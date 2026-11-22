@@ -17,6 +17,7 @@ export function OverrideRow({
   onReset: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="flex items-center gap-2 px-1">
       <span className="windows95-text text-text w-24 shrink-0 truncate">{t(label)}</span>

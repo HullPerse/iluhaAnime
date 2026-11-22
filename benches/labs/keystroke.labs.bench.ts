@@ -45,13 +45,17 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
   let seed = 7;
   const rnd = () => {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+
     return seed / 0x7fffffff;
   };
+
   for (let i = 0; i < n; i++) {
     const w = 1 + Math.floor(rnd() * 3);
     const parts: string[] = [];
+
     for (let k = 0; k < w; k++) parts.push(WORDS[Math.floor(rnd() * WORDS.length)]);
     const alias: string[] = [];
+
     for (let k = parts.length - 1; k >= 0; k--) alias.push(parts[k]);
     out.push({
       id: i,
@@ -64,6 +68,7 @@ function makeIndex(n: number): SearchAnimeSuggestion[] {
       favourite: i % 50 === 0,
     });
   }
+
   return out;
 }
 
@@ -85,6 +90,7 @@ const PREFIXES = ["fr", "fri", "frie", "frier", "frieren"];
 
 function typeWord(prefixes: readonly string[]): number {
   let checksum = 0;
+
   for (const q of prefixes) {
     const sug = getSearchSuggestions(q, { history: HISTORY, animeIndex: INDEX_2000, limit: 8 });
     checksum += sug.length;
@@ -97,6 +103,7 @@ function typeWord(prefixes: readonly string[]): number {
     checksum += spell?.length ?? 0;
     checksum += groupSuggestions(sug).items.length;
   }
+
   return checksum;
 }
 

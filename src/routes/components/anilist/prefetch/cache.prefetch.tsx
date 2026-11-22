@@ -17,6 +17,7 @@ export function CacheSummary({
   t: ActivityTranslate;
 }) {
   const { fetched, skipped, cached, fetchedPercent } = getCachePercentages(progress, finished);
+
   return progress || finished ? (
     <section className="windows95-active-border bg-field flex flex-col gap-1 p-1">
       <div className="windows95-text flex items-center justify-between text-xs font-bold">

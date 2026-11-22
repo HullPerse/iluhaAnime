@@ -29,13 +29,16 @@ function PlayerModal({
 
   useEffect(() => {
     const dialog = dialogRef.current;
+
     if (!dialog) return;
     const handleClose = () => onCloseRef.current();
     dialog.addEventListener("close", handleClose);
+
     if (!dialog.open) {
       if (typeof dialog.showModal === "function") dialog.showModal();
       else dialog.setAttribute("open", "");
     }
+
     return () => {
       dialog.removeEventListener("close", handleClose);
     };
@@ -53,6 +56,7 @@ function PlayerModal({
         className="player-modal fixed inset-0 z-40 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center bg-black/50 p-0"
         onClick={(event) => {
           if (event.target !== event.currentTarget) return;
+
           if (!backdropPressRef.current || !backdropReleaseRef.current) return;
           onClose();
         }}

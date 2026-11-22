@@ -70,6 +70,7 @@ export const TorrentRow = memo(
       (value: boolean) => onSelectChange(item.id, value),
       [item.id, onSelectChange]
     );
+
     return (
       <TorrentItem
         item={item}

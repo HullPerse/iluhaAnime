@@ -29,11 +29,14 @@ export function firstEnabledTabPath(): TabPath {
 
 export function isEnabledTabPath(pathname: string): boolean {
   const tab = tabIdFromPath(pathname);
+
   if (!tab) return true;
+
   return visibleTabs(tabSettingsSnapshot()).some((entry) => entry.id === tab);
 }
 
 export function resolveSecretTabAction(unlocked: boolean, onGameTab: boolean): SecretTabAction {
   if (!unlocked) return "reveal";
+
   return onGameTab ? "none" : "hide";
 }

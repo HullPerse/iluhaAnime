@@ -3,7 +3,9 @@
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
+    "noEmit": true,
     "paths": {
       "@/*": ["./src/*"]
     },

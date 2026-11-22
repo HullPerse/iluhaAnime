@@ -15,6 +15,7 @@ export function StudiosCard({
   onDrill: (data: StatsDrillData) => void;
 }) {
   const { t, locale } = useI18n();
+
   return (
     <StatsCard title={t("anilist.stats.top.studios")}>
       <BarChart
@@ -31,6 +32,7 @@ export function StudiosCard({
         })}
         onActivate={(index) => {
           const row = model.studios[index];
+
           if (row) {
             onDrill({ title: `${row.name} (${row.mediaIds.length})`, ids: row.mediaIds });
           }

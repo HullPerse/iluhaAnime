@@ -22,6 +22,7 @@ export function ThemeCard({
 }) {
   const c = theme.colors;
   const { t } = useI18n();
+
   return (
     <div className="flex flex-col items-center gap-1">
       <button

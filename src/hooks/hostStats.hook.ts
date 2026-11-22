@@ -16,16 +16,21 @@ export function useHostStats(enabled: boolean): HostStats | null {
     shouldFetch: () => true,
     fetch: async () => {
       const [next, error] = await attempt(systemApi.getHostStats());
+
       if (error) {
         setStats(null);
+
         return false;
       }
+
       setStats(next);
+
       return true;
     },
   });
   useEffect(() => {
     if (!enabled) setStats(null);
   }, [enabled]);
+
   return stats;
 }

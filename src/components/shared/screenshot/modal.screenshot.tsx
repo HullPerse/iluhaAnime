@@ -98,8 +98,10 @@ export default function ScreenshotModal({
         wait: COPIED_FEEDBACK_MS,
       });
     }
+
     copyHideRef.current.maybeExecute();
   };
+
   const family = useMemo(() => resolveFontFamily(), []);
   const bounds = useMemo<CropBounds>(
     () => ({ width: capture.width, height: capture.height }),
@@ -143,6 +145,7 @@ export default function ScreenshotModal({
       defaultPath: dir || undefined,
       title: t("picker.select.folder"),
     });
+
     if (typeof picked === "string") setDir(picked);
   };
 
@@ -156,20 +159,26 @@ export default function ScreenshotModal({
         const [path, prepareError] = await attempt(
           systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
         );
+
         if (prepareError) {
           setCopied(false);
           showError(t("common.error"), t("screenshot.copy.error"));
+
           return;
         }
+
         const [, writeError] = await attempt(writeImage(path));
+
         if (path !== capture.path) {
           ignore(
             attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
               if (error) reportBackgroundError("screenshot.discard-copy", error);
+
               return null;
             })
           );
         }
+
         if (writeError) {
           setCopied(false);
           showError(t("common.error"), t("screenshot.copy.error"));
@@ -177,12 +186,14 @@ export default function ScreenshotModal({
       })()
     );
     setCopying(false);
+
     if (copyError !== null) throw copyError;
   };
 
   const save = async () => {
     if (!canSave) return;
     setSaving(true);
+
     try {
       const [, error] = await attempt(
         systemApi.saveScreenshot({
@@ -194,21 +205,26 @@ export default function ScreenshotModal({
           layers: stageRef.current?.layers() ?? undefined,
         })
       );
+
       if (error) {
         showError(t("common.error"), t("screenshot.save.error"));
+
         return;
       }
     } finally {
       setSaving(false);
     }
+
     patchSettings({
       screenshotDir: dir,
       screenshotFormat: format,
       screenshotOpenFolder: openFolder,
     });
     onClose();
+
     if (!openFolder) return;
     const [, openError] = await attempt(openPath(dir));
+
     if (openError) reportBackgroundError("screenshot.open-folder", openError);
   };
 

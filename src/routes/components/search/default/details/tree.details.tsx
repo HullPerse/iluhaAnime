@@ -13,6 +13,7 @@ export default function TorrentFileTree({
   rootName?: string;
 }) {
   const root = useMemo(() => buildTree(files), [files]);
+
   if (root.folders.size === 0 && rootName && root.files.length > 0) {
     return (
       <div className="min-h-full overflow-y-auto">
@@ -24,6 +25,7 @@ export default function TorrentFileTree({
       </div>
     );
   }
+
   if (root.folders.size === 0) {
     return (
       <div className="min-h-full overflow-y-auto">
@@ -33,6 +35,7 @@ export default function TorrentFileTree({
       </div>
     );
   }
+
   return (
     <div className="min-h-full">
       {[...root.folders.entries()].map(([name, node]) => (

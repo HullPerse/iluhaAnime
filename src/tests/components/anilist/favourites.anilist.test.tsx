@@ -34,6 +34,7 @@ const renderModal = (node: ReactNode) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+
   return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
 };
 
@@ -51,6 +52,7 @@ const renderOpen = (overrides: Partial<Parameters<typeof AniListFavouritesModal>
       {...overrides}
     />
   );
+
   return { onClose, onAnimeClick };
 };
 
@@ -69,6 +71,7 @@ beforeEach(() => {
         media: [],
       });
     }
+
     if (command === "get_staff_characters") {
       return Promise.resolve({
         id: 22,
@@ -84,6 +87,7 @@ beforeEach(() => {
         media: [],
       });
     }
+
     return Promise.resolve(null);
   });
   patchSettings({ language: "ru" });

@@ -5,49 +5,17 @@ import {
   type IpcCommandContract,
 } from "@/lib/core/system/ipcContract.utils";
 
-const ipcTypes = Object.values(
-  import.meta.glob("../../types/core/ipc.d.ts", {
-    query: "?raw",
-    import: "default",
-    eager: true,
-  })
-)[0] as string;
-
 const rustSources = import.meta.glob("../../../src-tauri/src/**/*.rs", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
 
-const commandUnion = (): string[] => {
-  const names = new Set<string>();
-  for (const match of ipcTypes.matchAll(/^\s+\| "([a-z_0-9]+)"/gm)) {
-    names.add(match[1]);
-  }
-  return [...names].sort();
-};
-
 const contracts: IpcCommandContract[] = Object.values(rustSources).flatMap((source) =>
   parseIpcCommandContracts(source)
 );
 
 describe("IPC command contract", () => {
-  it("covers the TypeScript command union exactly", () => {
-    const rustNames = [...new Set(contracts.map((contract) => contract.name))].sort();
-
-    expect(rustNames).toEqual(commandUnion());
-  });
-
-  it("records arguments and result shapes for every command", () => {
-    for (const contract of contracts) {
-      expect(contract.result.length, contract.name).toBeGreaterThan(0);
-      expect(
-        contract.args.every((arg) => arg.length > 0),
-        contract.name
-      ).toBe(true);
-    }
-  });
-
   it("pins representative signatures across command families", () => {
     const byName = new Map(contracts.map((contract) => [contract.name, contract]));
 

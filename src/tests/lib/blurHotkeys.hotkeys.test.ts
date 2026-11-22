@@ -5,7 +5,9 @@ import { blurEditable, shouldBlurOnEscape } from "@/lib/core/hotkeys/blurHotkeys
 
 function makeElement(tag: string, attrs: Record<string, string> = {}): HTMLElement {
   const element = document.createElement(tag);
+
   for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
+
   return element;
 }
 

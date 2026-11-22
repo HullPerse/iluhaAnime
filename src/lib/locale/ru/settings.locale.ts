@@ -119,7 +119,6 @@ const settings = {
   "settings.search.autocomplete.mode.inline": "Только inline",
   "settings.search.autocomplete.mode.off": "Выключено",
   "settings.search.autocomplete.mode.off.hint": "Выкл: история и обучение на паузе.",
-  "settings.search.autocomplete.footer.hint": "Tab принять - Вверх/Вниз навигация - Esc закрыть",
   "settings.search.history.max": "Макс. записей истории поиска",
   "settings.search.learning": "Локальное обучение",
   "settings.search.learning.anime": "Тайтлов AniList в индексе",
@@ -483,7 +482,7 @@ const settings = {
   "settings.find.placeholder": "Найти параметр (Ctrl+K)",
   "settings.proxy": "Прокси",
   "settings.proxy.description":
-    "Проверка не прерывается автоматически: если она идёт дольше {{seconds}} с, индикатор краснеет.",
+    "Проверка не прерывается: если дольше {{seconds}} с, индикатор краснеет.",
   "settings.proxy.invalid": "Некорректный адрес прокси. Пример: socks5://127.0.0.1:10808",
   "settings.proxy.no": "Без прокси",
   "settings.proxy.custom": "Свой",
@@ -545,7 +544,7 @@ const settings = {
   "settings.diagnostics.status.timeout": "Таймаут",
   "settings.diagnostics.status.error": "Ошибка",
   "settings.diagnostics.status.skipped": "Пропущено",
-  "settings.diagnostics.status.latency": "{{status}} · {{latency}} мс",
+  "settings.diagnostics.status.latency": "{{status}}, {{latency}} мс",
   "settings.diagnostics.action.openProxy": "Открыть прокси",
   "settings.diagnostics.action.openZapret": "Открыть Zapret",
   "settings.diagnostics.action.configure": "Настроить",
@@ -561,7 +560,7 @@ const settings = {
     "Напрямую: {{direct}}. Через прокси: {{proxy}}. Похоже, хост доступен только через прокси.",
   "settings.diagnostics.finding.proxy_broken.title": "Прокси ломает доступ",
   "settings.diagnostics.finding.proxy_broken.detail":
-    "Напрямую: {{direct}}. Через прокси: {{proxy}}. Проверьте адрес прокси и правила маршрутизации.",
+    "Напрямую: {{direct}}. Через прокси: {{proxy}}. Проверьте адрес и маршрутизацию.",
   "settings.diagnostics.finding.both_failed.title": "Недоступно и напрямую, и через прокси",
   "settings.diagnostics.finding.both_failed.detail":
     "Оба пути: {{direct}}. Это не обязательно прокси: проверьте VPN, Zapret и DNS.",
@@ -570,11 +569,11 @@ const settings = {
     "Через прокси: {{proxyMs}} мс, напрямую: {{directMs}} мс.",
   "settings.diagnostics.finding.direct_faster.title": "Напрямую быстрее",
   "settings.diagnostics.finding.direct_faster.detail":
-    "Напрямую: {{directMs}} мс, через прокси: {{proxyMs}} мс. Прокси можно не использовать для этого хоста.",
+    "Напрямую: {{directMs}} мс, через прокси: {{proxyMs}} мс. Прокси можно отключить.",
   "settings.diagnostics.finding.direct_failed_no_proxy.title":
     "Напрямую не работает, прокси не задан",
   "settings.diagnostics.finding.direct_failed_no_proxy.detail":
-    "Напрямую: {{direct}}. Для этого хоста прокси не задан; если он нужен, укажите его в настройках.",
+    "Напрямую: {{direct}}. Прокси не задан; укажите его в настройках, если нужен.",
   "settings.diagnostics.finding.auth_required.title": "Хост требует авторизацию",
   "settings.diagnostics.finding.auth_required.detail":
     "Хост ответил 401/403. Проверьте вход или токен; это не обязательно сетевая блокировка.",
@@ -613,7 +612,6 @@ const settings = {
   "settings.group.advanced": "Дополнительно",
   "settings.autosave": "Сохраняется автоматически",
   "settings.changed.only": "Только изменённые",
-  "settings.find.footer.hint": "Enter перейти - ↑/↓ выбор - Esc очистить",
   "settings.find.results": "{{count}} совпадений",
   "settings.find.results.one": "{{count}} совпадение",
   "settings.find.results.few": "{{count}} совпадения",
@@ -641,7 +639,7 @@ const settings = {
   "settings.animelib.login.closed": "Окно входа закрыто до сохранения сессии.",
   "settings.animelib.login.timeout": "Вход не завершён. Попробуйте ещё раз.",
   "settings.animelib.login.proxy.socks5.auth":
-    "WebView2 не поддерживает SOCKS5 с логином и паролем. Укажите HTTP-прокси или SOCKS5 без авторизации.",
+    "WebView2 не поддерживает SOCKS5 с логином. Укажите HTTP-прокси или SOCKS5 без пароля.",
   "settings.animelib.proxy.url": "Прокси",
   "settings.animelib.proxy.inherit": "Если пусто, используется прокси AniList.",
   "settings.animelib.proxy.no": "Без прокси",

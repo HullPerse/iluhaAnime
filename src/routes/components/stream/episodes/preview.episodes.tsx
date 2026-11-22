@@ -6,11 +6,13 @@ import type { PreviewAnchor } from "@/types/player/episodes.stream";
 
 export function EpisodePreview({ anchor }: { anchor: PreviewAnchor }) {
   const src = useStreamCover(anchor.url);
+
   if (!src || typeof document === "undefined") return null;
   const position = previewPosition(anchor.rect, {
     width: window.innerWidth,
     height: window.innerHeight,
   });
+
   return createPortal(
     <div
       data-testid="episode-preview"

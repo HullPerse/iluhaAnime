@@ -47,6 +47,7 @@ export function CharacterScreen({
   if (query.isLoading) {
     return <DetailLoading />;
   }
+
   if (query.isError) {
     return (
       <DetailError

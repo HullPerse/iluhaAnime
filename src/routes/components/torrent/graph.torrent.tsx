@@ -29,6 +29,7 @@ export function SpeedGraph({
     downloadRef.current = [...downloadRef.current, download].slice(-GRAPH_POINTS);
     uploadRef.current = [...uploadRef.current, upload].slice(-GRAPH_POINTS);
     const canvas = canvasRef.current;
+
     if (!canvas) return;
     const styles = getComputedStyle(document.documentElement);
     drawSpeedGraph(canvas, downloadRef.current, uploadRef.current, {

@@ -72,13 +72,14 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    try {
+    await (async () => {
       const [data, error] = await attempt(systemApi.listDitherImageMeta());
+
       if (error) showError(t("common.error"), t("search.dither.load.error"));
       else setMetas(data);
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   }, [t]);
 
   useEffect(() => {
@@ -92,13 +93,18 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       multiple: false,
       title: t("search.dither.upload.image"),
     });
+
     if (!picked || Array.isArray(picked)) return;
+
     if (picked.toLowerCase().endsWith(".gif")) {
       showError(t("common.error"), t("search.dither.upload.gif"));
+
       return;
     }
+
     setUploadName(fileNameFromPath(picked));
     const [image, error] = await attempt(systemApi.importDitherImage(picked));
+
     if (error) showError(t("common.error"), error.message ?? t("search.dither.upload.error"));
     else {
       setMetas((items) => [
@@ -116,41 +122,53 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
       setSelected(mapped.id);
       setPage(1);
     }
+
     setUploadName(null);
   };
+
   const remove = async () => {
     if (!selected || isPlaceholderSelected) return;
     const [, error] = await attempt(systemApi.deleteDitherImage(selected));
+
     if (error) return showError(t("common.error"), error.message);
     const removedId = selected;
     setMetas((items) => items.filter((item) => item.id !== removedId));
     setRows((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== removedId)));
     setSelected(DITHER_PLACEHOLDER_ID);
+
     if (storedSelection === selected) patchSettings({ selectedDitherId: null });
   };
+
   const openPreview = async () => {
     if (!selected || isPlaceholderSelected) return;
     const cached = rows[selected];
+
     if (cached) {
       setPreviewImage(cached);
       setPreview(true);
+
       return;
     }
+
     setPreviewBusy(true);
-    try {
+    await (async () => {
       const [image, error] = await attempt(systemApi.getDitherImage(selected));
+
       if (error) {
         showError(t("common.error"), t("search.dither.load.error"));
+
         return;
       }
+
       const mapped = toUserImage(image);
       setRows((prev) => ({ ...prev, [mapped.id]: mapped }));
       setPreviewImage(mapped);
       setPreview(true);
-    } finally {
+    })().finally(() => {
       setPreviewBusy(false);
-    }
+    });
   };
+
   const patchDisplayFilters = (partial: Partial<WallpaperDisplayFilters>) => {
     patchSettings({ wallpaperFilters: { ...displayFilters, ...partial } });
   };
@@ -174,29 +192,36 @@ function DitherSettings({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const missing = pagedIds.filter((id) => id !== DITHER_PLACEHOLDER_ID && rows[id] === undefined);
+
     if (missing.length === 0) return;
     let cancelled = false;
     setPageLoading(true);
     attempt(systemApi.getDitherImages(missing))
       .then(([data, error]) => {
         if (cancelled) return;
+
         if (error) showError(t("common.error"), t("search.dither.load.error"));
         else
           setRows((prev) => {
             const next = { ...prev };
+
             for (const image of data.map(toUserImage)) next[image.id] = image;
+
             return next;
           });
         setPageLoading(false);
+
         return null;
       })
       .catch((error: unknown) =>
         reportBackgroundError("srcroutescomponentssearchmoderndithersettings.dither", error)
       );
+
     return () => {
       cancelled = true;
     };
   }, [pagedIds, rows, t]);
+
   if (preview && previewImage)
     return (
       <DitherPreviewModal

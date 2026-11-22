@@ -13,6 +13,7 @@ const THEME_VARS_STORAGE_KEY = "themeVars";
 
 export function resolveThemeFont(themeFont: string | null | undefined): string {
   const stored = getStoredAppFont();
+
   return stored ? toCssFontFamily(stored) : (themeFont ?? DEFAULT_FONT_FAMILY);
 }
 
@@ -31,6 +32,7 @@ function persistThemeState(state: ThemeState): void {
   const [, error] = attemptSync(() =>
     localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify(themePrePaintPayload(state)))
   );
+
   if (error !== null) reportBackgroundError("theme.serialize", error);
 }
 
@@ -44,6 +46,7 @@ function applyThemeState(state: ThemeState, options: { persist?: boolean } = {})
 
   for (const binding of THEME_OVERRIDE_BINDINGS) {
     const value = state.overrides[binding.varName];
+
     if (value === undefined) root.style.removeProperty(binding.varName);
     else root.style.setProperty(binding.varName, value, "important");
   }
@@ -69,6 +72,7 @@ export function applyTheme(
   patches: Record<string, ThemePatch> = {}
 ): void {
   const theme = resolveTheme({ builtins: THEMES, customThemes, name, patch: patches[name] });
+
   if (theme) applyThemeDefinition(theme);
 }
 

@@ -38,14 +38,18 @@ describe("useTorrentFilesMap batching", () => {
     mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
       if (command === "get_running_torrent_files") {
         calls.push("single");
+
         return [];
       }
+
       if (command === "get_running_torrent_files_batch") {
         calls.push("batch");
         liteFlags.push(args?.lite);
         const ids = (args?.ids as number[]) ?? [];
+
         return ids.map((id) => ({ id, error: null, files: [torrentFile(`ep${id}.mkv`)] }));
       }
+
       return null;
     });
 
@@ -65,12 +69,14 @@ describe("useTorrentFilesMap batching", () => {
     mockInvoke.mockImplementation(async (command: unknown, args?: Record<string, unknown>) => {
       if (command === "get_running_torrent_files_batch") {
         batches.push(args?.ids);
+
         return ((args?.ids ?? []) as number[]).map((id) => ({
           id,
           error: null,
           files: [torrentFile(`ep${id}.mkv`)],
         }));
       }
+
       return null;
     });
 
@@ -90,12 +96,16 @@ describe("useTorrentFilesMap batching", () => {
     mockInvoke.mockImplementation(async (command: unknown) => {
       if (command === "get_running_torrent_files") {
         calls.push("single");
+
         return [torrentFile("ep1.mkv")];
       }
+
       if (command === "get_running_torrent_files_batch") {
         calls.push("batch");
+
         return [];
       }
+
       return null;
     });
 
@@ -115,9 +125,12 @@ describe("useTorrentFilesMap batching", () => {
       if (command === "get_running_torrent_files_batch") {
         batches.push(args?.ids);
         const files = [torrentFile("ep1.mkv")];
+
         if (extra) files.push(torrentFile("ep9.mkv"));
+
         return ((args?.ids ?? []) as number[]).map((id) => ({ id, error: null, files }));
       }
+
       return null;
     });
 

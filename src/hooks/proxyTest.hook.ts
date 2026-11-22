@@ -22,9 +22,12 @@ export function useProxyTest() {
   useEffect(() => {
     if (!running) {
       setElapsedSecs(0);
+
       return;
     }
+
     const ticker = createInterval(() => setElapsedSecs((seconds) => seconds + 1), 1000);
+
     return () => ticker.cancel();
   }, [running]);
 
@@ -44,11 +47,15 @@ export function useProxyTest() {
     setElapsedSecs(0);
     setState({ kind: "testing" });
     const result = await attemptResult(Promise.resolve().then(test));
+
     if (runId !== runIdRef.current) return;
+
     if (!result.ok) {
       setState({ kind: "fail", message: result.error.message });
+
       return;
     }
+
     setState({ kind: "ok", message: result.value });
   }, []);
 

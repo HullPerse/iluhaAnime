@@ -58,15 +58,19 @@ export default function PlaylistBody({
 
   const labels = useMemo(() => {
     const map = new Map<number, string>();
+
     for (const entry of entries) map.set(entry.index, entryLabel(entry, parseTitles, t));
+
     return map;
   }, [entries, parseTitles, t]);
 
   useEffect(() => {
     ignore(refresh());
     let previous = playbackAtoms.playlistCount.get();
+
     return subscribePlayback(() => {
       const current = playbackAtoms.playlistCount.get();
+
       if (current !== previous) {
         previous = current;
         ignore(refresh());
@@ -77,12 +81,16 @@ export default function PlaylistBody({
   const mutate = useCallback(
     async (action: Promise<unknown>, optimistic?: PlaylistEntry[], refreshAfter = true) => {
       const previous = entriesRef.current;
+
       if (optimistic) applyEntries(optimistic);
       const [, error] = await attempt(action);
+
       if (error && optimistic) {
         applyEntries(previous);
+
         return;
       }
+
       if (refreshAfter) await refresh();
     },
     [applyEntries, refresh]
@@ -91,6 +99,7 @@ export default function PlaylistBody({
   const handleRemove = useCallback(
     (index: number) => {
       const next = entriesRef.current.filter((entry) => entry.index !== index);
+
       return mutate(onRemove(index), next, false);
     },
     [mutate, onRemove]
@@ -101,10 +110,12 @@ export default function PlaylistBody({
       const list = entriesRef.current;
       const fromPos = list.findIndex((entry) => entry.index === from);
       const toPos = list.findIndex((entry) => entry.index === to);
+
       if (fromPos === -1 || toPos === -1) return mutate(onMove(from, to));
       const next = [...list];
       const [moved] = next.splice(fromPos, 1);
       next.splice(toPos, 0, moved);
+
       return mutate(onMove(from, to), next);
     },
     [mutate, onMove]
@@ -113,6 +124,7 @@ export default function PlaylistBody({
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const move = resolvePlaylistDragMove(event.active.id, event.over?.id);
+
       if (!move) return;
       ignore(handleMove(move.from, move.to));
     },
@@ -131,8 +143,10 @@ export default function PlaylistBody({
             }),
             null
           );
+
           if (!selection) return;
           const files = Array.isArray(selection) ? selection : [selection];
+
           if (files.length > 0) await mutate(appendFilesQuiet(files), undefined, false);
         },
       ],
@@ -157,10 +171,13 @@ export default function PlaylistBody({
 
   useEffect(() => {
     if (focusPosition < 0) return;
+
     if (virtualized) {
       virtualizer.scrollToIndex(focusPosition, { align: "auto" });
+
       return;
     }
+
     const card = scrollRef.current?.querySelector<HTMLElement>('[data-focused="true"]');
     card?.scrollIntoView({ block: "nearest" });
   }, [focusPosition, virtualized, virtualizer]);
@@ -203,6 +220,7 @@ export default function PlaylistBody({
           {plainList &&
             entries.map((entry, position) => {
               const current = entry.index === activeIndex;
+
               return (
                 <PlaylistCard
                   key={playlistCardKey(entries, position)}
@@ -224,8 +242,10 @@ export default function PlaylistBody({
             <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const entry = entries[virtualItem.index];
+
                 if (!entry) return null;
                 const current = entry.index === activeIndex;
+
                 return (
                   <div
                     key={virtualItem.key}

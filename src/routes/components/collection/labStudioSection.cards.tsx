@@ -16,8 +16,7 @@ export default function LabStudioSection() {
       <div className="windows95-border bg-field flex min-w-60 flex-1 flex-col gap-1 p-2">
         <p className="windows95-text m-0 font-bold">Как читать коллаж</p>
         <p className="windows95-text text-hint m-0">
-          Студия получает четыре обложки из своих тайтлов. Если обложек меньше, ячейка заполняется
-          инициалами студии, а не заглушкой.
+          Студия получает до четырёх обложек. Если их меньше, ячейка заполняется инициалами.
         </p>
         <p className="windows95-text text-hint m-0">
           Holo включается только с Rare: у Junk и Common остаётся обычная рамка.

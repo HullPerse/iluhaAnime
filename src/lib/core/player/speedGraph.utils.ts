@@ -7,6 +7,7 @@ export function drawSpeedGraph(
   colors: { download: string; upload: string }
 ): void {
   const context = canvas.getContext("2d");
+
   if (!context) return;
   const ratio = window.devicePixelRatio || 1;
   canvas.width = GRAPH_WIDTH * ratio;
@@ -22,11 +23,13 @@ export function drawSpeedGraph(
     values.forEach((value, index) => {
       const x = (index / (GRAPH_POINTS - 1)) * GRAPH_WIDTH;
       const y = GRAPH_HEIGHT - 1 - (value / max) * (GRAPH_HEIGHT - 2);
+
       if (index === 0) context.moveTo(x, y);
       else context.lineTo(x, y);
     });
     context.stroke();
   };
+
   line(upload, colors.upload);
   line(download, colors.download);
 }

@@ -22,6 +22,7 @@ export function CompareToolbar({
   onDiffMode: (enabled: boolean) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="border-muted border-t p-2">
       <Input

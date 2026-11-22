@@ -36,13 +36,16 @@ interface TextHit {
 
 async function walk(path: string): Promise<string[]> {
   const info = await stat(path);
+
   if (info.isFile()) return [path];
   const entries = await readdir(path, { withFileTypes: true });
   const files: string[] = [];
+
   for (const entry of entries) {
     if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
     files.push(...(await walk(join(path, entry.name))));
   }
+
   return files;
 }
 
@@ -60,15 +63,19 @@ function stripNonCode(text: string): string {
 
 function countCasts(text: string): number {
   let count = 0;
+
   for (const line of stripNonCode(text).split("\n")) {
     if (/\bas\s+(?!const\b)[A-Za-z_{[(]/.test(line)) count += 1;
   }
+
   return count;
 }
 
 function total(rows: FileCount[]): number {
   let sum = 0;
+
   for (const row of rows) sum += row.count;
+
   return sum;
 }
 
@@ -78,6 +85,7 @@ function printTop(label: string, rows: FileCount[]): void {
     .filter((row) => row.count > 0)
     .sort((left, right) => right.count - left.count)
     .slice(0, 8);
+
   for (const row of top) console.log(`  ${row.count} ${relative(ROOT, row.path)}`);
 }
 
@@ -85,21 +93,26 @@ function printFileCount(label: string, rows: FileCount[], threshold: number): vo
   const matches = rows.filter((row) => row.count > threshold);
   console.log(`${label}: ${matches.length} files`);
   const top = [...matches].sort((left, right) => right.count - left.count).slice(0, 8);
+
   for (const row of top) console.log(`  ${row.count} ${relative(ROOT, row.path)}`);
 }
 
 function findForbidden(text: string, path: string): TextHit[] {
   const hits: TextHit[] = [];
   const lines = text.split("\n");
+
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex] ?? "";
+
     for (let column = 0; column < line.length; column += 1) {
       const codepoint = line.codePointAt(column) ?? 0;
       const label = FORBIDDEN.get(codepoint);
+
       if (label === undefined) continue;
       hits.push({ column: column + 1, codepoint, label, line: lineIndex + 1, path });
     }
   }
+
   return hits;
 }
 
@@ -116,26 +129,32 @@ const untypedRef: FileCount[] = [];
 const untypedState: FileCount[] = [];
 
 let testFileCount = 0;
+
 for (const path of sourceFiles) {
   const text = await readFile(path, "utf-8");
   const rel = relative(ROOT, path).replaceAll("\\", "/");
+
   if (rel.startsWith("src/tests/")) {
     testFileCount += 1;
     continue;
   }
+
   casts.push({ count: countCasts(text), path });
   comments.push({
     count: countMatches(text, /^\s*\/\//gm) + countMatches(text, /\/\*\*/g),
     path,
   });
+
   if (path.endsWith(".tsx")) {
     multiComponent.push({ count: countMatches(text, /^(?:export )?(?:default )?function [A-Z]/gm), path });
   }
+
   multiExport.push({ count: countMatches(text, /^export (?:function|const) /gm), path });
   nullTernary.push({ count: countMatches(text, /\?[^\n;]*:\s*null/g), path });
   overflow.push({ count: countMatches(text, /overflow(?:-y)?-(?:auto|scroll)/g), path });
   untypedRef.push({ count: countMatches(text, /\buseRef\(/g), path });
   untypedState.push({ count: countMatches(text, /\buseState\(/g), path });
+
   if (!rel.startsWith("src/types/")) {
     typesOutside.push({ count: countMatches(text, /^export (?:interface|type) /gm), path });
   }
@@ -152,14 +171,17 @@ const textRoots = [
   "package.json",
 ];
 const textFiles: string[] = [];
+
 for (const root of textRoots) {
   const path = join(ROOT, root);
+
   if (!existsSync(path)) continue;
   const files = await walk(path);
   textFiles.push(...files.filter((file) => TEXT_EXTENSIONS.test(file)));
 }
 
 const hits: TextHit[] = [];
+
 for (const path of textFiles) {
   const text = await readFile(path, "utf-8");
   hits.push(...findForbidden(text, relative(ROOT, path)));
@@ -179,10 +201,12 @@ printTop("untyped useRef", untypedRef);
 printTop("untyped useState", untypedState);
 
 console.log("\n== Forbidden punctuation ==");
+
 for (const hit of hits.slice(0, 100)) {
   const codepoint = hit.codepoint.toString(16).toUpperCase().padStart(4, "0");
   console.log(`${hit.path}:${hit.line}:${hit.column} U+${codepoint} ${hit.label}`);
 }
+
 if (hits.length > 100) console.log(`... and ${hits.length - 100} more`);
 console.log(`total: ${hits.length}`);
 
@@ -193,13 +217,16 @@ if (process.argv.includes("--check-code")) {
     untypedState.reduce((sum, item) => sum + item.count, 0) +
     untypedRef.reduce((sum, item) => sum + item.count, 0);
   const multiComponentFiles = multiComponent.filter((item) => item.count > 1).length;
+
   if (untypedHooks > 0) {
     console.error(`untyped hooks: ${untypedHooks}`);
     process.exitCode = 1;
   }
+
   if (multiComponentFiles > 0) {
     console.error(`multi-component tsx files: ${multiComponentFiles}`);
     process.exitCode = 1;
   }
+
   if (untypedHooks === 0 && multiComponentFiles === 0) console.log("code inventory: ok");
 }

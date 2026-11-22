@@ -45,15 +45,19 @@ function movingSouth(handle: CropHandle): boolean {
 
 function nearestSnap(values: number[], targets: number[], threshold: number): AxisSnap {
   let best: { distance: number; delta: number; guide: number } | null = null;
+
   for (const value of values) {
     for (const target of targets) {
       const distance = Math.abs(value - target);
+
       if (distance > threshold) continue;
+
       if (!best || distance < best.distance) {
         best = { distance, delta: target - value, guide: target };
       }
     }
   }
+
   return best ? { delta: best.delta, guide: best.guide } : { delta: 0, guide: null };
 }
 
@@ -65,7 +69,9 @@ function snapEdge(
   guides: CropGuide[]
 ): number {
   const snap = nearestSnap([edge], targets, threshold);
+
   if (snap.guide !== null) guides.push({ axis, value: snap.guide });
+
   return edge + snap.delta;
 }
 
@@ -87,8 +93,11 @@ function snapMove(
     yTargets,
     threshold
   );
+
   if (horizontal.guide !== null) guides.push({ axis: "x", value: horizontal.guide });
+
   if (vertical.guide !== null) guides.push({ axis: "y", value: vertical.guide });
+
   return {
     rect: clampCrop({ ...rect, x: rect.x + horizontal.delta, y: rect.y + vertical.delta }, bounds),
     guides,
@@ -122,6 +131,7 @@ export function clampCrop(rect: CropRect, bounds: CropBounds, minSize = CROP_MIN
   const height = clamp(Math.round(rect.height), Math.min(minSize, bounds.height), bounds.height);
   const x = clamp(Math.round(rect.x), 0, Math.max(0, bounds.width - width));
   const y = clamp(Math.round(rect.y), 0, Math.max(0, bounds.height - height));
+
   return { x, y, width, height };
 }
 
@@ -134,6 +144,7 @@ export function snapRect(
   if (threshold <= 0) return { rect, guides: [] };
   const xTargets = [0, bounds.width / 2, bounds.width];
   const yTargets = [0, bounds.height / 2, bounds.height];
+
   if (handle === "move") return snapMove(rect, bounds, threshold, xTargets, yTargets);
 
   const guides: CropGuide[] = [];
@@ -141,21 +152,28 @@ export function snapRect(
   let top = rect.y;
   let right = rect.x + rect.width;
   let bottom = rect.y + rect.height;
+
   if (movingWest(handle)) left = snapEdge(left, xTargets, threshold, "x", guides);
+
   if (movingEast(handle)) right = snapEdge(right, xTargets, threshold, "x", guides);
+
   if (movingNorth(handle)) top = snapEdge(top, yTargets, threshold, "y", guides);
+
   if (movingSouth(handle)) bottom = snapEdge(bottom, yTargets, threshold, "y", guides);
   const snapped = clampCrop({ x: left, y: top, width: right - left, height: bottom - top }, bounds);
   const horizontalOnly =
     (movingEast(handle) || movingWest(handle)) && !movingNorth(handle) && !movingSouth(handle);
   const verticalOnly =
     (movingNorth(handle) || movingSouth(handle)) && !movingEast(handle) && !movingWest(handle);
+
   if (horizontalOnly && Math.abs(snapped.width - snapped.height) <= threshold) {
     return { rect: anchoredSize(snapped, handle, snapped.height, snapped.height, bounds), guides };
   }
+
   if (verticalOnly && Math.abs(snapped.width - snapped.height) <= threshold) {
     return { rect: anchoredSize(snapped, handle, snapped.width, snapped.width, bounds), guides };
   }
+
   return { rect: snapped, guides };
 }
 
@@ -192,9 +210,13 @@ export function resizeCrop(
   let top = rect.y;
   let right = rect.x + rect.width;
   let bottom = rect.y + rect.height;
+
   if (west) left = clamp(left + dx, 0, right - Math.min(minSize, bounds.width));
+
   if (east) right = clamp(right + dx, left + Math.min(minSize, bounds.width), bounds.width);
+
   if (north) top = clamp(top + dy, 0, bottom - Math.min(minSize, bounds.height));
+
   if (south) bottom = clamp(bottom + dy, top + Math.min(minSize, bounds.height), bounds.height);
 
   let next = clampCrop(
@@ -204,6 +226,7 @@ export function resizeCrop(
   );
   const ratio = options.ratio ?? null;
   const corner = (west || east) && (north || south);
+
   if (ratio !== null && ratio > 0 && corner) {
     next = anchoredSize(
       next,
@@ -213,6 +236,7 @@ export function resizeCrop(
       bounds
     );
   }
+
   return snapRect(next, handle, bounds, options.snapThreshold ?? 0);
 }
 
@@ -225,9 +249,11 @@ export function startCrop(
   const threshold = options.snapThreshold ?? 0;
   const dx = pointer.x - anchor.x;
   const dy = pointer.y - anchor.y;
+
   if (options.square) {
     const limit = Math.min(bounds.width, bounds.height);
     const side = clamp(Math.max(Math.abs(dx), Math.abs(dy)), 0, limit);
+
     return {
       rect: clampCrop(
         {
@@ -242,6 +268,7 @@ export function startCrop(
       guides: [],
     };
   }
+
   const guides: CropGuide[] = [];
   const x = clamp(pointer.x, 0, bounds.width);
   const y = clamp(pointer.y, 0, bounds.height);
@@ -249,6 +276,7 @@ export function startCrop(
     threshold > 0 ? snapEdge(x, [0, bounds.width / 2, bounds.width], threshold, "x", guides) : x;
   const movedY =
     threshold > 0 ? snapEdge(y, [0, bounds.height / 2, bounds.height], threshold, "y", guides) : y;
+
   return {
     rect: clampCrop(
       {
@@ -282,9 +310,11 @@ export function fitView(
   const scale = fit * safeZoom;
   const width = bounds.width * scale;
   const height = bounds.height * scale;
+
   if (!measured) {
     return { scale, left: pan.x, top: pan.y, width, height };
   }
+
   return {
     scale,
     left: container.width / 2 + pan.x - width / 2,
@@ -303,6 +333,7 @@ export function clampPan(
   const view = fitView(bounds, container, zoom);
   const maxX = Math.max(0, (view.width - container.width) / 2);
   const maxY = Math.max(0, (view.height - container.height) / 2);
+
   return { x: clamp(pan.x, -maxX, maxX), y: clamp(pan.y, -maxY, maxY) };
 }
 
@@ -320,7 +351,9 @@ export function zoomAtPoint(
 ): { zoom: number; pan: CropPan } {
   const target = clamp(zoom * factor, CROP_ZOOM_MIN, CROP_ZOOM_MAX);
   const next = Math.round(target * CROP_ZOOM_PRECISION) / CROP_ZOOM_PRECISION;
+
   if (next <= CROP_ZOOM_FIT) return { zoom: next, pan: NO_PAN };
+
   if (next === zoom) return { zoom, pan };
   const before = fitView(bounds, container, zoom, pan);
   const source = {
@@ -330,6 +363,7 @@ export function zoomAtPoint(
   const after = fitView(bounds, container, next);
   const panX = point.x - source.x * after.scale + after.width / 2 - container.width / 2;
   const panY = point.y - source.y * after.scale + after.height / 2 - container.height / 2;
+
   return { zoom: next, pan: clampPan(bounds, container, next, { x: panX, y: panY }) };
 }
 
@@ -344,6 +378,7 @@ export function toFrame(rect: CropRect, scale: number): CropFrame {
 
 export function fromFrame(frame: CropFrame, scale: number): CropRect {
   const safe = scale > 0 ? scale : 1;
+
   return {
     x: Math.round(frame.left / safe),
     y: Math.round(frame.top / safe),

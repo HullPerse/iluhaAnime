@@ -9,13 +9,17 @@ export function describeRecheckOutcome(result: TorrentCheckResult, t: TFunc): Re
       message: t("torrent.recheck.ok", { ok: result.ok, total: result.total }),
     };
   }
+
   const parts: string[] = [];
+
   if (result.missing.length > 0) {
     parts.push(t("torrent.recheck.missing", { count: result.missing.length }));
   }
+
   if (result.size_mismatch.length > 0) {
     parts.push(t("torrent.recheck.size", { count: result.size_mismatch.length }));
   }
+
   return {
     tone: "error",
     message: `${parts.join("; ")} ${t("torrent.recheck.summary", { ok: result.ok, total: result.total })}`,

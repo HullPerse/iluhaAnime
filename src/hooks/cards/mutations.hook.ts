@@ -10,6 +10,7 @@ import type {
   CardGiftClaimInput,
   CardKind,
   CardsSeenTab,
+  CardsShell,
   CreateGiftInput,
   DustCardInput,
 } from "@/types/api/cards";
@@ -20,9 +21,10 @@ function anilistProxy(): string | null {
 
 export function useCardsMutations() {
   const queryClient = useQueryClient();
-  const mounted = useRef(false);
+  const mounted = useRef<boolean>(false);
   useEffect(() => {
     mounted.current = true;
+
     return () => {
       mounted.current = false;
     };
@@ -137,7 +139,22 @@ export function useCardsMutations() {
     onSuccess: (seen, vars) => {
       if (vars.tab === "packs") setCardsPacksReadAt(seen.packsReadAt);
       else setCardsAlbumReadAt(seen.albumReadAt);
-      queryClient.invalidateQueries({ queryKey: queryKeys.cardsShellScope() });
+      const readAt = vars.tab === "packs" ? seen.packsReadAt : seen.albumReadAt;
+      queryClient.setQueryData<CardsShell>(queryKeys.cardsShell(), (current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          seen:
+            vars.tab === "packs"
+              ? { ...current.seen, packsReadAt: readAt }
+              : { ...current.seen, albumReadAt: readAt },
+          unread:
+            vars.tab === "packs"
+              ? { ...current.unread, packs: 0 }
+              : { ...current.unread, cards: 0 },
+        };
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.cardsUnreadScope() });
     },
   });

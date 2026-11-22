@@ -29,6 +29,7 @@ function setup() {
   const wrapper = ({ children }: { children: ReactNode }) => {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   };
+
   return { client, wrapper };
 }
 

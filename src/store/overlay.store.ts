@@ -6,6 +6,7 @@ import type { OverlayEntry, OverlayStore } from "@/types/ui/overlay";
 type OverlayActionKeys = "register" | "dismissTop";
 
 type OverlayData = Omit<OverlayStore, OverlayActionKeys>;
+
 type OverlayAtoms = { [K in keyof OverlayData]: Cell<OverlayData[K]> };
 
 let nextOverlayId = 1;
@@ -26,6 +27,7 @@ function createOverlaySignalStore(): OverlaySignalStore {
 
   function handleEscapeDismiss(event: KeyboardEvent): void {
     const top = topOverlay(entries.get());
+
     if (!top?.dismiss) return;
 
     event.preventDefault();
@@ -40,6 +42,7 @@ function createOverlaySignalStore(): OverlaySignalStore {
     register: (dismiss) => {
       const entry: OverlayEntry = { id: nextOverlayId++, dismiss };
       entries.set([...entries.get(), entry]);
+
       if (typeof window !== "undefined" && entries.get().length === 1) {
         unsubscribeEscape = subscribeHotkeys(window, {
           defs: [{ id: "dismiss-top", chord: "Escape", repeat: "once" }],
@@ -47,8 +50,10 @@ function createOverlaySignalStore(): OverlaySignalStore {
           onAction: (_id, event) => handleEscapeDismiss(event),
         });
       }
+
       return () => {
         entries.set(entries.get().filter((item) => item.id !== entry.id));
+
         if (typeof window !== "undefined" && entries.get().length === 0) {
           unsubscribeEscape?.();
           unsubscribeEscape = null;
@@ -57,8 +62,10 @@ function createOverlaySignalStore(): OverlaySignalStore {
     },
     dismissTop: () => {
       const top = topOverlay(entries.get());
+
       if (!top?.dismiss) return false;
       top.dismiss();
+
       return true;
     },
   };

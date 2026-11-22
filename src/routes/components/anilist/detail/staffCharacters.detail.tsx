@@ -23,6 +23,7 @@ export function StaffCharactersSection({
       ),
     [query.data]
   );
+
   return (
     <CreditSection
       header={t("anilist.characters.characters.of", {

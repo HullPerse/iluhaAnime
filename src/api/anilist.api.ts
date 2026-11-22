@@ -1,6 +1,5 @@
 import * as z from "zod/mini";
 
-import { searchFiltersToParams } from "@/lib/anilist/entries.utils";
 import { anilistProxyArgs } from "@/lib/anilist/anilistProxy.utils";
 import { noteNetworkFailure, noteNetworkSuccess } from "@/lib/core/system/networkHealth.utils";
 import { settingsAtoms } from "@/store/settings.store";
@@ -74,18 +73,25 @@ import type { FilterPage, SpotlightPage } from "@/types/core/ipc";
 
 import { tauriTransport } from "@/api/transport.api";
 import type { ApiTransport } from "@/types/core/transport";
-import type { AnilistApiConfig, SaveAnilistEntryInput } from "@/types/api/anilist";
+import type {
+  AnilistApiConfig,
+  AnilistSearchParams,
+  AnilistFilterPageParams,
+  SaveAnilistEntryInput,
+} from "@/types/api/anilist";
 
-export type AnilistSearchParams = Partial<ReturnType<typeof searchFiltersToParams>> & {
-  mediaType?: AniMediaType;
-};
+export type { AnilistSearchParams, AnilistFilterPageParams } from "@/types/api/anilist";
 
-export type AnilistFilterPageParams = AnilistSearchParams & { page: number };
-
-const OMIT_WHEN_NULL: ReadonlySet<string> = new Set(["progress", "progressVolumes", "score", "repeat"]);
+const OMIT_WHEN_NULL: ReadonlySet<string> = new Set([
+  "progress",
+  "progressVolumes",
+  "score",
+  "repeat",
+]);
 
 export class AnilistApi {
   private readonly transport: ApiTransport;
+
   private readonly proxyUrl: string | null | (() => string | null);
 
   constructor(config: AnilistApiConfig = {}) {
@@ -95,6 +101,7 @@ export class AnilistApi {
 
   private proxy(): Record<string, string> {
     const resolved = typeof this.proxyUrl === "function" ? this.proxyUrl() : this.proxyUrl;
+
     return anilistProxyArgs(resolved);
   }
 
@@ -102,17 +109,21 @@ export class AnilistApi {
     const [value, error] = await attempt(
       this.transport.call<T>(command, { ...this.proxy(), ...args })
     );
+
     if (error !== null) {
       noteNetworkFailure(error);
       throw error;
     }
+
     noteNetworkSuccess();
+
     return value;
   }
 
   async login(token: string): Promise<AniUser> {
     const user = await this.call<AniUser>("anilist_login", { token: token.trim() });
     assertSchema(user, AniUserSchema);
+
     return user;
   }
 
@@ -123,18 +134,21 @@ export class AnilistApi {
   async checkAuth(): Promise<AniUser | null> {
     const user = await this.call<AniUser | null>("check_anilist_auth");
     assertSchema(user, AniUserOrNullSchema);
+
     return user;
   }
 
   async getBootstrap(): Promise<AniUserBundle | null> {
     const bundle = await this.call<AniUserBundle | null>("get_anilist_bootstrap");
     assertSchema(bundle, z.nullable(AniUserBundleSchema));
+
     return bundle;
   }
 
   async getFriendBundle(userId: number): Promise<AniFriendBundle> {
     const bundle = await this.call<AniFriendBundle>("get_anilist_friend_bundle", { userId });
     assertSchema(bundle, AniFriendBundleSchema);
+
     return bundle;
   }
 
@@ -144,22 +158,29 @@ export class AnilistApi {
       userName,
     });
     assertSchema(profile, AniUserProfileSchemaCompiled);
+
     return profile;
   }
 
-  async getLists(userId: number, minimal = false, mediaType?: AniMediaType): Promise<AniListCollection[]> {
+  async getLists(
+    userId: number,
+    minimal = false,
+    mediaType?: AniMediaType
+  ): Promise<AniListCollection[]> {
     const lists = await this.call<AniListCollection[]>("get_anilist_lists", {
       userId,
       minimal,
       ...(mediaType ? { mediaType } : {}),
     });
     assertSchema(lists, AniListCollectionListSchema);
+
     return lists;
   }
 
   async getStatistics(userId: number): Promise<AniListStatistics> {
     const statistics = await this.call<AniListStatistics>("get_anilist_statistics", { userId });
     assertSchema(statistics, AniListStatisticsSchema);
+
     return statistics;
   }
 
@@ -169,6 +190,7 @@ export class AnilistApi {
       userIds,
     });
     assertSchema(scores, AniFriendScoreListSchema);
+
     return scores;
   }
 
@@ -179,12 +201,14 @@ export class AnilistApi {
       perPage,
     });
     assertSchema(following, FollowingPageSchema);
+
     return following;
   }
 
   async search<T = AniMedia>(params: AnilistSearchParams): Promise<T[]> {
     const media = await this.call<T[]>("search_anilist", { ...params });
     assertSchema(media, AniMediaListSchema);
+
     return media;
   }
 
@@ -197,30 +221,35 @@ export class AnilistApi {
       ...anilistProxyArgs(proxyUrl),
     });
     assertSchema(media, AniMediaListSchema);
+
     return media;
   }
 
   async searchByStudio(studioId: number): Promise<AniMedia[]> {
     const media = await this.call<AniMedia[]>("search_anilist_by_studio", { studioId });
     assertSchema(media, AniMediaListSchema);
+
     return media;
   }
 
   async searchByTag(tag: string): Promise<AniMedia[]> {
     const media = await this.call<AniMedia[]>("search_anilist_by_tag", { tag });
     assertSchema(media, AniMediaListSchema);
+
     return media;
   }
 
   async searchByGenre(genre: string): Promise<AniMedia[]> {
     const media = await this.call<AniMedia[]>("search_anilist_by_genre", { genre });
     assertSchema(media, AniMediaListSchema);
+
     return media;
   }
 
   async filterPage(params: AnilistFilterPageParams): Promise<FilterPage> {
     const page = await this.call<FilterPage>("get_anilist_filter_page", { ...params });
     assertSchema(page, AniMediaPageSchema);
+
     return page;
   }
 
@@ -229,26 +258,33 @@ export class AnilistApi {
   }
 
   async getMediaById<T = AniMedia>(id: number, mediaType?: AniMediaType): Promise<T> {
-    const media = await this.call<T>("get_anime_by_id", { id, ...(mediaType ? { mediaType } : {}) });
+    const media = await this.call<T>("get_anime_by_id", {
+      id,
+      ...(mediaType ? { mediaType } : {}),
+    });
     assertSchema(media, AniMediaSchema);
+
     return media;
   }
 
   async getCacheStats(): Promise<{ hits: number; misses: number }> {
     const stats = await this.call<{ hits: number; misses: number }>("get_anilist_cache_stats");
     assertSchema(stats, AniCacheStatsSchema);
+
     return stats;
   }
 
   async getAnimeTrailer(id: number): Promise<string | null> {
     const trailer = await this.call<string | null>("get_anime_trailer", { id });
     assertSchema(trailer, AniTrailerSchema);
+
     return trailer;
   }
 
   async getAnimeFull(id: number): Promise<AniAnimeFull> {
     const full = await this.call<AniAnimeFull>("get_anime_full", { id });
     assertSchema(full, AniAnimeFullSchema);
+
     return full;
   }
 
@@ -257,24 +293,28 @@ export class AnilistApi {
       id,
     });
     assertSchema(episodes, AniStreamingEpisodeListSchema);
+
     return episodes;
   }
 
   async getAnimeByIds(ids: number[]): Promise<AniMedia[]> {
     const media = await this.call<AniMedia[]>("get_anime_by_ids", { ids });
     assertSchema(media, AniMediaListSchema);
+
     return media;
   }
 
   async getAnimeCharacters(id: number, page: number): Promise<AniCharacterEdge[]> {
     const characters = await this.call<AniCharacterEdge[]>("get_anime_characters", { id, page });
     assertSchema(characters, AniCharacterEdgeListSchema);
+
     return characters;
   }
 
   async getCharacterDetail(id: number, page: number): Promise<AniCharacterDetail> {
     const detail = await this.call<AniCharacterDetail>("get_character_detail", { id, page });
     assertSchema(detail, AniCharacterDetailSchema);
+
     return detail;
   }
 
@@ -285,36 +325,42 @@ export class AnilistApi {
       charPage,
     });
     assertSchema(detail, AniStaffDetailSchema);
+
     return detail;
   }
 
   async getAnimeStaff(id: number): Promise<AniAnimeStaffEdge[]> {
     const staff = await this.call<AniAnimeStaffEdge[]>("get_anime_staff", { id });
     assertSchema(staff, AniAnimeStaffEdgeListSchema);
+
     return staff;
   }
 
   async getFavourites(userId: number): Promise<FavouriteAnime[]> {
     const favourites = await this.call<FavouriteAnime[]>("get_favourites", { userId });
     assertSchema(favourites, FavouriteAnimeListSchema);
+
     return favourites;
   }
 
   async getFavouriteOverview(userId: number): Promise<FavouriteOverview> {
     const overview = await this.call<FavouriteOverview>("get_favourite_overview", { userId });
     assertSchema(overview, FavouriteOverviewSchema);
+
     return overview;
   }
 
   async toggleFavourite(animeId: number): Promise<FavouriteAnime[]> {
     const favourites = await this.call<FavouriteAnime[]>("toggle_favourite", { animeId });
     assertSchema(favourites, FavouriteAnimeListSchema);
+
     return favourites;
   }
 
   async toggleFavouriteStaff(staffId: number): Promise<FavouritePerson[]> {
     const favourites = await this.call<FavouritePerson[]>("toggle_favourite_staff", { staffId });
     assertSchema(favourites, FavouritePersonListSchema);
+
     return favourites;
   }
 
@@ -323,31 +369,41 @@ export class AnilistApi {
       characterId,
     });
     assertSchema(favourites, FavouritePersonListSchema);
+
     return favourites;
   }
 
   async getCustomLists(mediaType?: AniMediaType): Promise<string[]> {
-    const lists = await this.call<string[]>("get_anilist_custom_lists", mediaType ? { mediaType } : {});
+    const lists = await this.call<string[]>(
+      "get_anilist_custom_lists",
+      mediaType ? { mediaType } : {}
+    );
     assertSchema(lists, AniStringListSchema);
+
     return lists;
   }
 
   async getSiteNotifications(): Promise<AniSiteNotification[]> {
     const notifications = await this.call<AniSiteNotification[]>("get_anilist_notifications");
     assertSchema(notifications, AniSiteNotificationListSchema);
+
     return notifications;
   }
 
   async saveEntry(input: SaveAnilistEntryInput): Promise<AniSavedEntry> {
     const { mediaId, ...rest } = input;
     const args: Record<string, unknown> = { mediaId };
+
     for (const [key, value] of Object.entries(rest)) {
       if (value === undefined) continue;
+
       if (value === null && OMIT_WHEN_NULL.has(key)) continue;
       args[key] = value;
     }
+
     const entry = await this.call<AniSavedEntry>("save_anilist_entry", args);
     assertSchema(entry, AniSavedEntrySchema);
+
     return entry;
   }
 
@@ -357,6 +413,7 @@ export class AnilistApi {
       userId,
     });
     assertSchema(deleted, AniBooleanSchema);
+
     return deleted;
   }
 
@@ -368,14 +425,19 @@ export class AnilistApi {
   }
 
   async getActivity(userIds: number[], mediaType?: AniMediaType): Promise<AniActivity[]> {
-    const activities = await this.call<AniActivity[]>("get_anilist_activity", { userIds, ...(mediaType ? { mediaType } : {}) });
+    const activities = await this.call<AniActivity[]>("get_anilist_activity", {
+      userIds,
+      ...(mediaType ? { mediaType } : {}),
+    });
     assertSchema(activities, AniActivityListSchema);
+
     return activities;
   }
 
   async getMangaOverview(userId: number) {
     const overview = await this.call<AniMangaOverview>("get_anilist_manga_overview", { userId });
     assertSchema(overview, AniMangaOverviewSchema);
+
     return overview;
   }
 
@@ -386,6 +448,7 @@ export class AnilistApi {
   async toggleActivityLike(activityId: number): Promise<ActivityLikeState> {
     const state = await this.call<ActivityLikeState>("toggle_activity_like", { activityId });
     assertSchema(state, ActivityLikeStateSchema);
+
     return state;
   }
 
@@ -394,6 +457,7 @@ export class AnilistApi {
       userId,
     });
     assertSchema(recommendations, AniRecommendationListSchema);
+
     return recommendations;
   }
 
@@ -402,18 +466,21 @@ export class AnilistApi {
       id,
     });
     assertSchema(recommendations, AniRecommendationListSchema);
+
     return recommendations;
   }
 
   async getAnimeFranchise(id: number, scope: string): Promise<FranchiseGraph> {
     const graph = await this.call<FranchiseGraph>("get_anime_franchise", { id, scope });
     assertSchema(graph, FranchiseGraphSchema);
+
     return graph;
   }
 
   async prefetchRelations(animeIds: number[]): Promise<PrefetchSummary> {
     const summary = await this.call<PrefetchSummary>("prefetch_anime_relations", { animeIds });
     assertSchema(summary, PrefetchSummarySchema);
+
     return summary;
   }
 
@@ -432,6 +499,7 @@ export class AnilistApi {
       scoreFrom,
     });
     assertSchema(result, AniMediaPageSchema);
+
     return result;
   }
 }

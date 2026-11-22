@@ -16,6 +16,7 @@ function ConfirmDialog({
   onClose,
 }: ConfirmDialogProps) {
   const { t } = useI18n();
+
   if (!open) return null;
   const resolvedCancel = cancelLabel ?? t("common.cancel");
 

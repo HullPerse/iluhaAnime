@@ -3,6 +3,7 @@ import { useI18n } from "@/hooks/i18n.hook";
 
 export function DetailError({ message, onRetry }: { message?: string; onRetry: () => void }) {
   const { t } = useI18n();
+
   return (
     <div className="flex flex-col items-center gap-2 p-4">
       <span className="windows95-text text-destructive text-center text-xs">

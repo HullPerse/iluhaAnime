@@ -11,6 +11,7 @@ import type { ThemeOverrideBinding, ThemeState, ThemeVarBinding } from "@/types/
 
 export function normalizeAutocompleteOpacity(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0.6;
+
   return Math.max(0, Math.min(1, value));
 }
 
@@ -62,13 +63,16 @@ export const THEME_OVERRIDE_BINDINGS: readonly ThemeOverrideBinding[] = keysOf(
 
 export function buildThemeState(theme: ThemeDefinition): ThemeState {
   const vars: Record<string, string> = {};
+
   for (const binding of THEME_VAR_BINDINGS) {
     vars[binding.varName] = binding.derive(theme);
   }
 
   const overrides: Record<string, string> = {};
+
   for (const binding of THEME_OVERRIDE_BINDINGS) {
     const value = theme.overrides?.[binding.key];
+
     if (value !== undefined) overrides[binding.varName] = value;
   }
 

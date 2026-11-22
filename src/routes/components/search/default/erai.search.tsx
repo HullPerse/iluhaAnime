@@ -23,27 +23,29 @@ export default function EraiLoginModal({
   const openBrowser = async () => {
     setLoading(true);
     setError("");
-    try {
+    await (async () => {
       const [, error] = await attempt(torrentApi.eraiWebviewLogin());
+
       if (error) setError(mapError(String(error), t));
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   const saveSession = async () => {
     setLoading(true);
     setError("");
-    try {
+    await (async () => {
       const [, error] = await attempt(torrentApi.eraiFinishWebviewLogin());
+
       if (error) setError(mapError(String(error), t));
       else {
         setEraiAuth(true);
         close();
       }
-    } finally {
+    })().finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   return (

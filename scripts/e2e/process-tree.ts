@@ -53,10 +53,13 @@ export interface TreeSample {
 
 function numberOrNull(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
+
   if (typeof value === "string" && value.trim() !== "") {
     const parsed = Number(value);
+
     return Number.isFinite(parsed) ? parsed : null;
   }
+
   return null;
 }
 
@@ -72,10 +75,13 @@ function processSnapshot(): RawProcess[] {
     maxBuffer: 32 * 1024 * 1024,
     windowsHide: true,
   });
+
   if (result.status !== 0) {
     throw new Error(`process inventory failed: ${String(result.stderr ?? "unknown error")}`);
   }
+
   const parsed = JSON.parse(result.stdout || "[]") as RawProcess | RawProcess[];
+
   return Array.isArray(parsed) ? parsed : [parsed];
 }
 
@@ -99,52 +105,67 @@ function isE2eWebView(process: RawProcess): boolean {
 
 function appRoots(processes: RawProcess[]): Set<number> {
   const roots = new Set<number>();
+
   for (const process of processes) {
     if (!isAppRoot(process)) continue;
     const pid = numberOrNull(process.ProcessId);
+
     if (pid !== null) roots.add(pid);
   }
+
   if (roots.size > 0) return roots;
+
   for (const process of processes) {
     if (!isE2eWebView(process)) continue;
     const pid = numberOrNull(process.ProcessId);
+
     if (pid !== null) roots.add(pid);
   }
+
   return roots;
 }
 
 function descendants(roots: Set<number>, processes: RawProcess[]): Set<number> {
   const selected = new Set(roots);
   let changed = true;
+
   while (changed) {
     changed = false;
+
     for (const process of processes) {
       const pid = numberOrNull(process.ProcessId);
       const parent = numberOrNull(process.ParentProcessId);
+
       if (pid === null || parent === null) continue;
+
       if (selected.has(parent) && !selected.has(pid)) {
         selected.add(pid);
         changed = true;
       }
     }
   }
+
   return selected;
 }
 
 function sum(values: Array<number | null>): number | null {
   const present = values.filter((value): value is number => value !== null);
+
   return present.length === 0 ? null : present.reduce((total, value) => total + value, 0);
 }
 
 function cpuTicks(process: RawProcess): number | null {
   const user = numberOrNull(process.UserModeTime);
   const kernel = numberOrNull(process.KernelModeTime);
+
   if (user === null && kernel === null) return null;
+
   return (user ?? 0) + (kernel ?? 0);
 }
 
 function cpuPercent(ticks: number | null, previous: number | null, elapsedMs: number): number | null {
   if (ticks === null || previous === null || elapsedMs <= 0) return null;
+
   return ((ticks - previous) / elapsedMs / 10_000) * 100;
 }
 
@@ -153,27 +174,33 @@ export function formatBytes(value: number | null): string {
   const units = ["B", "KB", "MB", "GB", "TB"];
   let amount = value;
   let unit = 0;
+
   while (amount >= 1024 && unit < units.length - 1) {
     amount /= 1024;
     unit += 1;
   }
+
   return `${amount.toFixed(unit === 0 ? 0 : 2)} ${units[unit]}`;
 }
 
 export async function sampleProcessTree(previous?: TreeSample): Promise<TreeSample> {
   const raw = processSnapshot();
   const roots = appRoots(raw);
+
   if (roots.size === 0) {
     throw new Error("no isolated iluhaAnime E2E process tree found");
   }
+
   const selected = descendants(roots, raw);
   const sampledAtMs = Date.now();
   const elapsedMs = previous === undefined ? 0 : sampledAtMs - previous.sampledAtMs;
   const previousByPid = new Map(previous?.processes.map((process) => [process.pid, process]) ?? []);
   const processes: ProcessSample[] = [];
+
   for (const process of raw) {
     const pid = numberOrNull(process.ProcessId);
     const parentPid = numberOrNull(process.ParentProcessId);
+
     if (pid === null || parentPid === null || !selected.has(pid)) continue;
     const ticks = cpuTicks(process);
     const previousTicks = previousByPid.get(pid)?.cpuTicks ?? null;
@@ -193,7 +220,9 @@ export async function sampleProcessTree(previous?: TreeSample): Promise<TreeSamp
       diskWriteBytes: numberOrNull(process.WriteTransferCount),
     });
   }
+
   const oneCore = sum(processes.map((process) => process.cpuPercentOneCore));
+
   return {
     sampledAt: new Date(sampledAtMs).toISOString(),
     sampledAtMs,

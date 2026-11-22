@@ -17,8 +17,10 @@ interface CountRow {
 function argument(name: string): string | undefined {
   const prefix = `--${name}=`;
   const inline = process.argv.find((entry) => entry.startsWith(prefix));
+
   if (inline) return inline.slice(prefix.length);
   const index = process.argv.indexOf(`--${name}`);
+
   return index !== -1 ? process.argv[index + 1] : undefined;
 }
 

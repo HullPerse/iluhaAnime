@@ -41,13 +41,16 @@ export function TorrentPeersModal({
     refetchInterval: 10000,
     refetchIntervalInBackground: false,
   });
+
   if (!open) return null;
   const copyText = (label: string, value: string) => {
     (async () => {
       const [, error] = await attempt(writeText(value));
+
       if (error) showError(label, error.message);
     })();
   };
+
   const peers = query.data?.peers ?? [];
   const trackers = query.data?.trackers ?? [];
   const copies = [
@@ -59,6 +62,7 @@ export function TorrentPeersModal({
     { icon: Copy, label: t("torrent.copy.infohash"), value: infoHash },
     { icon: Link, label: t("torrent.copy.link"), value: buildTorrentLink(infoHash as TorrentHash) },
   ];
+
   return (
     <Modal header={t("torrent.peers.title")} onClose={onClose} className="w-2xl">
       <div className="flex min-w-0 flex-col gap-1">
@@ -134,6 +138,7 @@ export function TorrentPeersModal({
             )}
             {peers.map((peer) => {
               const { host, port } = splitAddr(peer.addr);
+
               return (
                 <div
                   role="row"

@@ -36,5 +36,6 @@ export function useGameRomMutations() {
     mutationFn: (id: string) => gameApi.deleteRom(id),
     onSuccess: () => invalidate(),
   });
+
   return { importRom, deleteRom };
 }

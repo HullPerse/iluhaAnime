@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -17,6 +17,7 @@ vi.mock("@/routes/components/collection/gameClip.cards", () => ({
 
 vi.mock("@/hooks/daily/queries.hook", () => {
   const mutation = () => ({ mutate: vi.fn(), isPending: false, error: null });
+
   return {
     useGuessDailyGame: mutation,
     useSkipDailyGame: mutation,
@@ -99,23 +100,19 @@ describe("daily game screens", () => {
     expect(screen.getByDisplayValue("Shingeki no Kyojin")).toBeTruthy();
   });
 
-  it("renders the frames screen with search and skip controls", () => {
+  it("renders search, skip and the mode-specific content on all three screens", () => {
     render(<GameFrames day={day} initial={framesView} onClose={() => {}} />);
-
     expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Пропустить" })).toBeTruthy();
     expect(screen.getByText("Раунд 2 / 6")).toBeTruthy();
-  });
+    cleanup();
 
-  it("renders the opening screen with the clip player and search", () => {
     render(<GameOp day={day} initial={opView} onClose={() => {}} />);
-
     expect(screen.getByTestId("clip-player")).toBeTruthy();
     expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Пропустить" })).toBeTruthy();
-  });
+    cleanup();
 
-  it("renders the audio screen with the first audio-only stage", () => {
     render(
       <GameAudio
         day={day}
@@ -123,10 +120,8 @@ describe("daily game screens", () => {
         onClose={() => {}}
       />
     );
-
     expect(screen.getByTestId("clip-player")).toBeTruthy();
     expect(screen.getByText("Только звук")).toBeTruthy();
     expect(screen.getByPlaceholderText("Название аниме")).toBeTruthy();
   });
-
 });

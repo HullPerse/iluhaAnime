@@ -15,6 +15,7 @@ const NATIVE = ["葬送のフリーレン", "ナルト", "ワンピース", "シ
 
 function makeFields(count: number): AnimeTitleFields[] {
   const out: AnimeTitleFields[] = [];
+
   for (let i = 0; i < count; i++) {
     out.push({
       english: i % 5 === 3 ? null : `${ENGLISH[i % ENGLISH.length]} ${i}`,
@@ -22,6 +23,7 @@ function makeFields(count: number): AnimeTitleFields[] {
       romaji: `${ROMAJI[i % ROMAJI.length]} ${i}`,
     });
   }
+
   return out;
 }
 
@@ -46,6 +48,7 @@ const DETAIL_MEDIA = {
 
 function makeDetailCorpus(): AnimeTitleFields[] {
   const out: AnimeTitleFields[] = [animeTitleFields(DETAIL_MEDIA)];
+
   for (let i = 1; i < 50; i++) {
     out.push({
       english: i % 4 === 0 ? `${ENGLISH[i % ENGLISH.length]} ${i}` : null,
@@ -53,6 +56,7 @@ function makeDetailCorpus(): AnimeTitleFields[] {
       romaji: `${ROMAJI[i % ROMAJI.length]} ${i}`,
     });
   }
+
   return out;
 }
 
@@ -61,28 +65,35 @@ const DETAIL_CORPUS = makeDetailCorpus();
 group("anilist-titles @anilist @quick", () => {
   bench("resolve 2k titles x english pref", () => {
     let sum = 0;
+
     for (const fields of FIELDS_2K) sum += resolveAnimeTitle(fields, "english").length;
+
     return sum;
   });
 
   bench("resolve 2k titles x rotating prefs", () => {
     let sum = 0;
+
     for (let i = 0; i < FIELDS_2K.length; i++) {
       sum += resolveAnimeTitle(FIELDS_2K[i], PREFS[i % PREFS.length]).length;
     }
+
     return sum;
   });
 
   bench("resolve titles x50 detail + relations", () => {
     let sum = 0;
+
     for (const fields of DETAIL_CORPUS) {
       sum += resolveAnimeTitle(fields, "english").length;
     }
+
     return sum;
   });
 
   bench("fields 2k from media rows", () => {
     let sum = 0;
+
     for (let i = 0; i < 2000; i++) {
       const fields = animeTitleFields({
         title: `fallback ${i}`,
@@ -92,15 +103,18 @@ group("anilist-titles @anilist @quick", () => {
       });
       sum += fields.romaji.length + (fields.english?.length ?? 0);
     }
+
     return sum;
   });
 
   bench("parse score formats x10k", () => {
     let sum = 0;
+
     for (let i = 0; i < 10_000; i++) {
       const format = parseScoreFormat(FORMAT_INPUTS[i % FORMAT_INPUTS.length]);
       sum += scoreFormatMax(format) + scoreFormatSuffix(format).length;
     }
+
     return sum;
   });
 });

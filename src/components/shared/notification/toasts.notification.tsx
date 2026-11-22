@@ -20,27 +20,34 @@ export default function NotificationToasts() {
   const [queue, setQueue] = useState<number[]>([]);
   const [closing, setClosing] = useState<Set<number>>(new Set());
   const seenRef = useRef<Set<number> | null>(null);
+
   if (seenRef.current === null) {
     seenRef.current = new Set(items.map((item) => item.id));
   }
 
   useEffect(() => {
     const seen = seenRef.current ?? new Set<number>();
+
     if (!inApp) {
       for (const item of items) seen.add(item.id);
       setQueue((prev) => (prev.length === 0 ? prev : []));
       setClosing((prev) => (prev.size === 0 ? prev : new Set()));
+
       return;
     }
+
     const fresh = items.filter((item) => !item.progress && !item.silent && !seen.has(item.id));
+
     for (const item of items) {
       if (!item.progress) seen.add(item.id);
     }
+
     setQueue((prev) => {
       const visible = new Set(items.filter((item) => !item.progress).map((item) => item.id));
       const kept = prev.filter((id) => visible.has(id));
       const freshIds = fresh.map((item) => item.id).filter((id) => !kept.includes(id));
       const next = [...freshIds, ...kept].slice(0, TOAST_DEFAULTS.maxVisible);
+
       return next.length === prev.length && next.every((id, index) => id === prev[index])
         ? prev
         : next;
@@ -52,6 +59,7 @@ export default function NotificationToasts() {
     setClosing((prev) => {
       const next = new Set(prev);
       next.delete(id);
+
       return next;
     });
   }, []);
@@ -59,6 +67,7 @@ export default function NotificationToasts() {
   const handleBodyClick = useCallback(
     (item: NotificationItem) => {
       markNotificationRead(item.id);
+
       if (animateToasts) {
         setClosing((prev) => new Set(prev).add(item.id));
         scheduleTask("timeout", 150, () => {
@@ -67,10 +76,13 @@ export default function NotificationToasts() {
       } else {
         handleToastHidden(item.id);
       }
+
       const target = item.target;
+
       if (!target) return;
       (async () => {
         const result = await openNotificationTarget(target);
+
         if (result === "tab-disabled") {
           showError(t("common.error"), t("anilist.details.link.invalid"));
         }
@@ -78,6 +90,7 @@ export default function NotificationToasts() {
     },
     [animateToasts, handleToastHidden, t]
   );
+
   if (!inApp || queue.length === 0) return null;
   const byId = new Map(items.map((item) => [item.id, item] as const));
 
@@ -89,7 +102,9 @@ export default function NotificationToasts() {
     >
       {queue.map((id) => {
         const item = byId.get(id);
+
         if (!item) return null;
+
         return (
           <ToastItem
             key={id}

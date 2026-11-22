@@ -10,6 +10,7 @@ export async function runWithConcurrency<T>(
       const index = nextIndex;
       nextIndex += 1;
       const item = items[index];
+
       if (item === undefined) return;
       await worker(item);
     }

@@ -48,6 +48,7 @@ export function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
   useEffect(() => {
     applyPageFindHighlights(collection.matches, safeIndex);
     scrollMatchIntoView(collection.matches[safeIndex]);
+
     return () => clearPageFindHighlights();
   }, [collection, safeIndex]);
 
@@ -87,6 +88,7 @@ export function FindPanel({ virtualOnly }: { virtualOnly: boolean }) {
         }}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return;
+
           if (event.key === "Enter") {
             event.preventDefault();
             step(event.shiftKey ? -1 : 1);

@@ -48,12 +48,14 @@ function SkipButton({
   useEffect(() => {
     if (!key || hidden) return;
     const task = scheduleTask("timeout", SKIP_AUTO_HIDE_MS, () => setHidden(true));
+
     return () => task.cancel();
   }, [key, hidden]);
 
   useEffect(() => {
     const delta = prevTime.current - timePos;
     prevTime.current = timePos;
+
     if (delta > SKIP_SEEK_BACK_THRESHOLD && key && hidden) setHidden(false);
   }, [timePos, key, hidden]);
 
@@ -69,6 +71,7 @@ function SkipButton({
         title={active.chapter.title}
         onClick={() => {
           onSkip(skip.target);
+
           if (skip.nextEpisode) onFileNext();
         }}
       >

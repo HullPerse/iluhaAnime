@@ -3,23 +3,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useProxyTest } from "@/hooks/proxyTest.hook";
-import { settingsRoute } from "@/routes/__root.defs";
-
-function DiagnosticButton({ probe }: { probe: string | undefined }) {
-  const { t } = useI18n();
-  const navigate = settingsRoute.useNavigate();
-  if (probe === undefined) return null;
-  return (
-    <Button
-      type="button"
-      variant="secondary"
-      className="h-6 px-2 text-xs"
-      onClick={() => navigate({ search: { tab: "diagnostics", probe } })}
-    >
-      {t("settings.proxy.test.diagnostics")}
-    </Button>
-  );
-}
+import { DiagnosticButton } from "./diagnosticButton.proxy";
 
 export function ProxyCheck({
   test,
@@ -44,10 +28,10 @@ export function ProxyCheck({
 }) {
   const { t } = useI18n();
   const { state, running, slow, elapsedSecs, run, cancel, reset } = useProxyTest();
-  const testRef = useRef(test);
+  const testRef = useRef<typeof test>(test);
   const lastResetKeyRef = useRef<string | null>(resetKey);
   const blocked = invalid || disabled;
-  const blockedRef = useRef(blocked);
+  const blockedRef = useRef<boolean>(blocked);
 
   useEffect(() => {
     testRef.current = test;
@@ -68,8 +52,10 @@ export function ProxyCheck({
 
   let status: string | null = null;
   let tone = "text-hint";
+
   if (running) {
     status = t("settings.proxy.test.running", { seconds: elapsedSecs });
+
     if (slow) tone = "text-destructive";
   } else if (state.kind === "ok") {
     status = `${okLabel ?? t("settings.proxy.test.ok")} - ${state.message}`;
@@ -91,8 +77,10 @@ export function ProxyCheck({
           onClick={() => {
             if (running) {
               cancel();
+
               return;
             }
+
             if (blocked) return;
             run(test).catch(() => undefined);
           }}

@@ -32,6 +32,7 @@ export function ColorPicker({
   if (value !== prevValue) {
     setPrevValue(value);
     const next = hexToHsv(value);
+
     if (next) setHsv(next);
   }
 
@@ -44,6 +45,7 @@ export function ColorPicker({
     setEditing(true);
     setInputText(text);
     const parsed = parseColor(text, format);
+
     if (parsed) setHsv(parsed);
   };
 

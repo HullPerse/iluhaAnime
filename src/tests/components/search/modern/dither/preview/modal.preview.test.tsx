@@ -38,8 +38,10 @@ vi.mock("@/components/shared/dither.component", () => {
       lastCanvasScale = scale ?? 0;
       onReady?.();
     }, [src, levels, scale, onReady]);
+
     return <canvas data-testid="preview-canvas" ref={ref} />;
   }
+
   return { default: MockDitherCanvas };
 });
 const IMAGE: UserImage = {
@@ -61,14 +63,21 @@ const UPDATED_FILE: UserImageFile = {
 
 class FakeImage {
   onload: (() => void) | null = null;
+
   onerror: (() => void) | null = null;
+
   crossOrigin = "";
+
   naturalWidth = 4;
+
   naturalHeight = 1;
+
   _src = "";
+
   get src(): string {
     return this._src;
   }
+
   set src(value: string) {
     this._src = value;
     queueMicrotask(() => this.onload?.());
@@ -176,6 +185,7 @@ describe("DitherPreviewModal", () => {
 
   it("holds the canvas render for 200ms after a slider move", () => {
     vi.useFakeTimers();
+
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       const initial = lastCanvasLevels;
@@ -193,6 +203,7 @@ describe("DitherPreviewModal", () => {
   });
   it("holds the canvas scale for 200ms after moving the scale slider", () => {
     vi.useFakeTimers();
+
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       expect(lastCanvasScale).toBe(1);
@@ -239,6 +250,7 @@ describe("DitherPreviewModal", () => {
       getImageData: vi.fn(() => ({ data: red })),
     } as unknown as CanvasRenderingContext2D);
     vi.stubGlobal("Image", FakeImage);
+
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
@@ -274,6 +286,7 @@ describe("DitherPreviewModal", () => {
       getImageData: vi.fn(() => ({ data: red })),
     } as unknown as CanvasRenderingContext2D);
     vi.stubGlobal("Image", FakeImage);
+
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());
@@ -292,6 +305,7 @@ describe("DitherPreviewModal", () => {
     const user = userEvent.setup();
     const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     vi.stubGlobal("Image", FakeImage);
+
     try {
       render(<DitherPreviewModal image={IMAGE} onBack={vi.fn()} onSaved={vi.fn()} />);
       await waitFor(() => expect(lastCanvasSrc).toBeTruthy());

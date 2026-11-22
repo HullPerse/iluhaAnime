@@ -9,6 +9,7 @@ function monogram(title: string): string {
     .map((part) => part.trim())
     .filter((part) => part !== "");
   const letters = parts.slice(0, 2).map((part) => part[0] ?? "");
+
   return letters.join("") || "?";
 }
 
@@ -23,6 +24,7 @@ export default function StudioCover({
 }) {
   const imageProxy = useCardsImageProxy();
   const { src, failed } = useRemoteImageStatus(cover === "" ? null : cover, imageProxy);
+
   if (cover === "") {
     return (
       <span className="cards-studio-letter" aria-hidden>
@@ -30,7 +32,9 @@ export default function StudioCover({
       </span>
     );
   }
+
   const imageSrc = src ?? (failed ? cover : null);
+
   if (imageSrc === null) {
     return (
       <div
@@ -39,6 +43,7 @@ export default function StudioCover({
       />
     );
   }
+
   if (ditherPreset && ditherPreset.id !== "none") {
     return (
       <DitherCanvas
@@ -51,5 +56,6 @@ export default function StudioCover({
       />
     );
   }
+
   return <img src={imageSrc} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />;
 }

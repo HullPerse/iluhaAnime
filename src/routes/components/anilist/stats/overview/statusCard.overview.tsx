@@ -11,6 +11,7 @@ import { StatsCard } from "@/routes/components/anilist/stats/card.stats";
 
 export function StatusCard({ model }: { model: StatsOverviewModel }) {
   const { t, locale } = useI18n();
+
   return (
     <StatsCard title={t("anilist.stats.status")}>
       <RatioChart

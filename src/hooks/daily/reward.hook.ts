@@ -12,7 +12,7 @@ type DailyTranslate = (key: TranslationKey, variables?: TranslationVariables) =>
  * repeat the reward notification.
  */
 export function useDailyRewardNotice(result: DailyResultView | null, t: DailyTranslate): void {
-  const notified = useRef(result !== null);
+  const notified = useRef<boolean>(result !== null);
 
   useEffect(() => {
     if (result === null || result.rewardPackId === null || notified.current) return;

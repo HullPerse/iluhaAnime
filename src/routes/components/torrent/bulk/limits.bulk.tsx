@@ -20,7 +20,9 @@ export function BulkLimitsModal({
   const { t } = useI18n();
   const [download, setDownload] = useState<string>("");
   const [upload, setUpload] = useState<string>("");
+
   if (!open) return null;
+
   return (
     <Modal header={t("torrent.bulk.limits.title")} onClose={onClose} className="w-lg">
       <div className="flex flex-col gap-2 p-1">

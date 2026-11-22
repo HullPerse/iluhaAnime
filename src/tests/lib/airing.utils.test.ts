@@ -146,6 +146,7 @@ describe("anilist/airing", () => {
 
     function makeLists(): AniListCollection[] {
       const now = Math.floor(Date.now() / 1000);
+
       return [
         {
           name: "Watching",
@@ -166,6 +167,7 @@ describe("anilist/airing", () => {
 
     it("dedupes entries shared across lists", () => {
       const shared = makeLists()[0]?.entries[0];
+
       if (!shared) throw new Error("fixture missing");
       const lists: AniListCollection[] = [
         { name: "Watching", entries: [shared] },

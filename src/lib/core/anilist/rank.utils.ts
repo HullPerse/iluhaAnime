@@ -13,5 +13,6 @@ export function suggestionScore(
 
 export function suggestionPoolSize(limit: number): number {
   const wanted = Math.max(1, limit) * RANKING.POOL_FACTOR;
+
   return Math.min(RANKING.POOL_MAX, Math.max(RANKING.POOL_MIN, wanted));
 }

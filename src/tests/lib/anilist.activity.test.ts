@@ -20,8 +20,11 @@ describe("anilist/activity", () => {
   function makeT(): ActivityTranslate {
     return (key) => {
       if (key === "anilist.activity.event.added") return "Added";
+
       if (key === "anilist.activity.event.progress") return "Progress";
+
       if (key === "anilist.activity.event.completed") return "Completed";
+
       return key;
     };
   }
@@ -103,6 +106,7 @@ describe("anilist/activity", () => {
   describe("formatActivityTime", () => {
     it("formats past unix timestamps with a suffix in both locales", () => {
       vi.useFakeTimers();
+
       try {
         vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0));
         const twoHoursAgo = Math.floor(Date.now() / 1000) - 7200;
@@ -208,7 +212,9 @@ describe("anilist/activity", () => {
   describe("selectInitialDayKey", () => {
     function activeMap(keys: string[]): Map<string, DayActivity> {
       const map = new Map<string, DayActivity>();
+
       for (const key of keys) map.set(key, makeDay(1));
+
       return map;
     }
 

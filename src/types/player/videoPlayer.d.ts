@@ -96,7 +96,7 @@ interface StreamSubtitleTrack {
 interface StreamAudioTrack {
   id: string;
   language: string;
-  title?: string;
+  title?: string | null;
   default: boolean;
 }
 

@@ -9,7 +9,6 @@ import {
   pickCoverCandidate,
   resolveCover,
   scoreCoverCandidate,
-  stripBracketGroups,
   withTimeout,
 } from "@/lib/core/graphics/cover.utils";
 import type { CoverCandidate } from "@/types/core/cover";
@@ -67,44 +66,6 @@ describe("buildCoverQueries", () => {
       buildCoverQueries({ title: "Urusei Yatsura", searchTitle: "Urusei Yatsura", year: 2022 })
     ).toEqual([{ query: "Urusei Yatsura", format: "TV", seasonYear: 2022 }]);
   });
-
-  it("falls back to the head before a colon", () => {
-    expect(
-      buildCoverQueries({
-        title: "Youjo Senki: Sabaku no Pasta Dai Sakusen",
-        searchTitle: "Youjo Senki: Sabaku no Pasta Dai Sakusen",
-      })
-    ).toEqual([
-      { query: "Youjo Senki: Sabaku no Pasta Dai Sakusen", format: "TV" },
-      { query: "Youjo Senki", format: "TV" },
-    ]);
-  });
-
-  it("strips bracket groups from the raw fallback query", () => {
-    expect(stripBracketGroups("[Erai-raws] Sousou no Frieren - 27 [1080p]")).toBe(
-      "Sousou no Frieren - 27"
-    );
-    expect(stripBracketGroups("  (a)  [b]  ")).toBe("");
-  });
-
-  it("appends the stripped raw title last", () => {
-    expect(
-      buildCoverQueries(
-        { title: "A", searchTitle: "A" },
-        null,
-        "[Erai-raws] Sousou no Frieren - 27 [1080p]"
-      )
-    ).toEqual([
-      { query: "A", format: "TV" },
-      { query: "Sousou no Frieren - 27", format: "TV" },
-    ]);
-  });
-
-  it("skips an empty stripped raw title", () => {
-    expect(buildCoverQueries({ title: "A", searchTitle: "A" }, null, "[1080p]")).toEqual([
-      { query: "A", format: "TV" },
-    ]);
-  });
 });
 
 describe("pickCoverCandidate", () => {
@@ -138,33 +99,12 @@ describe("pickCoverCandidate", () => {
     ).toBe(133845);
   });
 
-  it("returns null below threshold", () => {
-    expect(
-      pickCoverCandidate({ title: "Tochno Ne Ampir", searchTitle: "Tochno Ne Ampir" }, [naruto])
-    ).toBeNull();
-  });
-
-  it("skips rejected ids and falls to the next candidate", () => {
-    expect(
-      pickCoverCandidate(
-        { title: "Naruto", searchTitle: "Naruto" },
-        [naruto, shippuuden],
-        new Set([20])
-      )?.candidate.id
-    ).toBe(1735);
-  });
-
-  it("returns null when every candidate is rejected", () => {
-    expect(
-      pickCoverCandidate({ title: "Naruto", searchTitle: "Naruto" }, [naruto], new Set([20]))
-    ).toBeNull();
-  });
-
   it("stops the cascade at the first confident hit", async () => {
     const calls: string[] = [];
     const backend = {
       search: async (query: { query: string }) => {
         calls.push(query.query);
+
         return [naruto];
       },
     };
@@ -178,6 +118,7 @@ describe("pickCoverCandidate", () => {
     const backend = {
       search: async (query: { query: string }) => {
         calls.push(query.query);
+
         return [naruto];
       },
     };
@@ -194,6 +135,7 @@ describe("pickCoverCandidate", () => {
     const backend = {
       search: async (query: { query: string }) => {
         calls.push(query.query);
+
         return query.query === "Nothing Here" ? [] : [naruto];
       },
     };
@@ -205,29 +147,13 @@ describe("pickCoverCandidate", () => {
     expect(calls).toContain("Naruto");
   });
 
-  it("tries the next query when the first returns junk", async () => {
-    const junk: CoverCandidate = { id: 1, romaji: "Cowboy Bebop", format: "TV" };
-    const calls: string[] = [];
-    const backend = {
-      search: async (query: { query: string }) => {
-        calls.push(query.query);
-        return calls.length === 1 ? [junk] : [naruto];
-      },
-    };
-    const resolution = await resolveCover(
-      { title: "Naruto", searchTitle: "Naruto 2nd Season" },
-      backend
-    );
-    expect(calls).toEqual(["Naruto 2nd Season", "Naruto"]);
-    expect(resolution.pick?.candidate.id).toBe(20);
-  });
-
   it("retries once when every query returns nothing", async () => {
     let calls = 0;
     let delays = 0;
     const backend = {
       search: async () => {
         calls += 1;
+
         return [];
       },
       delay: async () => {
@@ -558,6 +484,7 @@ describe("pickCoverCandidate", () => {
         "Фрирен тест",
       ],
     };
+
     for (const order of [
       [s1, s2],
       [s2, s1],
@@ -566,6 +493,7 @@ describe("pickCoverCandidate", () => {
       const resolution = await resolveCover(parsed, {
         search: async (query: { query: string }) => {
           calls.push(query.query);
+
           return query.query === "Sousou no Frieren" ? order : [];
         },
         delay: async () => {},

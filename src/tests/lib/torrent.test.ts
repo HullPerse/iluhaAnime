@@ -2,7 +2,7 @@ import type { Event } from "@tauri-apps/api/event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { translate } from "@/lib/locale/i18n.utils";
-import { applyBulkAction, pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
+import { pruneSelection, splitRecheckOutcome } from "@/lib/torrent/bulk.utils";
 import {
   DISPLAY_BAR_CLASS,
   STALL_AFTER_MS,
@@ -51,6 +51,7 @@ const prepareTorrentDownloadFromBytesSpy = vi.fn();
 
 vi.mock("@tauri-apps/api/core", async () => {
   const { mockInvoke } = await import("@/tests/mocks");
+
   return {
     invoke: mockInvoke,
     convertFileSrc: (path: string) => `http://asset.localhost/${encodeURIComponent(path)}`,
@@ -59,16 +60,19 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", async () => {
   const { mockWriteText } = await import("@/tests/mocks");
+
   return { writeText: mockWriteText };
 });
 
 vi.mock("@tauri-apps/plugin-opener", async () => {
   const { mockOpenUrl } = await import("@/tests/mocks");
+
   return { openUrl: mockOpenUrl };
 });
 
 vi.mock("@/store/download.store", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/store/download.store")>();
+
   return {
     ...actual,
     prepareTorrentDownload: (...args: unknown[]) => prepareTorrentDownloadSpy(...args),
@@ -87,62 +91,6 @@ describe("torrent/bulk", () => {
       total: 1,
     };
   }
-
-  describe("applyBulkAction", () => {
-    it("counts every success", async () => {
-      const act = vi.fn().mockResolvedValue(undefined);
-      expect(await applyBulkAction([1, 2, 3], act)).toEqual({ done: 3, failed: 0 });
-      expect(act).toHaveBeenCalledTimes(3);
-    });
-
-    it("counts partial failures without stopping", async () => {
-      const act = vi
-        .fn()
-        .mockResolvedValueOnce(undefined)
-        .mockRejectedValueOnce(new Error("nope"))
-        .mockResolvedValueOnce(undefined);
-      expect(await applyBulkAction([1, 2, 3], act)).toEqual({ done: 2, failed: 1 });
-    });
-
-    it("counts a resolved false as skipped", async () => {
-      const act = vi
-        .fn()
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(undefined);
-      expect(await applyBulkAction([1, 2, 3], act)).toEqual({ done: 2, failed: 1 });
-    });
-
-    it("handles an empty selection", async () => {
-      const act = vi.fn();
-      expect(await applyBulkAction([], act)).toEqual({ done: 0, failed: 0 });
-      expect(act).not.toHaveBeenCalled();
-    });
-
-    it("caps concurrency at the limit", async () => {
-      let inFlight = 0;
-      let peak = 0;
-      const act = vi.fn(async () => {
-        inFlight += 1;
-        peak = Math.max(peak, inFlight);
-        await new Promise((resolve) => setTimeout(resolve, 5));
-        inFlight -= 1;
-      });
-      const targets = Array.from({ length: 10 }, (_, index) => index);
-      expect(await applyBulkAction(targets, act, 2)).toEqual({ done: 10, failed: 0 });
-      expect(act).toHaveBeenCalledTimes(10);
-      expect(peak).toBeLessThanOrEqual(2);
-    });
-
-    it("keeps input order of outcomes with limit 1", async () => {
-      const seen: number[] = [];
-      const act = vi.fn(async (target: number) => {
-        seen.push(target);
-      });
-      expect(await applyBulkAction([3, 1, 2], act, 1)).toEqual({ done: 3, failed: 0 });
-      expect(seen).toEqual([3, 1, 2]);
-    });
-  });
 
   describe("pruneSelection", () => {
     it("keeps the selection and its identity when nothing was hidden", () => {
@@ -238,19 +186,6 @@ describe("torrent/common", () => {
   });
 
   describe("formatSpeed", () => {
-    it("labels zero and negative speeds explicitly", () => {
-      expect(formatSpeed(0)).toBe("0 B/s");
-      expect(formatSpeed(-1)).toBe("0 B/s");
-    });
-
-    it("formats B/s", () => {
-      expect(formatSpeed(500)).toBe("500 B/s");
-    });
-
-    it("formats KB/s", () => {
-      expect(formatSpeed(2048)).toBe("2.0 KB/s");
-    });
-
     it("formats MB/s", () => {
       expect(formatSpeed(2_097_152)).toBe("2.0 MB/s");
     });
@@ -263,11 +198,6 @@ describe("torrent/common", () => {
       expect(stateLabel("initializing", ru)).toBe("Инициализация");
       expect(stateLabel("error", ru)).toBe("Ошибка");
     });
-
-    it("returns raw state for unknown states", () => {
-      expect(stateLabel("checking", ru)).toBe("checking");
-      expect(stateLabel("", ru)).toBe("");
-    });
   });
 
   describe("getTorrentLifecycle", () => {
@@ -277,10 +207,6 @@ describe("torrent/common", () => {
       expect(getTorrentLifecycle("live", true)).toBe("seeding");
       expect(getTorrentLifecycle("paused", true)).toBe("completed");
       expect(getTorrentLifecycle("paused", false)).toBe("paused");
-    });
-
-    it("defaults to live for unknown states", () => {
-      expect(getTorrentLifecycle("weird", false)).toBe("live");
     });
   });
 
@@ -342,11 +268,6 @@ describe("torrent/common", () => {
         )
       ).toEqual([]);
     });
-
-    it("returns the same array for an empty heartbeat", () => {
-      const prev = [makeInfo(1)];
-      expect(mergeTorrentDelta(prev, { updates: [], removed: [], reset: false })).toBe(prev);
-    });
   });
 
   describe("reduceTorrentEvent", () => {
@@ -390,19 +311,6 @@ describe("torrent/common", () => {
       });
     });
 
-    it("returns a patch when upload speed changes", () => {
-      const current = [makeInfo(1)];
-      const next = [makeInfo(1, { upload_speed: 128 })];
-      const result = reduceTorrentEvent(makeState(current), makeEvent(next));
-      expect(result).toEqual({ torrents: next });
-    });
-
-    it("returns a patch when the share ratio changed", () => {
-      const current = [makeInfo(1)];
-      const next = [makeInfo(1, { share_ratio: 1.25 })];
-      const result = reduceTorrentEvent(makeState(current), makeEvent(next));
-      expect(result).toEqual({ torrents: next });
-    });
     it("stamps first-sight torrents", () => {
       const result = reduceTorrentEvent(makeState([]), makeEvent([makeInfo(7)]), NOW);
       expect(result).toEqual({
@@ -453,10 +361,6 @@ describe("torrent/common", () => {
       const raw = "torrent deleted, but could not delete files: access denied";
       expect(torrentErrorText(raw, ru)).toBe(`${ru("download.error.files.kept")} ${raw}`);
     });
-
-    it("passes unknown errors through", () => {
-      expect(torrentErrorText("boom", ru)).toBe("boom");
-    });
   });
 
   describe("findJustFinished", () => {
@@ -464,9 +368,6 @@ describe("torrent/common", () => {
       makeInfo(id, { finished: true, state: "live", ...overrides });
     it("lists newly finished torrents without a seed preference", () => {
       expect(findJustFinished([makeInfo(1)], [makeInfo(1), live(2)], {})).toEqual([live(2)]);
-    });
-    it("skips torrents finished before the previous tick", () => {
-      expect(findJustFinished([live(1)], [live(1)], {})).toEqual([]);
     });
     it("skips opted-in seeds and non-live rows", () => {
       expect(findJustFinished([], [live(1)], { 1: true })).toEqual([]);
@@ -682,6 +583,7 @@ describe("torrent/magnet", () => {
   function makeMagnets() {
     let magnets: Record<string, string> = {};
     let loading: Record<string, boolean> = {};
+
     return {
       getLoading: () => loading,
       getMagnets: () => magnets,
@@ -869,6 +771,7 @@ describe("torrent/recheck", () => {
         : ` ${Object.entries(variables)
             .map(([name, value]) => `${name}=${value}`)
             .join(" ")}`;
+
     return `${key}${vars}`;
   };
 

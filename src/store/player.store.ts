@@ -107,12 +107,16 @@ function readLegacyPlayer(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("playerState"));
+
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
   if (parseError !== null || !isRecord(parsed)) return null;
   const stored = isRecord(parsed.state) ? parsed.state : parsed;
+
   return {
     data: { ...migratePlayerData(stored) },
     schemaVersion: PLAYER_SCHEMA_VERSION,
@@ -122,6 +126,7 @@ function readLegacyPlayer(
 function migratePlayerData(persistedState: unknown): PlayerData {
   if (!isRecord(persistedState)) return { ...DEFAULT_PLAYER_DATA };
   const resolved = resolveWithDefaults(persistedState, { ...DEFAULT_PLAYER_DATA });
+
   return { ...DEFAULT_PLAYER_DATA, ...resolved };
 }
 
@@ -179,6 +184,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     [atoms.timePos, atoms.duration, atoms.durationHint],
     ([timePos, duration, hint]) => {
       const total = (duration as number) > 0 ? (duration as number) : (hint as number);
+
       return total > 0 && timePos === total;
     }
   );
@@ -188,19 +194,29 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     if (!trackSeed) return tracks;
     const { audioTrack, audioTrackKey, subtitleTrack, subtitleTrackKey } = trackSeed;
     const audioId = resolveTrackId(tracks, "audio", audioTrack, audioTrackKey);
-    const subId = resolveTrackId(tracks, "sub", subtitleTrack === "no" ? undefined : subtitleTrack, subtitleTrackKey);
+    const subId = resolveTrackId(
+      tracks,
+      "sub",
+      subtitleTrack === "no" ? undefined : subtitleTrack,
+      subtitleTrackKey
+    );
     const audioExists =
-      audioId !== undefined && tracks.some((track) => track.type === "audio" && track.id === audioId);
+      audioId !== undefined &&
+      tracks.some((track) => track.type === "audio" && track.id === audioId);
     const subExists =
       subId !== undefined && tracks.some((track) => track.type === "sub" && track.id === subId);
+
     return tracks.map((track) => {
       if (track.type === "audio" && audioExists) {
         return { ...track, selected: track.id === audioId };
       }
+
       if (track.type === "sub") {
         if (subtitleTrack === "no") return { ...track, selected: false };
+
         if (subExists) return { ...track, selected: track.id === subId };
       }
+
       return track;
     });
   };
@@ -212,6 +228,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
   const seekReset = new Debouncer(
     () => {
       seekConfirm = 0;
+
       if (atoms.seekTarget.get() !== null) {
         atoms.seekTarget.set(null);
         atoms.seekSettle.set(false);
@@ -225,25 +242,37 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
 
   const nextSeekTarget = (snapshot: PlaybackSnapshot): number | null => {
     const seekTarget = atoms.seekTarget.get();
+
     if (seekTarget === null) {
       seekConfirm = 0;
+
       return null;
     }
+
     const fileChanged = snapshot.path !== atoms.path.get();
+
     if (atoms.seekSettle.get() || fileChanged) {
       seekConfirm = 0;
+
       return null;
     }
+
     const reached = Math.abs(snapshot.timePos - seekTarget) <= SEEK_TARGET_TOLERANCE;
+
     if (!reached) {
       seekConfirm = 0;
+
       return seekTarget;
     }
+
     seekConfirm += 1;
+
     if (seekConfirm >= SEEK_TARGET_CONFIRMATIONS) {
       seekConfirm = 0;
+
       return null;
     }
+
     return seekTarget;
   };
 
@@ -307,7 +336,9 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     },
     settleSeek: () => {
       const target = atoms.seekTarget.get();
+
       if (target === null) return;
+
       if (Math.abs(atoms.timePos.get() - target) <= SEEK_TARGET_TOLERANCE) {
         atoms.seekSettle.set(true);
       }
@@ -317,6 +348,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     setPlaybackSpeed: (speed) => atoms.speed.set(speed),
     markTrackSelected: (kind, id, identity) => {
       trackSeed ??= {};
+
       if (kind === "audio") {
         trackSeed.audioTrack = id === "no" ? undefined : id;
         trackSeed.audioTrackKey = id === "no" ? undefined : identity;
@@ -324,6 +356,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
         trackSeed.subtitleTrack = id;
         trackSeed.subtitleTrackKey = id === "no" ? undefined : identity;
       }
+
       const tracks = atoms.tracks.get();
       atoms.tracks.set(
         tracks.map((track) =>
@@ -355,6 +388,7 @@ export function createPlaybackSignalStore(): PlaybackSignalStore {
     beginStreamRequest: () => {
       const next = streamRequest.get() + 1;
       streamRequest.set(next);
+
       return next;
     },
   };
@@ -368,6 +402,7 @@ export const getPlayerSnapshot = player.snapshot;
 export function subscribePlayer(listener: () => void): () => void {
   return player.subscribeAll(listener);
 }
+
 export const setVolume = player.setVolume;
 export const setEofMode = player.setEofMode;
 export const setHwdec = player.setHwdec;
@@ -383,6 +418,7 @@ export const playbackAtEnd = playback.atEnd;
 export function subscribePlayback(listener: () => void): () => void {
   return playback.subscribeAll(listener);
 }
+
 export const setPlaybackSnapshot = playback.setSnapshot;
 export const setSeekTarget = playback.setSeekTarget;
 export const settleSeek = playback.settleSeek;
@@ -400,5 +436,6 @@ export const beginStreamRequest = playback.beginStreamRequest;
 
 export function effectivePlaybackDuration(): number {
   const live = playbackAtoms.duration.get();
+
   return live > 0 ? live : playbackAtoms.durationHint.get();
 }

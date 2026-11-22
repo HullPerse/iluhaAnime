@@ -35,6 +35,7 @@ function clearSize(element: HTMLElement): void {
 export function useModalResize(element: HTMLElement | null, enabled: boolean): void {
   useEffect(() => {
     if (!element || !enabled) return;
+
     if (typeof ResizeObserver === "undefined" || typeof requestAnimationFrame !== "function") {
       return;
     }
@@ -61,30 +62,39 @@ export function useModalResize(element: HTMLElement | null, enabled: boolean): v
 
     const animateTo = (from: BoxSize, to: BoxSize) => {
       previous = to;
+
       if (!clipped) {
         clipped = true;
         element.style.overflow = "hidden";
       }
+
       const startedAt = performance.now();
       const step = (now: number) => {
         const progress = Math.min(1, (now - startedAt) / MODAL_RESIZE_DURATION);
         const eased = easeInOut(progress);
         element.style.width = `${from.width + (to.width - from.width) * eased}px`;
         element.style.height = `${from.height + (to.height - from.height) * eased}px`;
+
         if (progress < 1) {
           frame = requestAnimationFrame(step);
+
           return;
         }
+
         frame = null;
         clearSize(element);
         const settled = measure(element);
+
         if (!sameSize(to, settled)) {
           animateTo(to, settled);
+
           return;
         }
+
         previous = settled;
         releaseClip();
       };
+
       frame = requestAnimationFrame(step);
     };
 
@@ -98,14 +108,18 @@ export function useModalResize(element: HTMLElement | null, enabled: boolean): v
       if (viewportMoved) {
         stop();
         previous = next;
+
         return;
       }
 
       if (frame !== null) return;
+
       if (sameSize(previous, next)) {
         previous = next;
+
         return;
       }
+
       animateTo(previous, next);
     });
     observer.observe(element);

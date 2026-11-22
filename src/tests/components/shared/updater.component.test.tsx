@@ -11,6 +11,7 @@ const UPDATE = { currentVersion: "5.1.2", version: "5.2.0" } as unknown as Updat
 
 function PassivePromptGate() {
   const overlays = useCell(overlayAtoms.entries);
+
   return overlays.length === 0 ? (
     <Updater update={UPDATE} onClose={() => undefined} />
   ) : (

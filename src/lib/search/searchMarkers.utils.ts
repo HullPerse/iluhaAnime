@@ -10,13 +10,17 @@ const EPISODE_RE = /(^|\s)(?:e(\d{1,4})|ep(?:isode)?\s*(\d{1,4})|第(\d{1,4})話
 
 function firstGroup(match: RegExpMatchArray | null): number | null {
   if (!match) return null;
+
   for (let index = 2; index < match.length; index++) {
     const raw = match[index];
+
     if (raw !== undefined && raw !== "") {
       const value = Number(raw);
+
       if (Number.isInteger(value)) return value;
     }
   }
+
   return null;
 }
 
@@ -25,32 +29,38 @@ function stripFirst(
   pattern: RegExp
 ): { rest: string; removed: string; match: RegExpMatchArray } | null {
   const match = query.match(pattern);
+
   if (!match || match.index === undefined) return null;
   const prefix = match[1] ?? "";
   const start = match.index + prefix.length;
   const end = match.index + match[0].length;
   const removed = query.slice(start, end);
   const rest = `${query.slice(0, start)} ${query.slice(end)}`.replace(/\s+/g, " ").trim();
+
   return { match, removed, rest };
 }
 
 function isFilterValue(query: string, match: RegExpMatchArray | null): boolean {
   if (!match || match.index === undefined) return false;
   const before = query.slice(0, match.index).trimEnd();
+
   return /(?:year|date)\s*(?:~=|>=|<=|!=|=|>|<)\s*$/i.test(before);
 }
 
 export function romanToInt(value: string): number | null {
   const word = value.trim().toUpperCase();
+
   if (!/^[IVXLCDM]+$/.test(word)) return null;
   const table: Record<string, number> = { C: 100, D: 500, I: 1, L: 50, M: 1000, V: 5, X: 10 };
   let total = 0;
   let previous = 0;
+
   for (let index = word.length - 1; index >= 0; index--) {
     const current = table[word[index] ?? ""] ?? 0;
     total = current < previous ? total - current : total + current;
     previous = current;
   }
+
   return total > 0 ? total : null;
 }
 
@@ -64,6 +74,7 @@ export function parseTitleAttributes(query: string): ParsedTitleAttributes {
     year: null,
   };
   const trimmed = query.trim();
+
   if (!trimmed) return empty;
   let rest = trimmed;
   let explicit = false;
@@ -72,6 +83,7 @@ export function parseTitleAttributes(query: string): ParsedTitleAttributes {
 
   const yearFound = stripFirst(rest, YEAR_RE);
   const yearCandidate = yearFound ? firstGroup(yearFound.match) : null;
+
   if (yearFound && yearCandidate !== null && !isFilterValue(rest, yearFound.match)) {
     year = yearCandidate;
     markers.push(yearFound.removed);
@@ -85,6 +97,7 @@ export function parseTitleAttributes(query: string): ParsedTitleAttributes {
     seasonCandidate !== null && seasonCandidate >= 1 && seasonCandidate <= MAX_SEASON
       ? seasonCandidate
       : null;
+
   if (seasonFound && season !== null) {
     markers.push(seasonFound.removed);
     rest = seasonFound.rest;
@@ -94,6 +107,7 @@ export function parseTitleAttributes(query: string): ParsedTitleAttributes {
   const episodeFound = stripFirst(rest, EPISODE_RE);
   const episodeCandidate = episodeFound ? firstGroup(episodeFound.match) : null;
   const episode = episodeCandidate !== null && episodeCandidate >= 0 ? episodeCandidate : null;
+
   if (episodeFound && episode !== null) {
     markers.push(episodeFound.removed);
     rest = episodeFound.rest;

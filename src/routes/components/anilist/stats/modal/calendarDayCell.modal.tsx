@@ -30,6 +30,7 @@ export function CalendarDayCell({
   const mainEntry = cell?.entries[0];
   const extraCount = (cell?.entries.length ?? 0) - 1;
   const tone = calendarTone({ isToday, isWeekend });
+
   return (
     <div
       className={cn(

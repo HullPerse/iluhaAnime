@@ -30,15 +30,19 @@ export async function warmStreamUrl(
   proxyUrl: string | null
 ): Promise<void> {
   const target = url.trim();
+
   if (!supported(target)) return;
   const now = Date.now();
   const key = keyFor(target, proxyUrl);
   const previous = warmedAt.get(key);
+
   if (previous !== undefined && now - previous < TTL_MS) return;
 
   warmedAt.set(key, now);
+
   if (warmedAt.size > MAX_ENTRIES) {
     const oldest = warmedAt.keys().next().value;
+
     if (oldest !== undefined) warmedAt.delete(oldest);
   }
 

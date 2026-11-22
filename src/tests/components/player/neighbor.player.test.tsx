@@ -38,8 +38,10 @@ beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation((command: unknown) => {
     if (command === "player_playlist_entries") return Promise.resolve(liveEntries);
+
     if (command === "get_video_card")
       return Promise.resolve({ path: "thumb.jpg", duration: 65, size: 10 });
+
     return Promise.resolve(undefined);
   });
   patchSettings({ language: "ru", parseTitlesPlayer: false });
@@ -74,6 +76,7 @@ describe("NeighborFileButton", () => {
   it("shows the card on mouse over without a second entries fetch", async () => {
     const { container } = renderButton("next");
     const wrapper = screen.getByRole("button", { name: "Следующий файл" }).parentElement;
+
     if (!wrapper) throw new Error("neighbor button wrapper is missing");
     fireEvent.mouseOver(wrapper);
     await vi.waitFor(() => {

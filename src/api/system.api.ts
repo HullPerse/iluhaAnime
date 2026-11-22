@@ -131,6 +131,7 @@ export class SystemApi {
   async getHostStats(): Promise<HostStats> {
     const stats = await this.call<HostStats>("get_host_stats");
     assertSchema(stats, HostStatsSchema);
+
     return stats;
   }
 
@@ -141,12 +142,14 @@ export class SystemApi {
   async getRemoteImagesStats(): Promise<{ bytes: number; count: number }> {
     const stats = await this.call<{ bytes: number; count: number }>("get_remote_images_stats");
     assertSchema(stats, RemoteImageStatsSchema);
+
     return stats;
   }
 
   async getVideoCacheStats(): Promise<{ hits: number; misses: number }> {
     const stats = await this.call<{ hits: number; misses: number }>("get_video_cache_stats");
     assertSchema(stats, VideoCacheStatsSchema);
+
     return stats;
   }
 
@@ -208,6 +211,7 @@ export class SystemApi {
       error: string | null;
     }>("get_database_status");
     assertSchema(status, DatabaseStatusSchema);
+
     return status;
   }
 
@@ -221,9 +225,13 @@ export class SystemApi {
     options?: NetworkDiagnoseOptions
   ): Promise<NetworkDiagnosis> {
     const args: Record<string, unknown> = { url, proxyUrl };
+
     if (options?.method !== undefined) args.method = options.method;
+
     if (options?.body !== undefined) args.body = options.body;
+
     if (options?.expectedStatus !== undefined) args.expectedStatus = options.expectedStatus;
+
     return this.call("network_diagnose", args);
   }
 }

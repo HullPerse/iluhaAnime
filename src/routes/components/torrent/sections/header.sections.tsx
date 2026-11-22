@@ -75,6 +75,7 @@ export function TorrentHeader({
     if (!editing) return;
     setEditing(false);
     const trimmed = value?.trim() ?? "";
+
     if (trimmed === item.name) return;
     aliasMutation.mutate({
       id: item.id,
@@ -88,8 +89,10 @@ export function TorrentHeader({
       defaultPath: `${item.name}.torrent`,
       filters: [{ name: "Torrent", extensions: ["torrent"] }],
     });
+
     if (!target) return;
     const [, error] = await attempt(torrentApi.exportTorrentFile(item.id, target, item.info_hash));
+
     if (error) showError(t("torrent.export.error"), error.message);
   };
 
@@ -97,6 +100,7 @@ export function TorrentHeader({
     ignore(
       attempt(writeText(value)).then(([, error]) => {
         if (error) showError(label, error.message);
+
         return null;
       })
     );
@@ -121,6 +125,7 @@ export function TorrentHeader({
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.nativeEvent.isComposing) return;
+
               if (event.key === "Enter") commitAlias(draft);
               else if (event.key === "Escape") setEditing(false);
             }}

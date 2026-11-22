@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { Profiler } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { TorrentDiagnosticsSettings } from "@/routes/components/settings/torrent/diagnostics.torrent";
@@ -55,8 +56,14 @@ afterEach(() => {
 describe("TorrentDiagnosticsSettings", () => {
   it("shows the verdict and every stage of a successful check", async () => {
     serve(REPORT);
-    render(<TorrentDiagnosticsSettings />);
+    const commits: string[] = [];
+    render(
+      <Profiler id="torrent-diagnostics" onRender={(_, phase) => commits.push(phase)}>
+        <TorrentDiagnosticsSettings />
+      </Profiler>
+    );
 
+    const button = screen.getByRole("button", { name: "Проверить" });
     runCheck();
 
     expect(await screen.findByText("RuTracker доступен")).not.toBeNull();
@@ -69,6 +76,8 @@ describe("TorrentDiagnosticsSettings", () => {
       url: "https://rutracker.org/forum/index.php",
       proxyUrl: null,
     });
+    expect(screen.getByRole("button", { name: "Проверить снова" })).toBe(button);
+    expect(commits).toEqual(["mount", "update", "update"]);
   });
 
   it("reports an anti-bot challenge as a failure", async () => {

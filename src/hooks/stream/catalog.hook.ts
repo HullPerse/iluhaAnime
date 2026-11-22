@@ -54,6 +54,7 @@ export function useAnilistEpisodePreviews(anilistId: number | null | undefined) 
         .then((episodes) => anilistEpisodePreviews(episodes)),
     enabled: typeof anilistId === "number" && anilistId > 0,
   });
+
   return query.data ?? new Map<number, string>();
 }
 
@@ -83,26 +84,16 @@ export function usePrewarmStreamHistory(ready: boolean): void {
   }, [enabled, queryClient, ready]);
 }
 
-export function useStreamHistoryProgress(animeId: string, enabled: boolean) {
-  return useAppQuery("slow", {
-    queryKey: queryKeys.streamHistoryProgress(animeId),
-    queryFn: () => streamApi.historyProgress(animeId),
-    enabled: enabled && animeId.length > 0,
-  });
-}
-
 /** One request for the visible catalog page instead of one per hovered card. */
 export function useStreamHistoryProgressMap(animeIds: string[]) {
   const idsKey = animeIds.join(",");
-  const ids = useMemo(
-    () => (idsKey.length > 0 ? idsKey.split(",") : []),
-    [idsKey]
-  );
+  const ids = useMemo(() => (idsKey.length > 0 ? idsKey.split(",") : []), [idsKey]);
   const query = useAppQuery("slow", {
     queryKey: queryKeys.streamHistoryProgressMany(idsKey),
     queryFn: () => streamApi.historyProgressMany(ids),
     enabled: ids.length > 0,
   });
   const data = query.data;
+
   return useMemo(() => new Map(data ? Object.entries(data) : []), [data]);
 }

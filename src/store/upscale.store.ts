@@ -25,6 +25,7 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
     paused,
     addConvertItem: (filePath, name, config) => {
       const duplicate = findDuplicate(items.get(), "convert", filePath, config);
+
       if (duplicate) return duplicate.id;
       const id = genId();
       const item: UpscaleQueueItem = {
@@ -38,13 +39,16 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
         progress: 0,
       };
       items.set([...items.get(), item]);
+
       if (!processing.get() && !paused.get()) {
         ignore(handle.processNext());
       }
+
       return id;
     },
     addUpscaleItem: (filePath, name, config) => {
       const duplicate = findDuplicate(items.get(), "upscale", filePath, config);
+
       if (duplicate) return duplicate.id;
       const id = genId();
       const item: UpscaleQueueItem = {
@@ -58,15 +62,18 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
         progress: 0,
       };
       items.set([...items.get(), item]);
+
       if (!processing.get() && !paused.get()) {
         ignore(handle.processNext());
       }
+
       return id;
     },
     clearAll: () => {
       if (processing.get()) {
         invokeTyped("cancel_upscale");
       }
+
       items.set([]);
     },
     clearDone: () => {
@@ -77,13 +84,17 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
     },
     processNext: async () => {
       const current = items.get();
+
       if (processingLock || processing.get() || paused.get()) return;
+
       if (current.some((i) => i.status === "processing")) return;
 
       processingLock = true;
       const next = current.find((i) => i.status === "queued");
+
       if (!next) {
         processingLock = false;
+
         return;
       }
 
@@ -122,22 +133,26 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
           );
         })
       );
+
       if (!error) {
         items.set(
           items.get().map((i) => (i.id === next.id ? { ...i, status: "done", progress: 100 } : i))
         );
+
         if (settingsAtoms.notifyUpscaleDone.get()) {
           const doneKey =
             next.jobType === "upscale" ? "notification.upscale.done" : "notification.convert.done";
           addNotification(tr(doneKey), "success", next.name);
         }
       }
+
       if (error) {
         const msg =
           typeof error.message === "string" && error.message ? error.message : tr("common.error");
         items.set(
           items.get().map((i) => (i.id === next.id ? { ...i, status: "error", error: msg } : i))
         );
+
         if (settingsAtoms.notifyUpscaleDone.get()) {
           const failedKey =
             next.jobType === "upscale"
@@ -146,6 +161,7 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
           addNotification(tr(failedKey), "error", `${next.name}: ${msg}`);
         }
       }
+
       processing.set(false);
       processingLock = false;
       ignore(handle.processNext());
@@ -153,6 +169,7 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
     removeItem: (id) => {
       const item = items.get().find((i) => i.id === id);
       items.set(items.get().filter((i) => i.id !== id));
+
       if (item?.status === "processing") {
         invokeTyped("cancel_upscale").catch((error) =>
           reportBackgroundError("upscale.cancel", error)
@@ -173,10 +190,12 @@ export function createUpscaleSignalStore(): UpscaleSignalStore {
             : i
         )
       );
+
       if (!processing.get() && !paused.get()) ignore(handle.processNext());
     },
     setPaused: (value) => {
       paused.set(value);
+
       if (!value && !processing.get()) ignore(handle.processNext());
     },
   };

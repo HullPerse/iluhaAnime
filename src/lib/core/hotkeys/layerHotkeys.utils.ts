@@ -9,19 +9,23 @@ const LAYER_SELECTOR = [
 
 function isVisible(element: HTMLElement): boolean {
   const rect = element.getBoundingClientRect();
+
   return rect.width > 0 && rect.height > 0;
 }
 
 export function topLayerElement(root: ParentNode = document): HTMLElement | null {
   let top: HTMLElement | null = null;
+
   for (const element of root.querySelectorAll<HTMLElement>(LAYER_SELECTOR)) {
     if (isVisible(element)) top = element;
   }
+
   return top;
 }
 
 export function isInsideLayer(target: EventTarget | null, layer: HTMLElement | null): boolean {
   if (!layer || !(target instanceof HTMLElement)) return false;
+
   return target === layer || layer.contains(target);
 }
 

@@ -8,6 +8,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 vi.mock("@/lib/graphics/image.utils", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/graphics/image.utils")>();
+
   return { ...original, assetUrl: (path: string) => `asset://${path}` };
 });
 
@@ -27,6 +28,7 @@ beforeEach(() => {
   invokeMock.mockImplementation((command: string) => {
     if (command === "get_video_card")
       return Promise.resolve({ path: "thumb.jpg", duration: 10, size: 100 });
+
     return Promise.resolve(undefined);
   });
 });

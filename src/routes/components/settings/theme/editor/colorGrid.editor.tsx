@@ -18,10 +18,12 @@ export function ColorGrid({
   onPick: (key: ThemeColorKey, value: string) => void;
 }) {
   const { t } = useI18n();
+
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
       {THEME_COLOR_KEYS.map(({ key, label }) => {
         const value = colors[key] ?? colors.muted;
+
         return (
           <div
             key={key}

@@ -11,14 +11,18 @@ async function episodeSources(
   session: StreamOpen
 ): Promise<{ sources: StreamSource[]; variantId: string } | null> {
   const [direct] = await attempt(loadSources(episodeId, session.variantId));
+
   if (direct && direct.length > 0) {
     return { sources: direct, variantId: session.variantId };
   }
+
   const [rows] = await attempt(loadPlayers(episodeId));
   const variant = rows ? pickVariant(rows, { variantId: session.variantId }) : null;
+
   if (!variant) return null;
   const variantId = buildVariantId(variant);
   const [sources] = await attempt(loadSources(episodeId, variantId));
+
   return sources && sources.length > 0 ? { sources, variantId } : null;
 }
 
@@ -27,8 +31,10 @@ export async function resolveEpisodeStream(
   episode: StreamingEpisode
 ): Promise<StreamOpen | null> {
   const resolved = await episodeSources(episode.id, session);
+
   if (!resolved) return null;
   const source = pickSource(resolved.sources, session.quality);
+
   if (!source) return null;
 
   return {
@@ -53,6 +59,8 @@ export async function resolveNextStream(session: StreamOpen): Promise<StreamOpen
   const next = episodes
     .filter((episode) => episode.number > session.episodeNumber)
     .sort((left, right) => left.number - right.number)[0];
+
   if (!next) return null;
+
   return resolveEpisodeStream(session, next);
 }

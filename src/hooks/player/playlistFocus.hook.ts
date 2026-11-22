@@ -32,6 +32,7 @@ export function usePlayerPlaylistFocus(
     if (!playlistOpen) return;
     const count = playbackAtoms.playlistCount.get();
     const index = playlistFocus ?? playbackAtoms.playlistIndex.get();
+
     if (index < 0 || index >= count) return;
     ignore(onPlayIndex(index));
   }, [onPlayIndex, playlistFocus, playlistOpen]);

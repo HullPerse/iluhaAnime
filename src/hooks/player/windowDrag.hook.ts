@@ -13,8 +13,11 @@ export function useWindowDrag(enabled: boolean): WindowDragHandlers {
   const onMouseDown = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
       draggedRef.current = false;
+
       if (!enabled) return;
+
       if (event.button !== 0) return;
+
       if (startsOnPlayerControl(event.target)) return;
       originRef.current = { x: event.clientX, y: event.clientY };
     },
@@ -23,7 +26,9 @@ export function useWindowDrag(enabled: boolean): WindowDragHandlers {
 
   const onMouseMove = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     const origin = originRef.current;
+
     if (!origin) return;
+
     if (!shouldStartWindowDrag(origin.x, origin.y, event.clientX, event.clientY)) return;
     originRef.current = null;
     draggedRef.current = true;
@@ -37,6 +42,7 @@ export function useWindowDrag(enabled: boolean): WindowDragHandlers {
   const consumeDrag = useCallback((): boolean => {
     if (!draggedRef.current) return false;
     draggedRef.current = false;
+
     return true;
   }, []);
 

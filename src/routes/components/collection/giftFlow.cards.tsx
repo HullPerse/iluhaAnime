@@ -4,7 +4,7 @@ import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
 import { useI18n } from "@/hooks/i18n.hook";
-import { buildCardGiftLink, cardGiftPreview } from "@/lib/cards/gift.utils";
+import { giftItemLink } from "@/lib/cards/gift.utils";
 import type { CollectionItem } from "@/types/api/cards";
 import { Input } from "@/components/ui/input.component";
 
@@ -34,24 +34,7 @@ export default function GiftFlow({
       },
       {
         onSuccess: (result) => {
-          const lead = result.cards[0];
-          if (!lead) return;
-          setLink(
-            buildCardGiftLink({
-              giftId: result.id,
-              kind: lead.kind,
-              entityId: lead.entityId,
-              preview: cardGiftPreview(lead),
-              cards: result.cards.map((card) => ({
-                rarity: card.rarity,
-                variant: card.variant,
-                copies: card.copies,
-                value: card.value,
-                firstObtainedAt: card.firstObtainedAt,
-                lastObtainedAt: card.lastObtainedAt,
-              })),
-            })
-          );
+          setLink(giftItemLink(result));
         },
       }
     );

@@ -770,6 +770,5 @@
       "keybindId": "player.seekPercent9"
     }
   ],
-  "SEEK_STEP": 5,
-  "VIEW_MODE_DIGITS": [1, 2, 3]
+  "SEEK_STEP": 5
 }

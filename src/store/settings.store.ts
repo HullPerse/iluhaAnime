@@ -30,15 +30,20 @@ function readLegacyMigrated(
   getStorage: () => Storage | undefined
 ): { data: Record<string, unknown>; schemaVersion: number } | null {
   const [storage, storageError] = attemptSync(() => getStorage());
+
   if (storageError !== null || !storage) return null;
   const [raw, readError] = attemptSync(() => storage.getItem("settings"));
+
   if (readError !== null || !raw) return null;
   const [parsed, parseError] = attemptSync((): unknown => JSON.parse(raw));
+
   if (parseError !== null || !isRecord(parsed)) return null;
   const state = isRecord(parsed.state) ? parsed.state : parsed;
   const version = typeof parsed.version === "number" ? parsed.version : 0;
   const [migrated, migrateError] = attemptSync(() => migrateSettingsData(state, version));
+
   if (migrateError !== null) return null;
+
   return { data: { ...migrated }, schemaVersion: SETTINGS_SCHEMA_VERSION };
 }
 
@@ -56,6 +61,7 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
   const data: SettingsData = persisted
     ? migrateSettingsData(persisted.data, persisted.schemaVersion)
     : { ...DEFAULT_SETTINGS, language: "ru" };
+
   if (data.selectedDitherId === DITHER_PLACEHOLDER_ID) data.selectedDitherId = null;
   const mirror: Record<string, unknown> = { ...data };
   const atoms = buildMirrorAtoms(store, data, mirror);
@@ -78,6 +84,7 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
         storage?.removeItem("lobbyConnections");
         storage?.removeItem("sessionIdentity");
       });
+
       if (cleanupError !== null)
         reportBackgroundError("settings.signal.cleanup-lobby", cleanupError);
       applyUiPreferences(state.retroStyle, state.uiDensity, state.cardEffects);
@@ -89,6 +96,7 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
       });
       applyWindowTint(state.windowTintOpacity);
       applyYorhaScanlines(state.yorhaScanlinesEnabled);
+
       if (state.appFont) applyFontFamily(state.appFont);
     },
     patch: (partial) => {
@@ -117,12 +125,15 @@ export function getAnimelibProxyUrl(): string | null {
     settingsAtoms.anilistProxyUrl.get()
   );
 }
+
 export function syncCoverModeWithAnilistAuth(loggedIn: boolean): void {
   if (settingsAtoms.torrentCoverModeManual.get()) return;
   const mode = loggedIn ? "full" : "off";
+
   if (settingsAtoms.torrentCoverMode.get() === mode) return;
   settings.patch({ torrentCoverMode: mode });
 }
+
 export function subscribeSettings(listener: () => void): () => void {
   return settings.subscribeAll(listener);
 }
@@ -144,5 +155,6 @@ applyWindowTint(settingsAtoms.windowTintOpacity.get());
 applyYorhaScanlines(settingsAtoms.yorhaScanlinesEnabled.get());
 {
   const appFont = settingsAtoms.appFont.get();
+
   if (appFont) applyFontFamily(appFont);
 }

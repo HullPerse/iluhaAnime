@@ -46,10 +46,12 @@ export function partialDeleteNote(
   const unfinished = (files ?? []).filter(
     (file) => file.selected && file.size > 0 && !file.completed
   );
+
   if (unfinished.length === 0) return undefined;
   const bytes = unfinished.reduce(
     (sum, file) => sum + (file.on_disk_bytes || file.progress_bytes),
     0
   );
+
   return t("torrent.delete.unfinished", { size: formatBytes(bytes) });
 }

@@ -61,25 +61,33 @@ function NeighborFileButton({
         readPlaylistEntries().then((entries) => {
           if (requestRef.current !== request) return;
           const neighbor = neighborAt(entries, currentPath, playlistIndex, direction);
+
           if (!neighbor) return;
           setEntry(neighbor);
+
           if (!neighbor.filename) return;
           const cached = getCachedCard(neighbor.filename);
+
           if (cached) {
             setArt(cached);
+
             return;
           }
+
           ignore(
             fetchVideoCard(neighbor.filename).then((card) => {
               if (requestRef.current !== request || !card) return null;
               setArt(card);
+
               return null;
             })
           );
+
           return null;
         })
       );
     });
+
     return () => task.cancel();
   }, [open, hasTarget, currentPath, playlistIndex, direction]);
 

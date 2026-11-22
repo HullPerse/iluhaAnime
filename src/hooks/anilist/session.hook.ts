@@ -7,5 +7,6 @@ export function useAnilistSignedIn(): boolean {
     queryKey: queryKeys.anilistSession(),
     queryFn: async () => (await anilistApi.checkAuth()) !== null,
   });
+
   return query.data === true;
 }

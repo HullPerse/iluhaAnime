@@ -23,6 +23,7 @@ export interface ConvertConfig {
 }
 
 type QueueItemStatus = "queued" | "processing" | "done" | "error";
+
 type JobType = "upscale" | "convert";
 
 export interface UpscaleQueueItem {

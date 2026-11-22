@@ -3,10 +3,7 @@ import { useState } from "react";
 import { torrentApi } from "@/api/torrent.api";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
-import {
-  SOURCE_DIAGNOSTIC_PROBE,
-  SOURCE_INFOS,
-} from "@/config/search/searchSources.config";
+import { SOURCE_DIAGNOSTIC_PROBE, SOURCE_INFOS } from "@/config/search/searchSources.config";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { useCell } from "@hullperse/hp_utils/react";
@@ -27,6 +24,7 @@ export function SourceProxySettings() {
 
   const setProxy = (source: string, next: string | null) => {
     const nextProxies = { ...searchProxyUrls };
+
     if (next === null) delete nextProxies[source];
     else nextProxies[source] = next;
     patchSettings({ searchProxyUrls: nextProxies });
@@ -57,6 +55,7 @@ export function SourceProxySettings() {
           <div className="flex flex-col gap-2">
             {sources.map((source) => {
               const current = searchProxyUrls[source.value] ?? null;
+
               return (
                 <ProxyField
                   key={source.value}

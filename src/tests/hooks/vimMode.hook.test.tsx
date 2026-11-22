@@ -28,6 +28,7 @@ const hintableButton = (label: string): HTMLButtonElement => {
   });
   document.body.append(element);
   nodes.push(element);
+
   return element;
 };
 
@@ -66,6 +67,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   resetVimHints();
+
   for (const node of nodes.splice(0)) node.remove();
 });
 

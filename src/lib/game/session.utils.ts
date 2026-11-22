@@ -6,7 +6,7 @@ import type { GameSessionRuntime } from "@/types/core/gameSession";
  * token, and a completion is applied only while that token is still the one the
  * machine is waiting for. Stale completions never become the running session.
  */
-export type GameSessionPhase =
+type GameSessionPhase =
   | { phase: "idle" }
   | { phase: "starting"; token: number }
   | { phase: "running"; token: number; info: GameStartInfo }
@@ -27,6 +27,7 @@ export function beginGameStart(state: GameSessionState): {
   token: number;
 } {
   const token = state.nextToken;
+
   return {
     state: { phase: { phase: "starting", token }, nextToken: token + 1 },
     token,
@@ -39,7 +40,9 @@ export function gameStartSucceeded(
   info: GameStartInfo
 ): GameSessionState {
   const phase = state.phase;
+
   if (phase.phase !== "starting" || phase.token !== token) return state;
+
   return { ...state, phase: { phase: "running", token, info } };
 }
 
@@ -49,7 +52,9 @@ export function gameStartFailed(
   message: string
 ): GameSessionState {
   const phase = state.phase;
+
   if (phase.phase !== "starting" || phase.token !== token) return state;
+
   return { ...state, phase: { phase: "error", token, message } };
 }
 
@@ -59,7 +64,9 @@ export function gameSessionCrashed(
   message: string
 ): GameSessionState {
   const phase = state.phase;
+
   if (phase.phase !== "running" || phase.token !== token) return state;
+
   return { ...state, phase: { phase: "error", token, message } };
 }
 
@@ -72,10 +79,7 @@ export function isGameStartCurrent(state: GameSessionState, token: number): bool
   return state.phase.phase === "starting" && state.phase.token === token;
 }
 
-const STATUS_BY_PHASE: Record<
-  GameSessionPhase["phase"],
-  GameSessionRuntime["status"]
-> = {
+const STATUS_BY_PHASE: Record<GameSessionPhase["phase"], GameSessionRuntime["status"]> = {
   idle: "idle",
   starting: "starting",
   running: "running",
@@ -84,6 +88,7 @@ const STATUS_BY_PHASE: Record<
 
 export function gameRuntimeOf(state: GameSessionState): GameSessionRuntime {
   const phase = state.phase;
+
   return {
     status: STATUS_BY_PHASE[phase.phase],
     info: phase.phase === "running" ? phase.info : null,

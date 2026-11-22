@@ -12,6 +12,7 @@ export function UpscalePreview({
 }) {
   const { t } = useI18n();
   const { frames, loading, error, load } = preview;
+
   return (
     <div className="flex flex-col gap-1">
       <Button onClick={load} loading={loading}>

@@ -78,6 +78,7 @@ export default function ScreenshotToolbar({
       <div role="group" aria-label={t("screenshot.tools")} className={GROUP}>
         {SCREENSHOT_TOOLS.map((value) => {
           const Icon = TOOL_ICONS[value];
+
           return (
             <button
               key={value}

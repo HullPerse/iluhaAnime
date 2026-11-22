@@ -12,6 +12,7 @@ import expectedRows from "@/tests/lib/media/expected.json";
 import fixtureRows from "@/tests/lib/media/fixtures.json";
 
 type Fixture = { id: string; dir: string; file: string };
+
 const fixtures = fixtureRows as Fixture[];
 const expected = expectedRows as Record<string, unknown>[];
 const byId = new Map(expected.map((entry) => [entry.id as string, entry]));
@@ -53,12 +54,15 @@ const FIELD_PICKERS: Record<string, (parsed: MediaFileParse) => unknown> = {
 
 function pickField(parsed: MediaFileParse, key: string): unknown {
   const episodePicker = EPISODE_PICKERS[key];
+
   if (episodePicker) return episodePicker(parsed);
+
   return FIELD_PICKERS[key]?.(parsed);
 }
 
 function pickSidecar(parsed: MediaFileParse, key: string): unknown {
   const sidecar = parsed.sidecar as unknown as Record<string, unknown> | undefined;
+
   return sidecar?.[key];
 }
 
@@ -68,13 +72,16 @@ describe("parseMediaFile corpus fixtures", () => {
       const wanted = byId.get(fixture.id);
       expect(wanted, `missing expected row for ${fixture.id}`).toBeDefined();
       const parsed = parseMediaFile(fixture.dir, fixture.file);
+
       for (const [key, value] of Object.entries(wanted ?? {})) {
         if (key === "id" || key === "x" || key === "sidecar") continue;
         expect(pickField(parsed, key), `${fixture.id}.${key}`).toEqual(value ?? undefined);
       }
+
       const sidecar = (wanted as Record<string, unknown>)?.sidecar as
         | Record<string, unknown>
         | undefined;
+
       if (sidecar) {
         for (const [key, value] of Object.entries(sidecar)) {
           expect(pickSidecar(parsed, key), `${fixture.id}.sidecar.${key}`).toEqual(value);

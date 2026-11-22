@@ -85,27 +85,33 @@ async function fetchPage(page: number): Promise<Media[]> {
       },
       body: JSON.stringify({ query: QUERY, variables: { page } }),
     });
+
     if (response.status === 429) {
       const reset = Number(response.headers.get("x-ratelimit-reset"));
       const untilReset = Number.isFinite(reset) ? reset * 1000 - Date.now() : 0;
       await sleep(Math.min(60_000, Math.max(5_000, untilReset, 5_000 * (attempt + 1))));
       continue;
     }
+
     if (!response.ok) throw new Error(`AniList page ${page}: HTTP ${response.status}`);
     const payload = (await response.json()) as {
       data?: { Page?: { media?: Media[] } };
       errors?: { message: string }[];
     };
+
     if (payload.errors?.length) {
       throw new Error(`AniList page ${page}: ${payload.errors[0]?.message ?? "unknown error"}`);
     }
+
     return payload.data?.Page?.media ?? [];
   }
+
   throw new Error(`AniList page ${page}: rate limited`);
 }
 
 function spread<T>(items: T[], count: number): T[] {
   if (items.length <= count) return items;
+
   return Array.from(
     { length: count },
     (_, index) => items[Math.floor((index * items.length) / count)]
@@ -132,9 +138,11 @@ function toEntry(media: Media, tier: Entry["tier"]): Entry {
 
 async function main(): Promise<void> {
   const media: Media[] = [];
+
   for (let page = 1; page <= PAGES; page += 1) {
     media.push(...(await fetchPage(page)));
     log(`[daily-pool] page ${page}/${PAGES}`);
+
     if (page < PAGES) await sleep(REQUEST_DELAY_MS);
   }
 
@@ -144,6 +152,7 @@ async function main(): Promise<void> {
       item.title.romaji !== null &&
       item.genres.every((genre) => genre.toLowerCase() !== "hentai")
   );
+
   if (eligible.length < POOL_SIZE + 200) {
     throw new Error(
       `only ${eligible.length} eligible titles, expected at least ${POOL_SIZE + 200}`
@@ -155,6 +164,7 @@ async function main(): Promise<void> {
   const hard = spread(eligible.slice(480, 1600), HARD_COUNT);
   const seen = new Set<number>();
   const entries: Entry[] = [];
+
   for (const [tier, list] of [
     ["easy", easy],
     ["medium", medium],
@@ -172,6 +182,7 @@ async function main(): Promise<void> {
     medium: entries.filter((entry) => entry.tier === "medium").length,
     hard: entries.filter((entry) => entry.tier === "hard").length,
   };
+
   if (entries.length !== POOL_SIZE) {
     throw new Error(
       `pool has ${entries.length} entries, expected ${POOL_SIZE}: ${JSON.stringify(counts)}`

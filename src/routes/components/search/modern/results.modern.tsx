@@ -40,6 +40,7 @@ export default function ModernResults({ controller }: { controller: SearchQueryC
   } = controller;
   const openLink = useCallback(async (item: Anime) => {
     const [, error] = await attempt(openUrl(item.link));
+
     if (error) console.warn("openUrl failed", error);
   }, []);
   const openDetails = useCallback(

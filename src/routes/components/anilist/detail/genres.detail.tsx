@@ -19,6 +19,7 @@ export function GenresTagsSection({
   onClose?: () => void;
 }) {
   const { t } = useI18n();
+
   return (
     <Section header={t("anilist.details.genres.tags")} className="bg-field flex flex-wrap gap-1">
       {genres.map((g) => (

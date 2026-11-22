@@ -1,4 +1,3 @@
-
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
@@ -22,8 +21,10 @@ interface EvalSet {
 function argument(name: string): string | undefined {
   const prefix = `--${name}=`;
   const inline = process.argv.find((entry) => entry.startsWith(prefix));
+
   if (inline) return inline.slice(prefix.length);
   const index = process.argv.indexOf(`--${name}`);
+
   return index !== -1 ? process.argv[index + 1] : undefined;
 }
 
@@ -53,6 +54,7 @@ const animeRows = db
 const animeIndex: SearchAnimeSuggestion[] = animeRows.map((row, index) => {
   const metadata = JSON.parse(row.metadata_json || "{}") as Record<string, unknown>;
   const rawId = Number(metadata.animeId ?? row.id.replace("anime:", ""));
+
   return {
     aliases: Array.isArray(metadata.aliases) ? (metadata.aliases as string[]) : [],
     favourite: Boolean(metadata.favourite),
@@ -129,6 +131,7 @@ function rankQuery(params: Params, query: string, expected: Set<string>): number
       const stat = maps.suggestionStats[key];
       const counters = stat ? countersOf(stat) : null;
       let bonus = 0;
+
       if (counters) {
         const capped = (value: number, weight: number, cap: number) =>
           Math.min(cap, Math.max(0, value) * weight);
@@ -139,6 +142,7 @@ function rankQuery(params: Params, query: string, expected: Set<string>): number
         const ageHours = Math.max(0, (now - counters.lastUsedAt) / 3_600_000);
         bonus = (positive - negative) * 0.5 ** (ageHours / params.halflifeHours);
       }
+
       return { ...suggestion, score: suggestion.score + bonus };
     })
     .sort(
@@ -148,6 +152,7 @@ function rankQuery(params: Params, query: string, expected: Set<string>): number
         left.value.localeCompare(right.value)
     )
     .slice(0, limit);
+
   return reranked.findIndex((suggestion) => expected.has(normalizeSearchText(suggestion.value))) + 1;
 }
 
@@ -155,17 +160,21 @@ function rankWith(params: Params): Metric {
   let top1 = 0;
   let mrr = 0;
   let found = 0;
+
   for (const entry of evalSet.queries) {
     const expected = new Set(
       [entry.expectedTitle, ...(entry.expectedAliases ?? [])].map(normalizeSearchText)
     );
     const rank = rankQuery(params, entry.query, expected);
+
     if (rank > 0) {
       found += 1;
       mrr += 1 / rank;
+
       if (rank === 1) top1 += 1;
     }
   }
+
   return { top1: top1 / evalSet.queries.length, mrr: mrr / evalSet.queries.length, found: found / evalSet.queries.length };
 }
 
@@ -193,8 +202,10 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
   let steps = 0;
   let improved = true;
   const startMs = performance.now();
+
   while (improved && steps < 80) {
     improved = false;
+
     for (const key of Object.keys(current) as (keyof Params)[]) {
       for (const delta of [-step[key], step[key]]) {
         const next = { ...current };
@@ -203,6 +214,7 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
         const better =
           metric.mrr > currentMetric.mrr + 1e-9 ||
           (Math.abs(metric.mrr - currentMetric.mrr) <= 1e-9 && metric.top1 > currentMetric.top1);
+
         if (better) {
           current = next;
           currentMetric = metric;
@@ -212,6 +224,7 @@ function hillClimb(start: Params): { params: Params; metric: Metric; steps: numb
       }
     }
   }
+
   return { params: current, metric: currentMetric, steps, ms: performance.now() - startMs };
 }
 
@@ -239,6 +252,7 @@ if (result.metric.top1 > baseline.top1 + 1e-6 || result.metric.mrr > baseline.mr
 if (!jsonOnly) {
   console.log("");
   console.log("Per-query comparison:");
+
   for (const entry of evalSet.queries) {
     const expected = new Set(
       [entry.expectedTitle, ...(entry.expectedAliases ?? [])].map(normalizeSearchText)

@@ -8,6 +8,7 @@ import type { AniActivity } from "@/types/anilist/anilist";
 
 export function ActivityLikeButton({ activity }: { activity: AniActivity }) {
   const toggleLike = useToggleActivityLike();
+
   return (
     <Button
       size="icon"

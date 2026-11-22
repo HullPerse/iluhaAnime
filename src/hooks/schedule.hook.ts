@@ -28,8 +28,10 @@ export function useDayNightScheduler(): void {
 
   useLayoutEffect(() => {
     const scheduled = scheduledThemeName(getSettingsSnapshot().themeSchedule, nowMinutesOf());
+
     if (!scheduled || applied.current.theme === scheduled.frame) return;
     applied.current.theme = scheduled.frame;
+
     if (isKnownTheme(scheduled.name)) setTheme(scheduled.name);
   }, []);
 
@@ -39,17 +41,20 @@ export function useDayNightScheduler(): void {
     collectKeys: () => ["daynight-schedule"],
     shouldFetch: () => {
       const settings = getSettingsSnapshot();
+
       return settings.speedSchedule.enabled || settings.themeSchedule.enabled;
     },
     fetch: async () => {
       const settings = getSettingsSnapshot();
       const now = nowMinutesOf();
+
       if (settings.speedSchedule.enabled) {
         const frame = dayNightFrame(
           settings.speedSchedule.dayStart,
           settings.speedSchedule.nightStart,
           now
         );
+
         if (applied.current.speed !== frame) {
           applied.current.speed = frame;
           const limits =
@@ -70,15 +75,19 @@ export function useDayNightScheduler(): void {
       } else {
         applied.current.speed = null;
       }
+
       const scheduled = scheduledThemeName(settings.themeSchedule, now);
+
       if (scheduled) {
         if (applied.current.theme !== scheduled.frame) {
           applied.current.theme = scheduled.frame;
+
           if (isKnownTheme(scheduled.name)) setTheme(scheduled.name);
         }
       } else {
         applied.current.theme = null;
       }
+
       return true;
     },
   });

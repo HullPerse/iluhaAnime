@@ -36,9 +36,12 @@ export function StreamStats({
   useEffect(() => {
     const onDown = (event: MouseEvent) => {
       const target = event.target;
+
       if (ref.current && target instanceof Node && !ref.current.contains(target)) onClose();
     };
+
     document.addEventListener("mousedown", onDown);
+
     return () => document.removeEventListener("mousedown", onDown);
   }, [onClose]);
 

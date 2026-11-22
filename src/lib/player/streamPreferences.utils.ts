@@ -23,10 +23,13 @@ export function rememberStreamPrefs(
         );
       })()
     );
+
     if (failure) reportBackgroundError("player.stream.prefs", failure);
   };
+
   const next = (pending.get(key) ?? Promise.resolve()).then(run);
   pending.set(key, next);
+
   return next.finally(() => {
     if (pending.get(key) === next) pending.delete(key);
   });

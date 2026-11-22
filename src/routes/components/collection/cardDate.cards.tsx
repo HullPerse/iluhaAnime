@@ -5,7 +5,9 @@ export default function CardDate({ timestamp }: { timestamp: number }) {
   const { locale } = useI18n();
   const relative = formatCardRelativeDate(timestamp, locale);
   const exact = formatCardDate(timestamp, locale);
+
   if (relative === "" || exact === "") return <span>-</span>;
+
   return (
     <time
       dateTime={new Date(timestamp * 1000).toISOString()}

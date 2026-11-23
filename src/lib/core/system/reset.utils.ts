@@ -100,6 +100,7 @@ const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)
     "buttonPressEffect",
     "customScrollbar",
     "cardImageFill",
+    "scrollFade",
     "modalBackdropOpacity",
   ],
   "theme.animation": [

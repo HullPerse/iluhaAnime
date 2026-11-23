@@ -398,6 +398,7 @@ export default function SettingsTheme() {
           <EffectsCheckbox label={t("settings.theme.button.press")} field="buttonPressEffect" />
           <EffectsCheckbox label={t("settings.theme.scrollbar")} field="customScrollbar" />
           <EffectsCheckbox label={t("settings.theme.effects.cards.fill")} field="cardImageFill" />
+          <EffectsCheckbox label={t("settings.theme.effects.scrollFade")} field="scrollFade" />
           <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 min-[560px]:grid-cols-[140px_1fr]">
             <span className="windows95-text text-text text-xs font-bold">
               {t("settings.theme.effects.cards")}

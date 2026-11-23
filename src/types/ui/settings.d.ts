@@ -66,6 +66,7 @@ export interface SettingsStore {
   enableAnimations: boolean;
   cardEffects: "off" | "subtle" | "full";
   cardImageFill: boolean;
+  scrollFade: boolean;
   modalBackdropOpacity: number;
   modalCloseOnOutsideClick: boolean;
   animateCounters: boolean;

@@ -16,6 +16,10 @@ beforeAll(async () => {
 });
 
 describe("settings signal migration", () => {
+  it("defaults scroll fade off and preserves the saved choice", () => {
+    expect(settings.migrateSettingsData({}, 63).scrollFade).toBe(false);
+    expect(settings.migrateSettingsData({ scrollFade: true }, 63).scrollFade).toBe(true);
+  });
   it("copies the old daily proxy into the opening setting during migration", () => {
     const result = settings.migrateSettingsData({ dailyProxyUrl: "http://127.0.0.1:7890" }, 62);
     expect(result.dailyProxyUrl).toBe("http://127.0.0.1:7890");

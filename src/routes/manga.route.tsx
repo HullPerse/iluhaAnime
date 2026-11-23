@@ -42,7 +42,7 @@ export default function MangaRoute() {
       <section
         aria-labelledby="manga-heading"
         data-scroll-root
-        className="windows95-border bg-primary min-h-0 min-w-0 flex-1 scrollbar-gutter-stable overflow-auto p-1"
+        className="windows95-border bg-primary scroll-edge-fade min-h-0 min-w-0 flex-1 scrollbar-gutter-stable overflow-auto p-1"
       >
         {active === "search" && <MangaSearch />}
         {active === "sources" && <MangaSources />}

@@ -3,6 +3,7 @@
     "anilistMaxPages": 3,
     "cardEffects": "full",
     "cardImageFill": false,
+    "scrollFade": false,
     "collectionGroupHeaderStyle": "torrent",
     "defaultDownloadDir": null,
     "maxConcurrentDownloads": 3,

@@ -245,7 +245,7 @@ export default function AlbumCards() {
       />
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 [scrollbar-gutter:stable] overflow-x-clip overflow-y-auto p-2"
+        className="scroll-edge-fade min-h-0 flex-1 [scrollbar-gutter:stable] overflow-x-clip overflow-y-auto p-2"
       >
         <AlbumBody
           mode={mode}

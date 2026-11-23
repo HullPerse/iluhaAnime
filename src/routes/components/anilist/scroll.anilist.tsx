@@ -89,7 +89,7 @@ export default function AniListScrollView({
       ref={parentRef}
       data-scroll-root
       data-virtual-list
-      className="windows95-border bg-field flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border p-1"
+      className="scroll-edge-fade windows95-border bg-field flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border p-1"
     >
       <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {

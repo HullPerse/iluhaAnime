@@ -83,7 +83,7 @@ export function TranslationList({
         </p>
       )}
       <div
-        className="min-h-0 flex-1 scrollbar-gutter-stable overflow-y-auto overscroll-contain"
+        className="scroll-edge-fade min-h-0 flex-1 scrollbar-gutter-stable overflow-y-auto overscroll-contain"
         data-chapter-scroll
       >
         {" "}

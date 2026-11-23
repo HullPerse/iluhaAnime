@@ -147,7 +147,7 @@ export default function StreamResults({
         ref={scrollRef}
         data-scroll-root
         aria-label={query ? t("stream.searchResults") : t("stream.popular")}
-        className="windows95-border bg-field min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border p-1"
+        className="windows95-border bg-field scroll-edge-fade min-h-0 w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto border p-1"
       >
         <div
           ref={gridRef}

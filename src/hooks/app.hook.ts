@@ -97,6 +97,7 @@ export function useApp() {
   const enableAnimations = useCell(settingsAtoms.enableAnimations);
   const retroStyle = useCell(settingsAtoms.retroStyle);
   const uiDensity = useCell(settingsAtoms.uiDensity);
+  const scrollFade = useCell(settingsAtoms.scrollFade);
   const customScrollbar = useCell(settingsAtoms.customScrollbar);
   const anilistReleaseNotifications = useCell(settingsAtoms.anilistReleaseNotifications);
   const anilistPollIntervalMin = useCell(settingsAtoms.anilistPollIntervalMin);
@@ -149,9 +150,10 @@ export function useApp() {
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("no-animations", !enableAnimations);
+    root.classList.toggle("scroll-fade-enabled", scrollFade);
     root.dataset.retroStyle = retroStyle;
     root.dataset.uiDensity = uiDensity;
-  }, [enableAnimations, retroStyle, uiDensity]);
+  }, [enableAnimations, retroStyle, uiDensity, scrollFade]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("native-scrollbar", !customScrollbar);

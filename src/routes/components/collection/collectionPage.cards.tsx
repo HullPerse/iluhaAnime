@@ -59,7 +59,7 @@ export default function CollectionPageCards({
     <div
       ref={binderRef}
       data-testid="anime-collection-page"
-      className="flex min-h-0 [scrollbar-gutter:stable] flex-col overflow-x-clip overflow-y-auto"
+      className="scroll-edge-fade flex min-h-0 [scrollbar-gutter:stable] flex-col overflow-x-clip overflow-y-auto"
     >
       <div className="ui-toolbar shrink-0">
         <Button className="h-6 px-2 text-xs" onClick={onBack}>

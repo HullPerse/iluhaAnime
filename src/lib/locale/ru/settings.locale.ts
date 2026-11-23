@@ -218,6 +218,7 @@ const settings = {
   "settings.theme.edit.title": "Редактировать тему",
   "settings.theme.effects": "Визуальные эффекты",
   "settings.theme.effects.cards": "Эффекты карт",
+  "settings.theme.effects.scrollFade": "????????? ????? ???????",
   "settings.theme.effects.cards.fill": "Заполнять арт карточки",
   "settings.theme.effects.cards.full": "Полные",
   "settings.theme.effects.cards.subtle": "Сдержанные",

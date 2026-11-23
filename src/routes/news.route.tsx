@@ -76,7 +76,7 @@ export default function NewsRoute() {
           {feed.isFetching ? t("news.refreshing") : t("news.refresh")}
         </Button>
       </div>
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div ref={scrollRef} className="scroll-edge-fade min-h-0 flex-1 overflow-y-auto p-2">
         {body}
         {errorText !== null && items.length > 0 && (
           <div className="windows95-text text-destructive px-1 py-1" role="alert">

@@ -97,8 +97,8 @@ function FranchiseGraphSection({
   }, [animeId]);
 
   const filtered = useMemo(
-    () => (data ? filterGraph(data, activeFilters) : null),
-    [data, activeFilters]
+    () => (data ? filterGraph(data, activeFilters, !listView) : null),
+    [data, activeFilters, listView]
   );
 
   const relationMap = useMemo(
@@ -123,7 +123,7 @@ function FranchiseGraphSection({
       data
         ? data.nodes.filter(
             (node) =>
-              node.id === data.root_id || node.media_type === "ANIME" || node.media_type == null
+              node.id === data.root_id || node.media_type === data.nodes.find((root) => root.id === data.root_id)?.media_type || node.media_type == null
           )
         : [],
     [data]

@@ -6,9 +6,11 @@ import type {
   RelationFilter,
 } from "@/types/anilist/anilist";
 
-export function filterGraph(graph: FranchiseGraph, filters: Set<RelationFilter>): FilteredGraph {
+export function filterGraph(graph: FranchiseGraph, filters: Set<RelationFilter>, includeAdaptations = false): FilteredGraph {
+  const mediaType = graph.nodes.find((node) => node.id === graph.root_id)?.media_type ?? "ANIME";
+  const adaptations = includeAdaptations;
   const filteredEdges = graph.edges.filter((e) =>
-    [...filters].some((g) => FILTER_GROUPS[g].includes(e.relation_type))
+    (adaptations && e.relation_type === "ADAPTATION") || [...filters].some((g) => FILTER_GROUPS[g].includes(e.relation_type))
   );
   const ids = new Set<number>([graph.root_id]);
   filteredEdges.forEach((e) => {
@@ -20,7 +22,7 @@ export function filterGraph(graph: FranchiseGraph, filters: Set<RelationFilter>)
       .filter(
         (n) =>
           ids.has(n.id) &&
-          (n.id === graph.root_id || n.media_type === "ANIME" || n.media_type == null)
+          (n.id === graph.root_id || n.media_type === mediaType || n.media_type == null || (adaptations && (n.media_type === "ANIME" || n.media_type === "MANGA")))
       )
       .map((n) => [n.id, n])
   );

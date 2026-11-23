@@ -1,3 +1,5 @@
+import { anilistMangaMode } from "@/store/anilistManga.store";
+import { mangaListStatuses } from "@/config/manga/tracking.config";
 import { useEffect, useMemo, useState } from "react";
 
 import { isChangelogLocaleLoaded, loadChangelogLocale, translate } from "@/lib/locale/i18n.utils";
@@ -28,12 +30,27 @@ export function useChangelogLocale(): boolean {
 
 export function useI18n() {
   const locale = useCell(settingsAtoms.language);
+  const manga = useCell(anilistMangaMode);
 
   return useMemo(
     () => ({
       locale,
-      t: (key: TranslationKey, variables?: TranslationVariables) => translate(key, variables),
+      t: (key: TranslationKey, variables?: TranslationVariables) => {
+        if (manga && key.startsWith("anilist.list.status.")) {
+          const status = mangaListStatuses.find(([id]) => key.endsWith(id));
+
+          if (status) return translate(status[1], variables);
+        }
+
+        if (manga && key === "anilist.route.search.placeholder") return translate("manga.search.query", variables);
+
+        if (manga && key === "anilist.header.anime.count") return `${variables?.count ?? 0} манги, ${variables?.episodes ?? 0} гл.`;
+
+        if (manga && key === "anilist.details.eps.short") return "гл.";
+
+        return translate(key, variables);
+      },
     }),
-    [locale]
+    [locale, manga]
   );
 }

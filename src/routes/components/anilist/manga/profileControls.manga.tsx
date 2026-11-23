@@ -1,3 +1,4 @@
+import AniListListsRow from "@/routes/components/anilist/lists.anilist";
 import { mangaListStatuses } from "@/config/manga/tracking.config";
 import { useCell } from "@hullperse/hp_utils/react";
 import { Button } from "@/components/ui/button.component";
@@ -43,13 +44,13 @@ export function ProfileControls({
         </Button>
       ))}
       {!isSearching && active === "lists" && (
-        <Select
-          aria-label={t("manga.library.status")}
-          value={status}
+        <AniListListsRow
+          label={t("manga.library.status")}
+          activeTab={status}
           onChange={(id) => listStatus.set(id)}
-          options={[
-            { value: "", label: t("manga.library.all") },
-            ...mangaListStatuses.map(([id, label]) => ({ value: id, label: t(label) })),
+          tabs={[
+            { id: "", label: t("manga.library.all") },
+            ...mangaListStatuses.map(([id, label]) => ({ id, label: t(label) })),
           ]}
         />
       )}

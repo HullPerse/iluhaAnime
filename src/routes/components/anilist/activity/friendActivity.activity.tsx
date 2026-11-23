@@ -1,3 +1,5 @@
+import { useCell } from "@hullperse/hp_utils/react";
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { anilistApi } from "@/api/anilist.api";
 import { SmallLoader } from "@/components/shared/loader/small.loader";
 import { FRIEND_ACTIVITY_LIMIT } from "@/config/anilist/friendActivity.config";
@@ -8,11 +10,12 @@ import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { FriendActivityRow } from "./friendActivity/row.friendActivity";
 
 export function FriendActivityFeed({ friendId }: { friendId: number }) {
+  const manga = useCell(anilistMangaMode);
   const { t } = useI18n();
   const { data, isLoading } = useAppQuery("slow", {
-    queryKey: queryKeys.activity([friendId]),
-    queryFn: () => anilistApi.getActivity([friendId]),
-    placeholderData: (previous) => previous,
+    queryKey: [...queryKeys.activity([friendId]), manga],
+    queryFn: () => anilistApi.getActivity([friendId], manga ? "MANGA" : "ANIME"),
+
   });
 
   if (isLoading) return <SmallLoader size={3} />;

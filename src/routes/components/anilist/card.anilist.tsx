@@ -18,11 +18,16 @@ import { StatusDot } from "@/routes/components/anilist/card/statusDot.card";
 import { MyScoreBadge } from "@/routes/components/anilist/card/myScoreBadge.card";
 import { CardProgressBlock } from "@/routes/components/anilist/card/cardProgressBlock.card";
 
+function cardTotal(item: Props["item"]) {
+  return item.media_type === "MANGA" ? item.chapters : item.episodes;
+}
+
 function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick }: Props) {
   const { t } = useI18n();
   const { cardMeta } = useThemeComponents();
   const shortMeta = cardMeta === "short";
   const entry = entryLookup.get(item.id);
+  const total = cardTotal(item);
   const format = parseScoreFormat(scoreFormat);
   const override = useProgressOverride(item.id);
   const progress = override?.progress ?? entry?.progress ?? null;
@@ -88,9 +93,9 @@ function AniListEntryCard({ item, entryLookup, isFavorite, scoreFormat, onClick 
               {t(toLocaleKey(statusLabels[item.status.toUpperCase()] ?? item.status))}
             </span>
             <CardProgressBlock item={item} entry={entry} progress={progress} />
-            {!entry && item.episodes && (
+            {!entry && total && (
               <span className="text-text text-xs">
-                {item.episodes} {t("anilist.details.eps.short")}
+                {total} {t("anilist.details.eps.short")}
               </span>
             )}
 
@@ -116,6 +121,10 @@ export default memo(AniListEntryCard, (prev, next) => {
   if (prev.item.score !== next.item.score) return false;
 
   if (prev.item.episodes !== next.item.episodes) return false;
+
+  if (prev.item.chapters !== next.item.chapters) return false;
+
+  if (prev.item.media_type !== next.item.media_type) return false;
 
   if (prev.item.next_episode !== next.item.next_episode) return false;
 

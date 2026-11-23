@@ -1,4 +1,4 @@
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { act, render, screen, cleanup, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
@@ -12,6 +12,7 @@ const TABS = [
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 describe("Tabs", () => {
@@ -171,4 +172,26 @@ describe("Tabs", () => {
     fireEvent.keyDown(screen.getByRole("tab", { name: "Three" }), { key: "Home" });
     expect(onChange).toHaveBeenLastCalledWith("two");
   });
+});
+
+it("requires a 250ms hold before dragging a main tab", () => {
+  vi.useFakeTimers();
+  const onReorder = vi.fn();
+  render(<Tabs tabs={TABS} activeTab="one" onChange={vi.fn()} onReorder={onReorder} />);
+  fireEvent.mouseDown(screen.getByRole("tab", { name: "One" }), { button: 0, clientX: 10, clientY: 10 });
+  act(() => vi.advanceTimersByTime(249));
+  expect(screen.getAllByText("One")).toHaveLength(1);
+  act(() => vi.advanceTimersByTime(1));
+  expect(screen.getAllByText("One")).toHaveLength(2);
+  fireEvent.mouseUp(document);
+  act(() => vi.advanceTimersByTime(100));
+});
+
+it("keeps ordinary clicks as navigation when reordering is enabled", () => {
+  const onChange = vi.fn();
+  const onReorder = vi.fn();
+  render(<Tabs tabs={TABS} activeTab="one" onChange={onChange} onReorder={onReorder} />);
+  fireEvent.click(screen.getByRole("tab", { name: "Two" }));
+  expect(onChange).toHaveBeenCalledWith("two");
+  expect(onReorder).not.toHaveBeenCalled();
 });

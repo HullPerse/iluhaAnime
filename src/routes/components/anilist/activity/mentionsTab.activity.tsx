@@ -1,3 +1,5 @@
+import { useCell } from "@hullperse/hp_utils/react";
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
@@ -22,6 +24,7 @@ export function MentionsTab({
   friendIds: number[];
   onAnimeClick: (id: number) => void;
 }) {
+  const manga = useCell(anilistMangaMode);
   const { t } = useI18n();
   const [includeFriends, setIncludeFriends] = useState<boolean>(false);
   const activityUserIds = useMemo(() => {
@@ -31,10 +34,10 @@ export function MentionsTab({
   }, [friendIds, includeFriends, userId]);
 
   const { data, isLoading, isError, error, refetch } = useAppQuery("slow", {
-    queryKey: queryKeys.activity(activityUserIds),
-    queryFn: () => anilistApi.getActivity(activityUserIds),
+    queryKey: [...queryKeys.activity(activityUserIds), manga],
+    queryFn: () => anilistApi.getActivity(activityUserIds, manga ? "MANGA" : "ANIME"),
     enabled: userId > 0,
-    placeholderData: (previous) => previous,
+
   });
 
   const mentions = useMemo(

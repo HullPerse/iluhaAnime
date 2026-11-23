@@ -177,8 +177,8 @@ export class AnilistApi {
     return lists;
   }
 
-  async getStatistics(userId: number): Promise<AniListStatistics> {
-    const statistics = await this.call<AniListStatistics>("get_anilist_statistics", { userId });
+  async getStatistics(userId: number, mediaType?: AniMediaType): Promise<AniListStatistics> {
+    const statistics = await this.call<AniListStatistics>("get_anilist_statistics", { userId, mediaType });
     assertSchema(statistics, AniListStatisticsSchema);
 
     return statistics;
@@ -452,9 +452,10 @@ export class AnilistApi {
     return state;
   }
 
-  async getProfileRecommendations(userId: number): Promise<AniRecommendation[]> {
+  async getProfileRecommendations(userId: number, mediaType?: AniMediaType): Promise<AniRecommendation[]> {
     const recommendations = await this.call<AniRecommendation[]>("get_profile_recommendations", {
       userId,
+      mediaType,
     });
     assertSchema(recommendations, AniRecommendationListSchema);
 

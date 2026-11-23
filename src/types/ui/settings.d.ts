@@ -132,6 +132,7 @@ export interface SettingsStore {
   anilistGroupByStatus: boolean;
   anilistCollapsedLists: string[];
   anilistDisplayMode: "scroll" | "pagination";
+  mainTabOrder: TabId[];
   collectionTabEnabled: boolean;
   anilistTabEnabled: boolean;
   searchTabEnabled: boolean;
@@ -286,7 +287,7 @@ export type SettingsDefaults = Omit<
   | "patch"
 >;
 
-export type TabSettings = Pick<
+export type TabSettings = { mainTabOrder?: TabId[] } & Pick<
   SettingsStore,
   | "collectionTabEnabled"
   | "anilistTabEnabled"

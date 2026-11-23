@@ -361,6 +361,14 @@ fn is_anime_media(media_type: Option<&str>) -> bool {
     matches!(media_type, None | Some("ANIME" | "MOVIE" | "OVA" | "ONA"))
 }
 
+fn matches_franchise_media(manga: bool, media_type: Option<&str>) -> bool {
+    if manga {
+        media_type == Some("MANGA")
+    } else {
+        is_anime_media(media_type)
+    }
+}
+
 fn franchise_relation_rank(rel_type: &str) -> u8 {
     match rel_type {
         "SEQUEL" | "PREQUEL" => 0,
@@ -418,7 +426,12 @@ fn parse_franchise_media(m: &serde_json::Value) -> FranchiseNode {
             .unwrap_or("Unknown")
             .to_string(),
         cover_url: m["coverImage"]["medium"].as_str().map(String::from),
-        episodes: m["episodes"].as_i64().map(|n| n as i32),
+        episodes: if m["type"].as_str() == Some("MANGA") {
+            m["chapters"].as_i64()
+        } else {
+            m["episodes"].as_i64()
+        }
+        .map(|n| n as i32),
         score: m["averageScore"].as_i64().map(|n| n as i32),
         format: m["format"].as_str().map(String::from),
         media_type: m["type"].as_str().map(String::from),
@@ -465,7 +478,7 @@ fn parse_franchise_targets(
 const FRANCHISE_BATCH_QUERY_TEMPLATE: &str = r"
     query ($ids: [Int], $page: Int, $perPage: Int) {
         Page(page: $page, perPage: $perPage) {
-            media(id_in: $ids, type: ANIME) {
+            media(id_in: $ids) {
                 {SELECTION}
             }
         }
@@ -589,6 +602,7 @@ pub async fn get_anime_franchise(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<FranchiseGraph, String> {
+    let mut root_is_manga = false;
     let bypass_cache = scope == "fresh";
     load_franchise_cache(&app_handle);
 
@@ -684,14 +698,25 @@ pub async fn get_anime_franchise(
                 break;
             }
             let node_id = data.node.id;
+            if node_id == id {
+                root_is_manga = data.node.media_type.as_deref() == Some("MANGA");
+            }
+            let adaptation_leaf =
+                !matches_franchise_media(root_is_manga, data.node.media_type.as_deref());
             if node_ids.insert(node_id) {
                 nodes.push(data.node);
+            }
+            if adaptation_leaf {
+                continue;
             }
 
             let depth = depths.get(&node_id).copied().unwrap_or(0);
             if usize::from(depth) < MAX_FRANCHISE_DEPTH {
                 for (target_id, rel_type, media_type, _year) in data.targets {
-                    if !is_anime_media(media_type.as_deref()) {
+                    if !matches_franchise_media(root_is_manga, media_type.as_deref())
+                        && !(rel_type == "ADAPTATION"
+                            && matches!(media_type.as_deref(), Some("ANIME" | "MANGA")))
+                    {
                         continue;
                     }
                     let rank = franchise_relation_rank(&rel_type);
@@ -1255,6 +1280,15 @@ mod tests {
 
     #[test]
     fn franchise_batch_query_uses_id_in_and_is_bounded() {
+        assert!(!franchise_batch_query_text().contains("type: ANIME"));
+        assert!(matches_franchise_media(true, Some("MANGA")));
+        assert!(!matches_franchise_media(true, Some("ANIME")));
+        assert!(matches_franchise_media(false, Some("ANIME")));
+        assert!(!matches_franchise_media(false, Some("MANGA")));
+        let manga = parse_franchise_media(
+            &serde_json::json!({ "id": 1, "type": "MANGA", "chapters": 42, "episodes": null }),
+        );
+        assert_eq!(manga.episodes, Some(42));
         let body = franchise_query_body(&[10, 20, 30]);
         let query = body["query"].as_str().unwrap();
         assert!(query.contains("media(id_in: $ids"));

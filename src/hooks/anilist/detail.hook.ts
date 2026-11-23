@@ -1,3 +1,4 @@
+import { anilistMangaMode, trackedManga } from "@/store/anilistManga.store";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { buildEntryLookup } from "@/lib/anilist/entries.utils";
@@ -8,6 +9,8 @@ import type { AniListAnime, AniListCollection } from "@/types/anilist/anilist";
 
 export function useAnilistDetail(lists: AniListCollection[]) {
   const target = useCell(deeplinkAtoms.target);
+  const manga = useCell(anilistMangaMode);
+  const tracked = useCell(trackedManga);
   const [selectedAnime, setSelectedAnime] = useState<AniListAnime>(null);
   const [animeHistory, setAnimeHistory] = useState<AniListAnime[]>([]);
   const [detailFromFilters, setDetailFromFilters] = useState<boolean>(false);
@@ -50,6 +53,16 @@ export function useAnilistDetail(lists: AniListCollection[]) {
     showDetail({ animeId: target.id, listEntry: entryLookup.get(target.id) }, false);
     consumeDeepLink();
   }, [target, entryLookup, showDetail]);
+
+  useEffect(() => {
+    setSelectedAnime(null);
+    setAnimeHistory([]);
+  }, [manga]);
+  useEffect(() => {
+    if (!tracked) return;
+    showDetail({ animeId: tracked.id, listEntry: entryLookup.get(tracked.id) }, false);
+    trackedManga.set(null);
+  }, [tracked, entryLookup, showDetail]);
 
   return {
     detailFromFilters,

@@ -1,3 +1,4 @@
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { useCell } from "@hullperse/hp_utils/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -46,6 +47,7 @@ export default function StatsModal({
   onClose: () => void;
   detail: ActivityDetailBundle;
 }) {
+  const manga = useCell(anilistMangaMode);
   const { t, locale } = useI18n();
   const now = useMemo(() => new Date(), []);
   const [tab, setTab] = useState<StatsTab>("overview");
@@ -172,7 +174,7 @@ export default function StatsModal({
         dayTitle != null || drillTitle != null ? "w-3xl" : calendarModalWidth(tab, calendarView)
       }
     >
-      <TabButtons tab={tab} onTab={setTab} />
+      <TabButtons tab={tab} onTab={setTab} manga={manga} />
       <StatsModalContent
         tab={tab}
         drill={drill}

@@ -89,6 +89,7 @@ export function useApp() {
   const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
   const mangaTabEnabled = useCell(settingsAtoms.mangaTabEnabled);
   const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
+  const mainTabOrder = useCell(settingsAtoms.mainTabOrder);
   const gameTabUnlocked = useCell(settingsAtoms.gameTabUnlocked);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
   const urlTab = tabIdFromPath(pathname) ?? "search";
@@ -113,6 +114,7 @@ export function useApp() {
           mangaTabEnabled,
           newsTabEnabled,
           gameTabUnlocked,
+          mainTabOrder,
         }).map((tab) => ({
           ...tab,
           label: t(tab.key),
@@ -127,6 +129,7 @@ export function useApp() {
       collectionTabEnabled,
       gameTabUnlocked,
       isOnline,
+      mainTabOrder,
       mangaTabEnabled,
       newsTabEnabled,
       playerTabEnabled,
@@ -198,6 +201,7 @@ export function useApp() {
     mangaTabEnabled,
     newsTabEnabled,
     gameTabUnlocked,
+    mainTabOrder,
   }).map((tab, index) => ({
     id: tab.id,
     chord: `alt+Digit${index + 1}`,

@@ -8,12 +8,14 @@ export default function MangaStatusRow({
   dragLabel,
   dragDisabled,
   editing,
+  plain = false,
   children,
 }: {
   id: string;
   dragLabel: string;
   dragDisabled: boolean;
   editing: boolean;
+  plain?: boolean;
   children: ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
@@ -30,8 +32,9 @@ export default function MangaStatusRow({
       }}
       aria-current={editing || undefined}
       className={cn(
-        "windows95-border relative flex items-center gap-1 p-1",
-        editing ? "bg-secondary text-title-text" : "bg-field",
+        "relative flex items-center gap-1",
+        !plain && "windows95-border p-1",
+        !plain && (editing ? "bg-secondary text-title-text" : "bg-field"),
         isDragging && "opacity-40",
         isOver && !isDragging && "outline-highlight outline-2 -outline-offset-2"
       )}
@@ -42,7 +45,7 @@ export default function MangaStatusRow({
         disabled={dragDisabled}
         aria-label={dragLabel}
         title={dragLabel}
-        className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-50"
+        className={cn("flex shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-50", plain ? "text-hint h-4 w-4" : "size-6")}
         {...attributes}
         {...listeners}
       >

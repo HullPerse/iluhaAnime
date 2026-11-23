@@ -14,13 +14,15 @@ export function CardProgressBlock({
 }) {
   if (entry?.progress == null || progress == null) return null;
 
-  if (typeof item.episodes === "number" && item.episodes > 0) {
+  const total = item.media_type === "MANGA" ? item.chapters : item.episodes;
+
+  if (typeof total === "number" && total > 0) {
     return (
       <div className="flex items-center gap-1">
-        <ProgressStepper media={item} entry={entry} progress={progress} />
-        <ProgressBar value={progress} max={item.episodes} className="h-3.5 w-20" slots />
+        <ProgressStepper media={{ ...item, episodes: total }} entry={entry} progress={progress} />
+        <ProgressBar value={progress} max={total} className="h-3.5 w-20" slots />
         <span className="windows95-text text-xs">
-          {progress}/{item.episodes}
+          {progress}/{total}
         </span>
       </div>
     );

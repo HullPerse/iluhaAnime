@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { anilistApi } from "@/api/anilist.api";
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
@@ -16,6 +17,17 @@ export function useAnilistFavouriteToggle(): (animeId: number) => Promise<void> 
     async (animeId: number) => {
       if (pendingRef.current.has(animeId)) return;
       pendingRef.current.add(animeId);
+
+      if (anilistMangaMode.get()) {
+        const [, error] = await attempt(anilistApi.toggleMangaFavourite(animeId));
+        pendingRef.current.delete(animeId);
+
+        if (error) addNotification(tr("anilist.fav.toggle.failed"), "error", error.message);
+        else await queryClient.invalidateQueries({ queryKey: queryKeys.anilistData() });
+
+        return;
+      }
+
       const previous = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
       const wasFavourite = previous?.favourites.some((item) => item.id === animeId) ?? false;
 

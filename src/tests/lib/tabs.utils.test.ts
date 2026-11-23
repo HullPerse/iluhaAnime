@@ -10,6 +10,7 @@ import { patchSettings } from "@/store/settings.store";
 
 beforeEach(() => {
   patchSettings({
+    mainTabOrder: [],
     collectionTabEnabled: true,
     anilistTabEnabled: true,
     searchTabEnabled: true,
@@ -24,6 +25,7 @@ beforeEach(() => {
 
 afterEach(() => {
   patchSettings({
+    mainTabOrder: [],
     collectionTabEnabled: true,
     anilistTabEnabled: true,
     searchTabEnabled: true,
@@ -37,6 +39,16 @@ afterEach(() => {
 });
 
 describe("tabs visibility", () => {
+  it("uses saved order for navigation and keeps unmentioned tabs", () => {
+    patchSettings({ mainTabOrder: ["settings", "anilist", "settings"] });
+    expect(enabledTabPaths().slice(0, 3)).toEqual(["/settings", "/anilist", "/"]);
+    expect(firstEnabledTabPath()).toBe("/settings");
+    expect(enabledTabPaths().filter((path) => path === "/settings")).toHaveLength(1);
+    patchSettings({ anilistTabEnabled: false });
+    expect(enabledTabPaths()).not.toContain("/anilist");
+    patchSettings({ anilistTabEnabled: true });
+    expect(enabledTabPaths()[1]).toBe("/anilist");
+  });
   it("lists every enabled tab path by default", () => {
     expect(enabledTabPaths()).toEqual([
       "/",
@@ -51,10 +63,10 @@ describe("tabs visibility", () => {
   });
 
   it("drops a tab disabled in settings", () => {
-    patchSettings({ torrentTabEnabled: false });
+    patchSettings({ anilistTabEnabled: false });
 
-    expect(enabledTabPaths()).not.toContain("/torrent");
-    expect(isEnabledTabPath("/torrent")).toBe(false);
+    expect(enabledTabPaths()).not.toContain("/anilist");
+    expect(isEnabledTabPath("/anilist")).toBe(false);
     expect(isEnabledTabPath("/player")).toBe(true);
   });
 
@@ -69,10 +81,10 @@ describe("tabs visibility", () => {
     expect(isEnabledTabPath("/player-window")).toBe(true);
   });
 
-  it("falls back through the visible order when early tabs are disabled", () => {
+  it("keeps required tabs visible despite legacy disabled flags", () => {
     patchSettings({ searchTabEnabled: false, torrentTabEnabled: false });
 
-    expect(firstEnabledTabPath()).toBe("/player");
+    expect(firstEnabledTabPath()).toBe("/");
   });
 
   it("keeps settings as the always-visible tab", () => {
@@ -86,8 +98,8 @@ describe("tabs visibility", () => {
       newsTabEnabled: false,
     });
 
-    expect(enabledTabPaths()).toEqual(["/settings"]);
-    expect(firstEnabledTabPath()).toBe("/settings");
+    expect(enabledTabPaths()).toEqual(["/", "/torrent", "/player", "/settings"]);
+    expect(firstEnabledTabPath()).toBe("/");
   });
 
   it("hides the game tab until the secret unlocks it", () => {

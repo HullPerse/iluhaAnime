@@ -580,3 +580,11 @@ describe("AniListCard short meta", () => {
     expect(screen.getByText("20/28")).toBeTruthy();
   });
 });
+
+ it("renders manga chapter progress through the shared AniList card", () => {
+  render(<QueryClientProvider client={new QueryClient()}><AniListCard
+    item={makeMedia({ media_type: "MANGA", chapters: 100, episodes: null })}
+    entryLookup={makeLookup(null)} isFavorite={false} onClick={vi.fn()} />
+  </QueryClientProvider>);
+  expect(screen.getByText("20/100")).toBeTruthy();
+ });

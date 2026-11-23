@@ -1,3 +1,5 @@
+import { useCell } from "@hullperse/hp_utils/react";
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { Dices, Star } from "lucide-react";
 import { useState } from "react";
 
@@ -42,6 +44,7 @@ function FiltersModal({
   detail,
 }: AniListFiltersModalProps) {
   const { t } = useI18n();
+  const manga = useCell(anilistMangaMode);
   const [local, setLocal] = useState<AniListFilters>(filters);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [genreSelect, setGenreSelect] = useState<string>("");
@@ -207,7 +210,7 @@ function FiltersModal({
             onChange={(v) => setLocal((p) => ({ ...p, format: v }))}
             className="flex flex-wrap gap-1"
           >
-            {FORMATS.map((f) => (
+            {(manga ? ["MANGA", "ONE_SHOT", "NOVEL"] : FORMATS).map((f) => (
               <label
                 key={f}
                 className="windows95-text flex cursor-pointer items-center gap-1 select-none"

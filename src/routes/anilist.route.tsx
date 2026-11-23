@@ -56,7 +56,7 @@ import AniListDetailModalHost from "@/routes/components/anilist/detail/host.deta
 import GlobalSearchFooter from "@/routes/components/anilist/globalSearchFooter.anilist";
 import { useFriendAnilistData } from "@/routes/components/anilist/friend/data.friend";
 import AniListGlobalSortBar from "@/routes/components/anilist/globalSortBar.anilist";
-import AniListMangaProfile from "@/routes/components/anilist/mangaProfile.anilist";
+
 import AniListProfileSections from "@/routes/components/anilist/profileSections.anilist";
 import AniListResultsHost from "@/routes/components/anilist/resultsHost.anilist";
 import AniListSearchToolbar from "@/routes/components/anilist/searchToolbar.anilist";
@@ -82,12 +82,13 @@ function AnilistRoute() {
   const suggestionStats = useCell(searchAtoms.suggestionStats);
 
   const [currentList, setCurrentList] = useState<string>("");
+  useEffect(() => setCurrentList(ALL_LISTS_ID), [mangaMode]);
   const { views, handleOpenModal, handleCloseModal, handleOpenActivity, handleCloseActivity } =
     useAnilistModals();
   const [viewedFriend, setViewedFriend] = useState<AniFriend | null>(null);
 
-  const self = useUserAnilistData();
-  const friendData = useFriendAnilistData(viewedFriend);
+  const self = useUserAnilistData({ manga: mangaMode });
+  const friendData = useFriendAnilistData(viewedFriend, mangaMode);
 
   const user = self.user;
   const lists = self.lists;
@@ -95,11 +96,11 @@ function AnilistRoute() {
   const { recs, recsLoading } = useProfileRecs(user, views.recs);
 
   useEffect(() => {
-    if (user) prefetchAnilistStatistics(queryClient, user.id);
-  }, [queryClient, user]);
+    if (user && !mangaMode) prefetchAnilistStatistics(queryClient, user.id);
+  }, [mangaMode, queryClient, user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || mangaMode) return;
     anilistApi.syncFranchiseToIndex().catch((error: unknown) => {
       reportBackgroundError("franchise.sync", error);
 
@@ -110,7 +111,7 @@ function AnilistRoute() {
           error instanceof Error ? error.message : String(error)
         );
     });
-  }, [t, user]);
+  }, [mangaMode, t, user]);
 
   const {
     people,
@@ -408,14 +409,14 @@ function AnilistRoute() {
   const localFilterSignature = useMemo(() => JSON.stringify(localFilter), [localFilter]);
   const sourceKey = useMemo(
     () =>
-      `${buildAnilistSourceKey({
+      `${mangaMode}|${buildAnilistSourceKey({
         currentList,
         sort,
         searchTerms: deferredSearchTerms,
         global,
         filters: searchFilters,
       })}|${localFilterSignature}`,
-    [currentList, sort, deferredSearchTerms, global, searchFilters, localFilterSignature]
+    [mangaMode, currentList, sort, deferredSearchTerms, global, searchFilters, localFilterSignature]
   );
   const [pageSourceKey, setPageSourceKey] = useState<string>(sourceKey);
   const pageForKey = pageSourceKey === sourceKey ? page : 1;
@@ -464,7 +465,7 @@ function AnilistRoute() {
   }, [setSearchTerms]);
 
   const friendState = resolveFriendState(viewedFriend, friendData.isLoading, friendData.isError);
-  const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isLoading;
+  const headerLoading = source.mode === "friend" ? friendState === "loading" : self.isListLoading;
 
   const detailBundle: ActivityDetailBundle = {
     entryLookup,
@@ -482,8 +483,6 @@ function AnilistRoute() {
     onSeason: handleSeason,
     onSaved: handleDetailsSaved,
   };
-
-  if (mangaMode) return <AniListMangaProfile user={user} friends={friends} />;
 
   return (
     <div className="flex h-full w-full flex-col gap-1">

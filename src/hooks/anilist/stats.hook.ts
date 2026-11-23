@@ -1,3 +1,5 @@
+import { useCell } from "@hullperse/hp_utils/react";
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { useCallback } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -24,10 +26,11 @@ export function prefetchAnilistStatistics(queryClient: QueryClient, userId: numb
 }
 
 export function useAnilistStatistics(userId: number | null) {
+  const manga = useCell(anilistMangaMode);
   const query = useAppQuery<AniListStatistics>("slow", {
-    queryKey: queryKeys.anilistStatistics(userId),
+    queryKey: [...queryKeys.anilistStatistics(userId), manga],
     enabled: userId != null,
-    queryFn: () => anilistApi.getStatistics(userId ?? 0),
+    queryFn: () => anilistApi.getStatistics(userId ?? 0, manga ? "MANGA" : "ANIME"),
   });
   const retry = useCallback(() => {
     ignore(query.refetch());

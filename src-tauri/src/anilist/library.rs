@@ -434,13 +434,14 @@ const RECOMMENDATION_SEED_QUERY: &str = r"
 pub async fn get_profile_recommendations(
     app_handle: tauri::AppHandle,
     user_id: u64,
+    media_type: Option<super::media::AniMediaType>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<AniRecommendation>, String> {
     let token = load_token(&app_handle)?;
 
     let list_body = serde_json::json!({
-        "query": RECOMMENDATION_SEED_QUERY,
+        "query": if matches!(media_type, Some(super::media::AniMediaType::Manga)) { RECOMMENDATION_SEED_QUERY.replace("type: ANIME", "type: MANGA") } else { RECOMMENDATION_SEED_QUERY.to_string() },
         "variables": { "userId": user_id }
     });
     let proxy = resolve_proxy(proxy_url, proxyUrl);
@@ -477,7 +478,7 @@ pub async fn get_profile_recommendations(
         "query": r"
             query ($ids: [Int]) {
                 Page(page: 1, perPage: 50) {
-                    media(id_in: $ids, type: ANIME) {
+                    media(id_in: $ids) {
                         recommendations(page: 1, perPage: 10, sort: RATING_DESC) {
                             nodes {
                                 mediaRecommendation {
@@ -545,7 +546,7 @@ pub async fn get_anime_recommendations(
     let body = serde_json::json!({
         "query": r"
             query ($id: Int) {
-                Media(id: $id, type: ANIME) {
+                Media(id: $id) {
                     recommendations(page: 1, perPage: 25, sort: RATING_DESC) {
                         nodes {
                             mediaRecommendation {
@@ -892,7 +893,7 @@ pub async fn get_anime_characters(
     let body = serde_json::json!({
         "query": r"
             query ($id: Int, $page: Int) {
-                Media(id: $id, type: ANIME) {
+                Media(id: $id) {
                     characters(page: $page, perPage: 25) {
                         edges {
                             role
@@ -1138,7 +1139,7 @@ pub async fn get_anime_staff(
     let body = serde_json::json!({
         "query": r"
             query ($id: Int) {
-                Media(id: $id, type: ANIME) {
+                Media(id: $id) {
                     staff {
                         edges {
                             role
@@ -1179,7 +1180,7 @@ fn parse_anime_staff_edges(edges: &[serde_json::Value]) -> Vec<AniAnimeStaffEdge
 
 const ANIME_FULL_QUERY_TEMPLATE: &str = r"
             query ($id: Int) {
-                Media(id: $id, type: ANIME) {
+                Media(id: $id) {
                     {SELECTION}
                     characters(page: 1, perPage: 25) {
                         edges {

@@ -35,7 +35,7 @@ export function ProgressStepper({
   entry,
   progress,
 }: {
-  media: Pick<AniMedia, "id" | "episodes">;
+  media: Pick<AniMedia, "id" | "episodes" | "media_type">;
   entry: EntryListInfo;
   progress: number;
 }) {
@@ -105,6 +105,7 @@ export function ProgressStepper({
     const [saved, error] = await attempt(
       anilistApi.saveEntry({
         mediaId: media.id,
+        mediaType: media.media_type ?? undefined,
         status: nextStatus,
         progress: target,
         score: live.score,
@@ -169,7 +170,7 @@ export function ProgressStepper({
     }
 
     if (superseded) debouncer.maybeExecute();
-  }, [debouncer, media.id, media.episodes, queryClient, t, clearSaved]);
+  }, [debouncer, media.id, media.episodes, media.media_type, queryClient, t, clearSaved]);
 
   useEffect(() => {
     taskBox.current = () => {

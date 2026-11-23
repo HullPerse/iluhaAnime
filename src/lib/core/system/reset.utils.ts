@@ -18,6 +18,7 @@ function toResettableSettings(
 
 const SECTION_SETTING_KEYS: Record<ResetSectionId, readonly (keyof SettingsData)[]> = {
   "general.tabs": [
+    "mainTabOrder",
     "newsTabEnabled",
     "streamTabEnabled",
     "mangaTabEnabled",

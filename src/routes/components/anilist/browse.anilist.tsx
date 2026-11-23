@@ -1,3 +1,5 @@
+import { useCell } from "@hullperse/hp_utils/react";
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -45,6 +47,7 @@ export default function BrowseAnimeModal({
   detail: ActivityDetailBundle;
 }) {
   const { t } = useI18n();
+  const manga = useCell(anilistMangaMode);
   const [activeTab, setActiveTab] = useState<BrowseTab>("popular");
   const [detailId, setDetailId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -53,16 +56,16 @@ export default function BrowseAnimeModal({
   const prefetchedRef = useRef<BrowseTab[]>([]);
 
   const { data = [], isLoading } = useAppQuery("slow", {
-    queryKey: queryKeys.anilistBrowse(activeTab),
+    queryKey: [...queryKeys.anilistBrowse(activeTab), manga],
     queryFn: () =>
-      anilistApi.search({
+      anilistApi.search({ mediaType: manga ? "MANGA" : "ANIME",
         query: null,
         sort: BROWSE_SORT_MAP[activeTab],
         adult: false,
         perPage: BROWSE_PAGE_SIZE,
         maxPages: 1,
       }),
-    placeholderData: (previous) => previous,
+
   });
 
   useEffect(() => {
@@ -72,9 +75,9 @@ export default function BrowseAnimeModal({
 
       for (const tab of others) {
         queryClient.prefetchQuery({
-          queryKey: queryKeys.anilistBrowse(tab.id),
+          queryKey: [...queryKeys.anilistBrowse(tab.id), manga],
           queryFn: () =>
-            anilistApi.search({
+            anilistApi.search({ mediaType: manga ? "MANGA" : "ANIME",
               query: null,
               sort: BROWSE_SORT_MAP[tab.id],
               adult: false,
@@ -105,7 +108,7 @@ export default function BrowseAnimeModal({
 
       prefetchedRef.current = [];
     };
-  }, [activeTab, queryClient]);
+  }, [activeTab, manga, queryClient]);
 
   const { total, from, to, lastPage } = usePagination(data.length, BROWSE_PAGE_SIZE, page, setPage);
 

@@ -1,3 +1,4 @@
+import { reorderMainTabs } from "@/lib/ui/tabs.utils";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -202,6 +203,7 @@ export default function App() {
                 activeTab={activeTab}
                 onChange={goToTab}
                 onPrefetch={prefetchTab}
+                onReorder={reorderMainTabs}
               />
               <NotificationTray />
             </div>

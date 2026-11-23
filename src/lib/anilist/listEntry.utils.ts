@@ -1,3 +1,4 @@
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { isValidFuzzyDateInput } from "@/lib/anilist/entries.utils";
@@ -49,7 +50,7 @@ export const patchListEntry = (
   const clean = Object.fromEntries(
     Object.entries(patch).filter(([, value]) => value !== undefined)
   );
-  queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) => {
+  queryClient.setQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old) => {
     if (!old) return old;
 
     return {
@@ -65,7 +66,7 @@ export const patchListEntry = (
 };
 
 export const readListStatus = (queryClient: QueryClient, mediaId: number): string | null => {
-  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
+  const data = queryClient.getQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()));
 
   if (!data) return null;
 
@@ -109,7 +110,7 @@ export const insertListEntry = (
     hidden_from_status_lists: draft.hidden_from_status_lists ?? null,
     custom_lists: draft.custom_lists,
   };
-  queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) => {
+  queryClient.setQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old) => {
     if (!old) return old;
 
     if (old.lists.some((list) => list.entries.some((item) => item.media.id === media.id))) {
@@ -168,7 +169,7 @@ export const reconcileSavedEntry = (
 };
 
 export const removeListEntry = (queryClient: QueryClient, mediaId: number): void => {
-  queryClient.setQueryData<AnilistRouteData>(queryKeys.anilistData(), (old) => {
+  queryClient.setQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old) => {
     if (!old) return old;
 
     return {

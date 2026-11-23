@@ -1,3 +1,4 @@
+import MainTabsSettings from "@/routes/components/settings/mainTabs.settings";
 import { useState } from "react";
 
 import { systemApi } from "@/api/system.api";
@@ -25,11 +26,6 @@ export default function SettingsGeneral() {
   const parseTitlesSearch = useCell(settingsAtoms.parseTitlesSearch);
   const coverMode = useCell(settingsAtoms.torrentCoverMode);
   const { user: anilistUser } = useUserAnilistData();
-  const collectionTabEnabled = useCell(settingsAtoms.collectionTabEnabled);
-  const anilistTabEnabled = useCell(settingsAtoms.anilistTabEnabled);
-  const streamTabEnabled = useCell(settingsAtoms.streamTabEnabled);
-  const mangaTabEnabled = useCell(settingsAtoms.mangaTabEnabled);
-  const newsTabEnabled = useCell(settingsAtoms.newsTabEnabled);
   const minimizeToTray = useCell(settingsAtoms.minimizeToTray);
   const fastLaunch = useCell(settingsAtoms.fastLaunch);
   const rememberLastTab = useCell(settingsAtoms.rememberLastTab);
@@ -77,58 +73,7 @@ export default function SettingsGeneral() {
           <span className="text-title-text font-bold">{t("settings.tabs")}</span>
           <SectionResetButton sectionId="general.tabs" />
         </div>
-        <div className="flex flex-col gap-1 p-2">
-          <div className="grid grid-cols-1 gap-x-3 gap-y-1 min-[560px]:grid-cols-[140px_1fr]">
-            <span />
-            <div className="flex flex-col gap-4">
-              <div className="group flex items-center gap-1">
-                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                  <Checkbox
-                    checked={collectionTabEnabled}
-                    onChange={(v) => patchSettings({ collectionTabEnabled: v })}
-                  />
-                  <span className="text-xs">{t("settings.collection.tab")}</span>
-                </label>
-              </div>
-              <div className="group flex items-center gap-1">
-                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                  <Checkbox
-                    checked={anilistTabEnabled}
-                    onChange={(v) => patchSettings({ anilistTabEnabled: v })}
-                  />
-                  <span className="text-xs">{t("settings.anilist.tab")}</span>
-                </label>
-              </div>
-              <div className="group flex items-center gap-1">
-                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                  <Checkbox
-                    checked={streamTabEnabled}
-                    onChange={(v) => patchSettings({ streamTabEnabled: v })}
-                  />
-                  <span className="text-xs">{t("settings.stream.tab")}</span>
-                </label>
-              </div>
-              <div className="group flex items-center gap-1">
-                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                  <Checkbox
-                    checked={mangaTabEnabled}
-                    onChange={(v) => patchSettings({ mangaTabEnabled: v })}
-                  />
-                  <span className="text-xs">{t("settings.manga.tab")}</span>
-                </label>
-              </div>
-              <div className="group flex items-center gap-1">
-                <label className="windows95-text text-text flex cursor-pointer items-center gap-1.5 select-none">
-                  <Checkbox
-                    checked={newsTabEnabled}
-                    onChange={(v) => patchSettings({ newsTabEnabled: v })}
-                  />
-                  <span className="text-xs">{t("settings.news.tab")}</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MainTabsSettings />
       </section>
 
       <section className="ui-panel" data-find-section="general.startup">

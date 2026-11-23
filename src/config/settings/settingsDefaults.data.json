@@ -154,6 +154,7 @@
     "playerTabEnabled": true,
     "streamTabEnabled": false,
     "mangaTabEnabled": false,
+    "mainTabOrder": [],
     "mangaSourceNsfw": {},
     "mangaReaderDisplay": "paged",
     "mangaReaderDirection": "rtl",

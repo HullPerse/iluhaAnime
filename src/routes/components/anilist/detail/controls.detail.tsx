@@ -80,8 +80,8 @@ function AniListActionControls({
   const [saving, setSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
   const { data: customLists } = useAppQuery("slow", {
-    queryKey: queryKeys.customLists(),
-    queryFn: () => anilistApi.getCustomLists(),
+    queryKey: [...queryKeys.customLists(), anime.media_type],
+    queryFn: () => anilistApi.getCustomLists(anime.media_type ?? undefined),
     enabled: isLoggedIn,
     retry: false,
   });
@@ -89,7 +89,7 @@ function AniListActionControls({
   const scoreCheck = validateScoreInput(editScore, format);
   const scoreInvalid = scoreCheck.error !== null;
   const scoreErrorMessage = t(scoreErrorKey(scoreCheck.error));
-  const maxEpisodes = anime.episodes ?? 9999;
+  const maxEpisodes = (anime.media_type === "MANGA" ? anime.chapters : anime.episodes) ?? 9999;
   const statusMissing = editStatus.trim() === "";
 
   const handleSave = async () => {
@@ -136,7 +136,7 @@ function AniListActionControls({
 
       const startedAt = performance.now();
       const [saved, error] = await attempt(
-        anilistApi.saveEntry({
+        anilistApi.saveEntry({ mediaType: anime.media_type ?? undefined,
           mediaId: anime.id,
           status: values.list_status,
           progress: values.progress,

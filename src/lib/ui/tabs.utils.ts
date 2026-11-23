@@ -1,12 +1,13 @@
-import { visibleTabs } from "@/config/settings/tabs.config";
+import { TAB_KEYS, orderMainTabs, visibleTabs } from "@/config/settings/tabs.config";
 import { TAB_PATHS, tabIdFromPath } from "@/config/settings/tabPaths.config";
 import type { TabPath } from "@/types/ui/tabPaths";
-import { settingsAtoms } from "@/store/settings.store";
-import type { TabSettings } from "@/types/ui/settings";
+import { patchSettings, settingsAtoms } from "@/store/settings.store";
+import type { TabId, TabSettings } from "@/types/ui/settings";
 import type { SecretTabAction } from "@/types/ui/tabs";
 
 function tabSettingsSnapshot(): TabSettings {
   return {
+    mainTabOrder: settingsAtoms.mainTabOrder.get(),
     collectionTabEnabled: settingsAtoms.collectionTabEnabled.get(),
     anilistTabEnabled: settingsAtoms.anilistTabEnabled.get(),
     searchTabEnabled: settingsAtoms.searchTabEnabled.get(),
@@ -39,4 +40,17 @@ export function resolveSecretTabAction(unlocked: boolean, onGameTab: boolean): S
   if (!unlocked) return "reveal";
 
   return onGameTab ? "none" : "hide";
+}
+
+export function reorderMainTabs(from: TabId, to: TabId): void {
+  const ids = orderMainTabs([...TAB_KEYS, { id: "game" as const, key: "app.game" as const }], settingsAtoms.mainTabOrder.get()).map((tab) => tab.id);
+  const start = ids.indexOf(from);
+  const end = ids.indexOf(to);
+
+  if (start === -1 || end === -1 || start === end) return;
+  const [item] = ids.splice(start, 1);
+
+  if (!item) return;
+  ids.splice(end, 0, item);
+  patchSettings({ mainTabOrder: ids });
 }

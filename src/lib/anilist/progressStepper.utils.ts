@@ -1,3 +1,4 @@
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { AnilistRouteData } from "@/types/anilist/anilist";
@@ -13,7 +14,7 @@ export function patchEntry(
   mediaId: number,
   patch: EntryPatch
 ): void {
-  queryClient.setQueryData(queryKeys.anilistData(), (old: unknown) => {
+  queryClient.setQueryData((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old: unknown) => {
     if (!old) return old;
     const data = old as AnilistRouteData;
     let touched = false;
@@ -40,7 +41,7 @@ export function readLiveFields(
   mediaId: number,
   fallback: LiveEntryFields
 ): LiveEntryFields {
-  const data = queryClient.getQueryData<AnilistRouteData>(queryKeys.anilistData());
+  const data = queryClient.getQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()));
 
   if (data) {
     for (const list of data.lists) {

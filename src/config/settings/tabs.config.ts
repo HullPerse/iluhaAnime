@@ -16,15 +16,12 @@ export const TAB_KEYS: readonly { id: TabId; key: TranslationKey }[] = [
   { id: "settings", key: "app.settings" },
 ] as const;
 
-const TAB_FLAGS: Partial<Record<TabId, keyof TabSettings>> = {
+const TAB_FLAGS: Partial<Record<TabId, keyof Omit<TabSettings, "mainTabOrder">>> = {
   anilist: "anilistTabEnabled",
   collection: "collectionTabEnabled",
   news: "newsTabEnabled",
-  player: "playerTabEnabled",
-  search: "searchTabEnabled",
   stream: "streamTabEnabled",
   manga: "mangaTabEnabled",
-  torrent: "torrentTabEnabled",
 };
 
 function isEnabled(id: TabId, s: TabSettings): boolean {
@@ -35,10 +32,18 @@ function isEnabled(id: TabId, s: TabSettings): boolean {
 
 const GAME_TAB_KEY: { id: TabId; key: TranslationKey } = { id: "game", key: "app.game" };
 
+export function orderMainTabs<T extends { id: TabId }>(tabs: readonly T[], order: readonly TabId[] = []): T[] {
+  const ids = [...new Set([...order, ...tabs.map((tab) => tab.id)])];
+
+  return ids.flatMap((id) => { const tab = tabs.find((item) => item.id === id);
+
+ return tab ? [tab] : []; });
+}
+
 export function visibleTabs(settings: TabSettings) {
   const tabs = TAB_KEYS.filter((tab) => isEnabled(tab.id, settings));
 
-  return settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs;
+  return orderMainTabs(settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs, settings.mainTabOrder);
 }
 
 export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey }[] = [

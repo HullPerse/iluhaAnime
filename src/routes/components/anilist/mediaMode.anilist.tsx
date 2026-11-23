@@ -1,39 +1,31 @@
-import { BookOpen, Film } from "lucide-react";
+import { useCell } from "@hullperse/hp_utils/react";
+import { ArrowLeftRight, BookOpen, Film } from "lucide-react";
 
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
 import { anilistMangaMode, trackedManga } from "@/store/anilistManga.store";
 
-export function AniListMediaMode({ manga = false }: { manga?: boolean }) {
+export function AniListMediaMode({ manga: mode }: { manga?: boolean }) {
   const { t } = useI18n();
+  const selected = useCell(anilistMangaMode);
+  const manga = mode ?? selected;
+  const label = t(manga ? "app.manga" : "manga.tracking.anime");
+  const target = t(manga ? "manga.tracking.anime" : "app.manga");
+  const Icon = manga ? BookOpen : Film;
 
   return (
-    <div role="group" aria-label={t("manga.tracking.switch")} className="flex shrink-0 gap-1">
-      <Button
-        size="icon"
-        className="size-6"
-        aria-label={t("manga.tracking.anime")}
-        title={t("manga.tracking.anime")}
-        variant={manga ? "default" : "outline"}
-        aria-pressed={!manga}
-        onClick={() => {
-          trackedManga.set(null);
-          anilistMangaMode.set(false);
-        }}
-      >
-        <Film className="size-4" aria-hidden />
-      </Button>
-      <Button
-        size="icon"
-        className="size-6"
-        aria-label={t("app.manga")}
-        title={t("app.manga")}
-        variant={manga ? "outline" : "default"}
-        aria-pressed={manga}
-        onClick={() => anilistMangaMode.set(true)}
-      >
-        <BookOpen className="size-4" aria-hidden />
-      </Button>
-    </div>
+    <Button
+      className="h-7 shrink-0 gap-1 px-1.5"
+      title={`${label} → ${target}`}
+      aria-label={`${label} → ${target}`}
+      onClick={() => {
+        trackedManga.set(null);
+        anilistMangaMode.set(!manga);
+      }}
+    >
+      <Icon className="size-3.5" aria-hidden />
+      <span>{label}</span>
+      <ArrowLeftRight className="size-3" aria-hidden />
+    </Button>
   );
 }

@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use super::auth::optional_token;
 use super::client::graphql_request;
-use super::media::{media_list_selection, parse_animedia, AniMedia};
+use super::media::{MEDIA_CORE_SELECTION, parse_animedia, AniMedia};
 use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Serialize)]
@@ -67,7 +67,7 @@ pub async fn get_anilist_manga_overview(
                  favourites {{ manga(perPage: 50) {{ nodes {{ {} }} }} }}
              }}
          }}",
-        media_list_selection()
+        MEDIA_CORE_SELECTION
     );
     let body = serde_json::json!({ "query": query, "variables": { "userId": user_id } });
     let proxy = resolve_proxy(proxy_url, None);

@@ -1,3 +1,5 @@
+import { useCell } from "@hullperse/hp_utils/react";
+import { anilistMangaMode } from "@/store/anilistManga.store";
 import { useCallback, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
@@ -77,10 +79,11 @@ function buildGlobalParams(query: string, filters: AniListFilters): AnilistSearc
 }
 
 export function useProfileRecs(user: AniUser | null, showRecs: boolean) {
+  const manga = useCell(anilistMangaMode);
   const userId = user?.id ?? null;
   const query = useAppQuery("slow", {
-    queryKey: queryKeys.profileRecommendations(userId),
-    queryFn: () => anilistApi.getProfileRecommendations(userId ?? 0),
+    queryKey: [...queryKeys.profileRecommendations(userId), manga],
+    queryFn: () => anilistApi.getProfileRecommendations(userId ?? 0, manga ? "MANGA" : "ANIME"),
     enabled: showRecs && userId !== null,
   });
 
@@ -88,6 +91,7 @@ export function useProfileRecs(user: AniUser | null, showRecs: boolean) {
 }
 
 export function useAnilistSearch() {
+  const manga = useCell(anilistMangaMode);
   const { t } = useI18n();
   const [searchTerms, setSearchTerms] = useState<string>("");
   const [global, setGlobal] = useState<boolean>(false);
@@ -100,9 +104,15 @@ export function useAnilistSearch() {
   const isGlobalRequest = request?.kind === "global";
 
   const query = useAppQuery("live", {
-    queryKey: queryKeys.anilistSearch(request),
+    queryKey: [...queryKeys.anilistSearch(request), manga],
     queryFn: () => {
       if (request === null) throw new Error("AniList search request is missing");
+
+      if (manga) {
+        const params = request.kind === "tag" ? { tags: [request.tag] } : request.kind === "genre" ? { genres: [request.genre] } : {};
+
+        return anilistApi.search({ ...params, mediaType: "MANGA" });
+      }
 
       return runSearchRequest(request);
     },
@@ -110,10 +120,11 @@ export function useAnilistSearch() {
   });
 
   const globalPages = useAppInfiniteQuery<FilterPage, Error>("live", {
-    queryKey: queryKeys.anilistSearchPages(request),
+    queryKey: [...queryKeys.anilistSearchPages(request), manga],
     queryFn: ({ pageParam }) =>
       anilistApi.filterPage({
         ...(request as { kind: "global"; params: AnilistFilterPageParams }).params,
+        mediaType: manga ? "MANGA" : "ANIME",
         page: pageParam as number,
       }),
     initialPageParam: 1,

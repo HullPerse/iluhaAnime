@@ -1,3 +1,6 @@
+import { DndContext, DragOverlay, MouseSensor, useSensor, useSensors, useDraggable, useDroppable } from "@dnd-kit/core";
+import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "cn";
 import { WifiOff } from "lucide-react";
 
@@ -14,19 +17,31 @@ interface TabEntry<T extends string> {
   disabledReason?: string;
 }
 
+function TabDragTarget({ id, enabled, children }: { id: string; enabled: boolean; children: ReactNode }) {
+  const drag = useDraggable({ id, disabled: !enabled });
+  const drop = useDroppable({ id, disabled: !enabled });
+
+  return <div ref={(node) => { drag.setNodeRef(node); drop.setNodeRef(node); }} className={cn("shrink-0", drag.isDragging && "opacity-40", drop.isOver && !drag.isDragging && "outline-highlight outline-1")} {...drag.listeners}>{children}</div>;
+}
+
 function Tabs<T extends string>({
   tabs,
   activeTab,
   onChange,
   ariaLabel,
   onPrefetch,
+  onReorder,
 }: {
   tabs: readonly TabEntry<T>[];
   activeTab: T;
   onChange: (id: T) => void;
   ariaLabel?: string;
   onPrefetch?: (id: T) => void;
+  onReorder?: (from: T, to: T) => void;
 }) {
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { delay: 250, tolerance: 5 } }));
+  const [dragged, setDragged] = useState<string | number | null>(null);
+  const draggedTab = tabs.find((tab) => tab.id === dragged);
   const handleKeyDown = createListNavigationHandler<HTMLDivElement>({
     activeIndex: tabs.findIndex((item) => item.id === activeTab),
     axis: "horizontal",
@@ -43,6 +58,9 @@ function Tabs<T extends string>({
   });
 
   return (
+    <DndContext sensors={sensors} onDragStart={({ active }) => setDragged(active.id)} onDragCancel={() => setDragged(null)} onDragEnd={({ active, over }) => { setDragged(null);
+
+ if (over && active.id !== over.id) onReorder?.(active.id as T, over.id as T); }}>
     <div
       className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto overflow-y-hidden"
       role="tablist"
@@ -55,8 +73,8 @@ function Tabs<T extends string>({
         const tabDisabled = tab.disabled ?? false;
 
         return (
+          <TabDragTarget key={tab.id} id={tab.id} enabled={!!onReorder}>
           <Button
-            key={tab.id}
             className={cn(
               "windows95-text active:outline-text relative cursor-pointer px-3 py-0.5 active:outline-1 active:outline-offset-[-3px] active:outline-dotted",
               isActive
@@ -80,7 +98,7 @@ function Tabs<T extends string>({
             aria-selected={isActive}
             aria-disabled={tabDisabled}
             tabIndex={isActive ? 0 : -1}
-            disabled={isActive || tabDisabled}
+            disabled={!onReorder && (isActive || tabDisabled)}
           >
             {tab.color && (
               <span
@@ -100,9 +118,12 @@ function Tabs<T extends string>({
               </span>
             )}
           </Button>
+          </TabDragTarget>
         );
       })}
     </div>
+    {onReorder && typeof document !== "undefined" && createPortal(<DragOverlay dropAnimation={null} zIndex={10000}>{draggedTab && <div className="windows95-small-border bg-surface windows95-text px-3 py-0.5">{draggedTab.label}</div>}</DragOverlay>, document.body)}
+    </DndContext>
   );
 }
 

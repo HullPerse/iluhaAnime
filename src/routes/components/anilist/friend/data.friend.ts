@@ -16,19 +16,26 @@ import type {
 const EMPTY_LISTS: AniListCollection[] = [];
 const EMPTY_FAVOURITES: FavouriteAnime[] = [];
 
-export function useFriendAnilistData(friend: AniFriend | null) {
+export function useFriendAnilistData(friend: AniFriend | null, manga = false) {
   const id = friend?.id ?? null;
   const cachedProfile = hasFreshCachedProfile(friend ?? undefined) ? friend?.profile : undefined;
 
   const query = useAppQuery<AniFriendBundle>("slow", {
-    queryKey: queryKeys.friendBundle(id),
+    queryKey: manga ? [...queryKeys.friendBundle(id), "MANGA"] : queryKeys.friendBundle(id),
     enabled: id != null,
     staleTime: PROFILE_CACHE_TTL_MS,
     retry: 1,
     placeholderData: cachedProfile
       ? { profile: cachedProfile, lists: EMPTY_LISTS, favourites: EMPTY_FAVOURITES }
       : undefined,
-    queryFn: () => anilistApi.getFriendBundle(id as number),
+    queryFn: async () => {
+      const bundle = await anilistApi.getFriendBundle(id as number);
+
+      if (!manga) return bundle;
+      const [lists, overview] = await Promise.all([anilistApi.getLists(id as number, false, "MANGA"), anilistApi.getMangaOverview(id as number)]);
+
+      return { profile: { ...bundle.profile, anime_count: overview.statistics.count, episodes_watched: overview.statistics.chapters, mean_score: overview.statistics.meanScore }, lists, favourites: overview.favourites.map((media) => ({ id: media.id, title: { romaji: media.title, english: null }, cover_image: { medium: media.cover_url }, mean_score: media.score, format: media.format })) };
+    },
   });
 
   const lists = query.data?.lists ?? EMPTY_LISTS;

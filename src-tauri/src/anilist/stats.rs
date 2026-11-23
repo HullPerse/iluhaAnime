@@ -256,10 +256,12 @@ const STATS_CACHE_TTL_SECS: i64 = 10 * 60;
 pub async fn get_anilist_statistics(
     app_handle: tauri::AppHandle,
     user_id: u64,
+    media_type: Option<super::media::AniMediaType>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<AniListStatistics, String> {
-    let cache_key = format!("user:{user_id}");
+    let manga = matches!(media_type, Some(super::media::AniMediaType::Manga));
+    let cache_key = format!("user:{user_id}:{}", if manga { "MANGA" } else { "ANIME" });
     if let Ok(Some(payload)) =
         crate::app_db::read_cached_payload(&app_handle, STATS_CACHE_NAMESPACE, &cache_key)
     {
@@ -270,7 +272,21 @@ pub async fn get_anilist_statistics(
 
     let token = load_token(&app_handle)?;
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let json = graphql_request(statistics_body(user_id), Some(&token), proxy.as_deref()).await?;
+    let mut body = statistics_body(user_id);
+    if manga {
+        body["query"] = serde_json::Value::String(r"
+          query ($userId: Int) { User(id: $userId) { statistics { anime: manga {
+            count meanScore standardDeviation episodesWatched: chaptersRead
+            statuses { status count }
+            scores { score count }
+            formats { format count meanScore mediaIds }
+            releaseYears { releaseYear count meanScore mediaIds }
+            startYears { startYear count meanScore mediaIds }
+            genres(limit: 50, sort: COUNT_DESC) { genre count meanScore mediaIds }
+          } } } }
+        ".to_string());
+    }
+    let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
     let statistics = parse_statistics(&json)?;
     if let Ok(payload) = serde_json::to_string(&statistics) {
         // Best effort: a slow or locked cache must never fail the screen.

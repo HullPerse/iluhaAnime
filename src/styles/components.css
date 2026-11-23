@@ -2566,3 +2566,13 @@ html[data-theme="yorha"] .yorha-grid {
   background: #d33a2c;
   box-shadow: 0 0 4px #d33a2c;
 }
+
+[data-theme="monochrome"] [data-slot="button"]:disabled {
+  background-color: var(--color-muted);
+  color: var(--color-primary);
+  opacity: 1;
+}
+
+[data-theme="monochrome"] [data-slot="button"]:disabled .text-muted {
+  color: inherit;
+}

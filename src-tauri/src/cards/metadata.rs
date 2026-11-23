@@ -75,7 +75,7 @@ fn character_fragment(ids: &[i64]) -> String {
          media(sort: [POPULARITY_DESC], perPage: 1, type: ANIME) {{ nodes {{ \
          id title {{ romaji }} coverImage {{ large }} popularity }} }} \
          manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA) {{ nodes {{ \
-         title {{ romaji }} coverImage {{ large }} }} }} }} }}",
+         id title {{ romaji }} coverImage {{ large }} }} }} }} }}",
         ids_array(ids)
     )
 }
@@ -477,6 +477,7 @@ mod tests {
         assert!(
             character.contains("manga: media(sort: [POPULARITY_DESC], perPage: 1, type: MANGA)")
         );
+        assert!(character.contains("nodes { id title { romaji } coverImage { large } }"));
         let studio = studio_fragment(2);
         assert!(studio.contains("Studio(id: 2)"));
         assert!(studio.contains("media(sort: [POPULARITY_DESC], perPage: 4)"));

@@ -2,6 +2,8 @@
   "changelog": [
     {
       "version": "5.4.6",
+      "added": [],
+      "changed": [],
       "fixed": [
         {
           "key": "changelog.5_4_6.fixed.collection.manga_links",

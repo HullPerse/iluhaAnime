@@ -1,6 +1,15 @@
 {
   "changelog": [
     {
+      "version": "5.4.6",
+      "fixed": [
+        {
+          "key": "changelog.5_4_6.fixed.collection.manga_links",
+          "scope": "collection"
+        }
+      ]
+    },
+    {
       "version": "5.4.5",
       "added": [
         {

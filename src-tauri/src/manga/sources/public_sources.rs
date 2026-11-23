@@ -5,10 +5,15 @@ use std::collections::HashSet;
 
 const ASURA: &str = "https://api.asurascans.com/api/series";
 const READ: &str = "https://readmanga.me";
+const WAMANGA: &str = "https://wamanga.ru";
+const WAMANGA_API: &str = "https://wamanga.ru/api/v1";
+const WAMANGA_PAGE_SIZE: u32 = 10;
 pub(in crate::manga) const ASURA_CDN: &str = "cdn.asurascans.com";
 pub(in crate::manga) const READ_CDN: &str = "rm.one-way.work";
+pub(in crate::manga) const WAMANGA_CDN: &str = "wamanga.ru";
 static ASURA_CLIENT: OnceLock<Result<Arc<SourceClient>, SourceError>> = OnceLock::new();
 static READ_CLIENT: OnceLock<Result<Arc<SourceClient>, SourceError>> = OnceLock::new();
+static WAMANGA_CLIENT: OnceLock<Result<Arc<SourceClient>, SourceError>> = OnceLock::new();
 const WEB_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36";
 
 pub(in crate::manga) fn client(
@@ -18,14 +23,21 @@ pub(in crate::manga) fn client(
     let cell = match source {
         MangaSource::AsuraScans => &ASURA_CLIENT,
         MangaSource::ReadManga => &READ_CLIENT,
+        MangaSource::WaManga => &WAMANGA_CLIENT,
         _ => return Err(SourceError::Unsupported),
     };
-    source_client(cell, source.id(), Duration::from_secs(1), proxy)
+    let interval = if source == MangaSource::WaManga {
+        Duration::from_millis(250)
+    } else {
+        Duration::from_secs(1)
+    };
+    source_client(cell, source.id(), interval, proxy)
 }
 
 pub(in crate::manga) fn referer(source: MangaSource) -> &'static str {
     match source {
         MangaSource::AsuraScans => "https://asurascans.com/",
+        MangaSource::WaManga => "https://wamanga.ru/",
         _ => "https://readmanga.me/",
     }
 }
@@ -87,6 +99,7 @@ fn asura_hit(row: &Value) -> Option<MangaSearchHit> {
         rating: "safe".to_owned(),
         aliases: vec![],
         external_ids: ExternalIds::default(),
+        web_url: None,
     })
 }
 
@@ -104,6 +117,7 @@ fn read_hit(row: &Value) -> Option<MangaSearchHit> {
         rating: "safe".to_owned(),
         aliases: vec![],
         external_ids: ExternalIds::default(),
+        web_url: None,
     })
 }
 
@@ -111,10 +125,31 @@ pub(super) async fn search(
     source: MangaSource,
     query: &str,
     page: u32,
+    nsfw: bool,
     proxy: Option<&str>,
     person: Option<&MangaPersonSearch>,
 ) -> Result<MangaSearchPage, SourceError> {
     let client = client(source, proxy)?;
+    if source == MangaSource::WaManga {
+        let offset = (page - 1) * WAMANGA_PAGE_SIZE;
+        let text = person.map_or(query, |person| person.name.as_str());
+        let mut request = request(&client, source, format!("{WAMANGA_API}/manga"))
+            .query(&[("limit", WAMANGA_PAGE_SIZE + 1), ("offset", offset)]);
+        if !text.is_empty() {
+            request = request.query(&[("query", text)]);
+        }
+        let body = client.get(request).await?;
+        let rows = body.as_array().ok_or(SourceError::Parse)?;
+        let items = rows
+            .iter()
+            .filter_map(|row| wamanga_hit(row, nsfw))
+            .take(WAMANGA_PAGE_SIZE as usize)
+            .collect();
+        return Ok(MangaSearchPage {
+            items,
+            has_next: rows.len() > WAMANGA_PAGE_SIZE as usize,
+        });
+    }
     if source == MangaSource::AsuraScans {
         let mut request = request(&client, source, ASURA);
         request = if let Some(person) = person {
@@ -216,6 +251,7 @@ fn read_person_page(html: &str, page: u32) -> Result<MangaSearchPage, SourceErro
                 rating: "safe".to_owned(),
                 aliases: Vec::new(),
                 external_ids: ExternalIds::default(),
+                web_url: None,
             })
         })
         .collect();
@@ -459,6 +495,7 @@ fn read_details(html: &str, id: &str, nsfw: bool) -> Result<MangaDetails, Source
         rating: if mature { "pornographic" } else { "safe" }.to_owned(),
         aliases: vec![],
         external_ids: ExternalIds::default(),
+        web_url: None,
     };
     let people = read_people(&document);
     Ok(MangaDetails {
@@ -480,6 +517,210 @@ fn read_details(html: &str, id: &str, nsfw: bool) -> Result<MangaDetails, Source
     })
 }
 
+fn wamanga_absolute(path: &str) -> Option<String> {
+    let url = Url::parse(WAMANGA).ok()?.join(path).ok()?;
+    allowed_cover(url.as_str(), WAMANGA_CDN)
+}
+
+fn wamanga_cover(row: &Value) -> Option<String> {
+    ["coverUrl", "imageUrl"]
+        .iter()
+        .find_map(|key| row[*key].as_str().and_then(wamanga_absolute))
+}
+
+fn wamanga_web_url(row: &Value) -> Option<String> {
+    let kind = row["type"]
+        .as_str()
+        .filter(|kind| matches!(*kind, "manga" | "manhwa" | "manhua"))?;
+    let slug = slug(row["slug"].as_str()?)?;
+    allowed_cover(&format!("{WAMANGA}/{kind}/{slug}"), WAMANGA_CDN)
+}
+
+fn wamanga_people(row: &Value, key: &str) -> Vec<String> {
+    row[key]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+fn wamanga_hit(row: &Value, nsfw: bool) -> Option<MangaSearchHit> {
+    if row["hidden"].as_bool() == Some(true) {
+        return None;
+    }
+    let adult = row["isAdult"].as_bool().unwrap_or(false);
+    if adult && !nsfw {
+        return None;
+    }
+    let id = slug(row["id"].as_str()?)?;
+    let title = non_empty(&row["title"])?;
+    let pegi = row["pegiRating"].as_str().unwrap_or_default();
+    let mut aliases = Vec::new();
+    if let Some(value) = non_empty(&row["titleEnglish"]) {
+        aliases.push(value);
+    }
+    if let Some(rows) = row["alternateTitles"].as_array() {
+        for value in rows.iter().filter_map(Value::as_str) {
+            let value = value.trim();
+            if !value.is_empty() && !aliases.iter().any(|alias| alias == value) {
+                aliases.push(value.to_owned());
+            }
+        }
+    }
+    aliases.truncate(50);
+    let rating = if adult {
+        "pornographic"
+    } else if pegi == "18+" {
+        "suggestive"
+    } else {
+        "safe"
+    };
+    Some(MangaSearchHit {
+        id: id.to_owned(),
+        title,
+        cover: wamanga_cover(row),
+        status: non_empty(&row["statusTitle"]),
+        chapters: None,
+        suggestive: adult || pegi == "18+",
+        rating: rating.to_owned(),
+        aliases,
+        external_ids: ExternalIds::default(),
+        web_url: wamanga_web_url(row),
+    })
+}
+
+fn wamanga_chapter(row: &Value, group: Option<&str>) -> Option<MangaChapter> {
+    if row["isProcessing"].as_bool() == Some(true) {
+        return None;
+    }
+    let expected = row["totalFilesExpected"].as_u64().unwrap_or_default();
+    let processed = row["processedFilesCount"].as_u64().unwrap_or_default();
+    if expected > 0 && processed < expected {
+        return None;
+    }
+    let id = slug(row["id"].as_str()?)?;
+    let position = row["position"]
+        .as_f64()
+        .or_else(|| row["position"].as_str()?.parse::<f64>().ok())?;
+    if !position.is_finite() || position < 0.0 {
+        return None;
+    }
+    let mut result = chapter(position.to_string(), id.to_owned(), "ru".to_owned());
+    result.title = non_empty(&row["title"]);
+    result.group = group.map(str::to_owned);
+    Some(result)
+}
+
+fn wamanga_chapter_total(rows: &[Value]) -> Option<u32> {
+    u32::try_from(
+        rows.iter()
+            .filter_map(|row| wamanga_chapter(row, None))
+            .count(),
+    )
+    .ok()
+    .filter(|count| *count > 0)
+}
+
+pub(super) async fn wamanga_chapter_count(id: &str, proxy: Option<&str>) -> Option<u32> {
+    let id = slug(id)?;
+    let client = client(MangaSource::WaManga, proxy).ok()?;
+    let body = client
+        .get(request(
+            &client,
+            MangaSource::WaManga,
+            format!("{WAMANGA_API}/manga/{id}/chapters"),
+        ))
+        .await
+        .ok()?;
+    wamanga_chapter_total(body.as_array()?)
+}
+
+fn wamanga_page_url(path: &str) -> Option<Url> {
+    let url = Url::parse(WAMANGA).ok()?.join(path).ok()?;
+    allowed_cover(url.as_str(), WAMANGA_CDN)?;
+    Some(url)
+}
+
+async fn wamanga_pages(chapter_id: &str, proxy: Option<&str>) -> Result<Vec<Url>, SourceError> {
+    let chapter_id = slug(chapter_id).ok_or(SourceError::Unsupported)?;
+    let client = client(MangaSource::WaManga, proxy)?;
+    let body = client
+        .get(request(
+            &client,
+            MangaSource::WaManga,
+            format!("{WAMANGA_API}/chapters/{chapter_id}"),
+        ))
+        .await?;
+    body["files"]
+        .as_array()
+        .ok_or(SourceError::Parse)?
+        .iter()
+        .map(|file| {
+            let path = file["diskFile"].as_str().ok_or(SourceError::Parse)?;
+            wamanga_page_url(path).ok_or(SourceError::Parse)
+        })
+        .collect()
+}
+
+async fn wamanga_details(
+    id: &str,
+    nsfw: bool,
+    proxy: Option<&str>,
+) -> Result<MangaDetails, SourceError> {
+    let id = slug(id).ok_or(SourceError::Unsupported)?;
+    let client = client(MangaSource::WaManga, proxy)?;
+    let body = client
+        .get(request(
+            &client,
+            MangaSource::WaManga,
+            format!("{WAMANGA_API}/manga/{id}"),
+        ))
+        .await?;
+    if body["isAdult"].as_bool() == Some(true) && !nsfw {
+        return Err(SourceError::Blocked);
+    }
+    let mut title = wamanga_hit(&body, nsfw).ok_or(SourceError::NotFound)?;
+    let feed = client
+        .get(request(
+            &client,
+            MangaSource::WaManga,
+            format!("{WAMANGA_API}/manga/{id}/chapters"),
+        ))
+        .await?;
+    let rows = feed.as_array().ok_or(SourceError::Parse)?;
+    let group = body["teams"]
+        .as_array()
+        .and_then(|teams| teams.iter().find_map(|team| non_empty(&team["name"])));
+    let mut chapters: Vec<_> = rows
+        .iter()
+        .filter_map(|row| wamanga_chapter(row, group.as_deref()))
+        .collect();
+    chapters.sort_by(|a, b| {
+        b.number
+            .parse::<f64>()
+            .unwrap_or_default()
+            .total_cmp(&a.number.parse::<f64>().unwrap_or_default())
+    });
+    title.chapters = wamanga_chapter_total(rows);
+    Ok(MangaDetails {
+        title,
+        description: non_empty(&body["description"]),
+        authors: wamanga_people(&body, "authors"),
+        artists: wamanga_people(&body, "artists"),
+        author_keys: Vec::new(),
+        artist_keys: Vec::new(),
+        genres: wamanga_people(&body, "genres"),
+        release: body["year"].as_u64().map(|year| year.to_string()),
+        publication_status: non_empty(&body["statusTitle"]),
+        notification: None,
+        chapters,
+    })
+}
+
 pub(super) async fn details(
     source: MangaSource,
     id: &str,
@@ -487,6 +728,9 @@ pub(super) async fn details(
     proxy: Option<&str>,
 ) -> Result<MangaDetails, SourceError> {
     let id = slug(id).ok_or(SourceError::Unsupported)?;
+    if source == MangaSource::WaManga {
+        return wamanga_details(id, nsfw, proxy).await;
+    }
     let client = client(source, proxy)?;
     if source == MangaSource::ReadManga {
         let html = client
@@ -566,6 +810,9 @@ pub(in crate::manga) async fn pages(
     proxy: Option<&str>,
 ) -> Result<Vec<Url>, SourceError> {
     let id = slug(id).ok_or(SourceError::Unsupported)?;
+    if source == MangaSource::WaManga {
+        return wamanga_pages(chapter_id, proxy).await;
+    }
     let client = client(source, proxy)?;
     if source == MangaSource::ReadManga {
         let (volume, number) = chapter_id.split_once('-').ok_or(SourceError::Unsupported)?;
@@ -694,5 +941,103 @@ mod tests {
             vec!["oda_eiichiro".to_owned(), "eiichiro_oda".to_owned()]
         );
         assert!(read_person_slugs("Ода Эйитиро").is_empty());
+    }
+
+    #[test]
+    fn wamanga_catalog_hit_uses_uuid_public_url_and_relative_cover() {
+        let row = serde_json::json!({
+            "id": "99b7b6e4-7c7e-4a93-92d1-2ead150bda47",
+            "slug": "vetrolom",
+            "type": "manga",
+            "title": "Ветролом",
+            "titleEnglish": "Wind Breaker",
+            "alternateTitles": ["ウインドブレイカ", "Wind Breaker"],
+            "coverUrl": "/app/uploads/cover.webp",
+            "statusTitle": "ongoing",
+            "isAdult": false,
+            "hidden": false,
+            "pegiRating": "16+"
+        });
+        let hit = wamanga_hit(&row, false).expect("WaManga hit");
+        assert_eq!(hit.id, "99b7b6e4-7c7e-4a93-92d1-2ead150bda47");
+        assert_eq!(
+            hit.web_url.as_deref(),
+            Some("https://wamanga.ru/manga/vetrolom")
+        );
+        assert_eq!(
+            hit.cover.as_deref(),
+            Some("https://wamanga.ru/app/uploads/cover.webp")
+        );
+        assert_eq!(hit.rating, "safe");
+        assert!(!hit.suggestive);
+        assert_eq!(hit.aliases, vec!["Wind Breaker", "ウインドブレイカ"]);
+
+        let adult = serde_json::json!({
+            "id": "0a580438-bc72-4503-940b-12a5da881b56",
+            "slug": "adult",
+            "type": "manhwa",
+            "title": "Adult",
+            "isAdult": true
+        });
+        assert!(wamanga_hit(&adult, false).is_none());
+        assert!(wamanga_hit(&adult, true).is_some());
+    }
+
+    #[test]
+    fn wamanga_chapters_keep_fractional_numbers_and_skip_incomplete_files() {
+        let row = serde_json::json!({
+            "id": "79319247-a3fb-43a3-95b2-cf2ab98be2a3",
+            "position": 100.5,
+            "title": "",
+            "isProcessing": false,
+            "totalFilesExpected": 19,
+            "processedFilesCount": 19
+        });
+        let chapter = wamanga_chapter(&row, Some("Wa")).expect("WaManga chapter");
+        assert_eq!(chapter.number, "100.5");
+        assert_eq!(chapter.key, "100.5");
+        assert_eq!(chapter.title, None);
+        assert_eq!(chapter.group.as_deref(), Some("Wa"));
+        assert!(chapter.available_at.is_none());
+
+        let partial = serde_json::json!({
+            "id": "d4116a3b-7519-4e6a-8e33-3f5fd5c4337f",
+            "position": 1,
+            "isProcessing": false,
+            "totalFilesExpected": 10,
+            "processedFilesCount": 2
+        });
+        assert!(wamanga_chapter(&partial, None).is_none());
+    }
+
+    #[test]
+    fn wamanga_chapter_total_ignores_unavailable_chapters() {
+        let rows = vec![
+            serde_json::json!({
+                "id": "79319247-a3fb-43a3-95b2-cf2ab98be2a3",
+                "position": 2,
+                "isProcessing": false,
+                "totalFilesExpected": 4,
+                "processedFilesCount": 4
+            }),
+            serde_json::json!({
+                "id": "d4116a3b-7519-4e6a-8e33-3f5fd5c4337f",
+                "position": 1,
+                "isProcessing": false,
+                "totalFilesExpected": 10,
+                "processedFilesCount": 2
+            }),
+        ];
+
+        assert_eq!(wamanga_chapter_total(&rows), Some(1));
+        assert_eq!(wamanga_chapter_total(&[]), None);
+    }
+
+    #[test]
+    fn wamanga_page_urls_stay_on_the_source_host() {
+        assert!(wamanga_page_url("/app/uploads/page.webp").is_some());
+        assert!(wamanga_page_url("https://wamanga.ru.invalid/page.webp").is_none());
+        assert!(wamanga_page_url("https://example.com/page.webp").is_none());
+        assert!(wamanga_page_url("//example.com/page.webp").is_none());
     }
 }

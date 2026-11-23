@@ -1816,6 +1816,35 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("app database cards seen schema: {error}"))?;
     }
 
+    if version < 50 {
+        let transaction = connection
+            .unchecked_transaction()
+            .map_err(|error| format!("manga source setting migration: {error}"))?;
+        let has_settings: bool = transaction
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'manga_source_settings')",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|error| format!("read manga source settings table: {error}"))?;
+        if has_settings {
+            transaction
+                .execute(
+                    "INSERT OR IGNORE INTO manga_source_settings (source_id, enabled, language)
+                     VALUES ('wamanga', 0, 'ru')",
+                    [],
+                )
+                .map_err(|error| format!("add WaManga source setting: {error}"))?;
+        }
+        transaction
+            .pragma_update(None, "user_version", 50)
+            .map_err(|error| format!("write manga source setting version: {error}"))?;
+        transaction
+            .commit()
+            .map_err(|error| format!("manga source setting commit: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"
@@ -2173,6 +2202,41 @@ mod tests {
             .collect::<Result<_, _>>()
             .expect("collect table info");
         assert!(columns.iter().any(|name| name == "updated_at"));
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("read user version");
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn migration_v49_adds_disabled_wamanga_source_setting() {
+        let connection = Connection::open_in_memory().expect("in-memory database");
+        connection
+            .execute_batch(
+                "CREATE TABLE manga_source_settings (
+                    source_id TEXT PRIMARY KEY,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    proxy_url TEXT,
+                    language TEXT,
+                    prefs_json TEXT NOT NULL DEFAULT '{}'
+                 );
+                 INSERT INTO manga_source_settings (source_id, enabled, language)
+                    VALUES ('mangalib', 1, 'ru');
+                 PRAGMA user_version = 49;",
+            )
+            .expect("v49 manga source settings");
+
+        initialize_schema(&connection).expect("WaManga source migration");
+
+        let (enabled, language): (bool, String) = connection
+            .query_row(
+                "SELECT enabled, language FROM manga_source_settings WHERE source_id = 'wamanga'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("WaManga setting");
+        assert!(!enabled);
+        assert_eq!(language, "ru");
         let version: i64 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("read user version");

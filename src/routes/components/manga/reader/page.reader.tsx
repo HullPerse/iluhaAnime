@@ -22,10 +22,53 @@ const pageFrames = {
   inset: "shadow-[inset_0_0_0_1px_#ffffff66,inset_0_0_28px_#000a]",
 };
 
+const stripPageFrames = {
+  none: { sides: "", top: "", bottom: "" },
+  dark: {
+    sides: "border-x-2 border-black",
+    top: "border-t-2 border-black",
+    bottom: "border-b-2 border-black",
+  },
+  light: {
+    sides: "border-x-2 border-white",
+    top: "border-t-2 border-white",
+    bottom: "border-b-2 border-white",
+  },
+  shadow: {
+    sides: "border-x border-black/50 shadow-[-8px_0_24px_#0009,8px_0_24px_#0009]",
+    top: "border-t border-black/50",
+    bottom: "border-b border-black/50",
+  },
+  win95: {
+    sides:
+      "border-x-2 border-l-win-highlight border-r-win-shadow shadow-[1px_0_0_#000,-1px_0_0_#000]",
+    top: "border-t-2 border-t-win-highlight",
+    bottom: "border-b-2 border-b-win-shadow",
+  },
+  gold: {
+    sides: "border-x-2 border-[var(--color-fav-gold,#facc15)] shadow-[1px_0_0_#000,-1px_0_0_#000]",
+    top: "border-t-2 border-[var(--color-fav-gold,#facc15)]",
+    bottom: "border-b-2 border-[var(--color-fav-gold,#facc15)]",
+  },
+  inset: {
+    sides: "border-x border-white/40 shadow-[inset_1px_0_0_#ffffff66,inset_-1px_0_0_#ffffff66]",
+    top: "border-t border-white/40",
+    bottom: "border-b border-white/40",
+  },
+};
+
+function stripFrameClass(frame: keyof typeof stripPageFrames, first: boolean, last: boolean) {
+  const design = stripPageFrames[frame];
+
+  return [design.sides, first && design.top, last && design.bottom].filter(Boolean).join(" ");
+}
+
 export function ReaderPage({
   manifest,
   page,
   strip,
+  first,
+  last,
   half,
   inspect,
   onLoad,
@@ -33,6 +76,8 @@ export function ReaderPage({
   manifest: string;
   page: number;
   strip: boolean;
+  first?: boolean;
+  last?: boolean;
   half?: "left" | "right";
   inspect?: (page: number, wide: boolean) => void;
   onLoad: (page: number) => void;
@@ -80,7 +125,11 @@ export function ReaderPage({
 
   if (!url || !data) {
     return (
-      <div role="status" data-manga-loading className="grid min-h-72 place-content-center gap-2 text-center">
+      <div
+        role="status"
+        data-manga-loading
+        className="grid min-h-72 place-content-center gap-2 text-center"
+      >
         <span>{t("manga.reader.pageLoading")}</span>
         <ProgressBar
           indeterminate={!progress?.total}
@@ -94,6 +143,9 @@ export function ReaderPage({
   }
 
   const split = size && half && size.width > size.height;
+  const frameClass = strip
+    ? stripFrameClass(frame, first === true, last === true)
+    : pageFrames[frame];
 
   return (
     <ReaderImageMenu data={data}>
@@ -136,11 +188,11 @@ export function ReaderPage({
           }}
         />
         <ReaderLoupe image={image} />
-        {pageFrames[frame] && (
+        {frameClass && (
           <span
             aria-hidden
             data-manga-page-frame={frame}
-            className={`pointer-events-none absolute inset-0 ${pageFrames[frame]}`}
+            className={`pointer-events-none absolute inset-0 ${frameClass}`}
           />
         )}
       </span>

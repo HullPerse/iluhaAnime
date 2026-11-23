@@ -1,12 +1,18 @@
 import { useCell } from "@hullperse/hp_utils/react";
 import { Button } from "@/components/ui/button.component";
-import { ChevronLeft, ChevronRight, SortAsc, SortDesc } from "lucide-react";
+import { ChevronLeft, ChevronRight, Dices, SortAsc, SortDesc } from "lucide-react";
 import { usePagedRow } from "@/hooks/pagedRow.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { sortKeys, sortLabels } from "@/config/manga/library.config";
 import { librarySort } from "@/store/manga.store";
 
-export function LibrarySort() {
+export function LibrarySort({
+  onRandom,
+  randomDisabled,
+}: {
+  onRandom: () => void;
+  randomDisabled: boolean;
+}) {
   const { t } = useI18n();
   const sort = useCell(librarySort);
   const { rowRef, start, end, stepPage } = usePagedRow(sortKeys.length, sortKeys.indexOf(sort.key));
@@ -58,6 +64,17 @@ export function LibrarySort() {
         onClick={() => stepPage(1)}
       >
         <ChevronRight className="size-3.5" />
+      </Button>
+      <span className="ui-toolbar-separator" aria-hidden />
+      <Button
+        size="icon"
+        className="h-6 w-6 shrink-0"
+        aria-label={t("anilist.sort.random")}
+        title={t("anilist.sort.random")}
+        disabled={randomDisabled}
+        onClick={onRandom}
+      >
+        <Dices className="size-3.5" />
       </Button>
     </section>
   );

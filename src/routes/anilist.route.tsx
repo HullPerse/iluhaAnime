@@ -82,6 +82,7 @@ function AnilistRoute() {
   const suggestionStats = useCell(searchAtoms.suggestionStats);
 
   const [currentList, setCurrentList] = useState<string>("");
+  // oxlint-disable-next-line react/exhaustive-effect-dependencies
   useEffect(() => setCurrentList(ALL_LISTS_ID), [mangaMode]);
   const { views, handleOpenModal, handleCloseModal, handleOpenActivity, handleCloseActivity } =
     useAnilistModals();

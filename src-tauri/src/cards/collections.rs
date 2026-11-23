@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 use tauri::AppHandle;
 
 use super::collection::{list_media_collection_items, CollectionItem};
+use super::metadata::refresh_metadata;
 use super::rarity::score_for;
 use super::rng::Rng;
 use super::sampling::CardNode;
@@ -550,6 +551,36 @@ fn shelf_rows(app: &AppHandle) -> Result<Vec<ShelfRow>, String> {
     shelf_rows_in(&connection)
 }
 
+fn unlinked_owned_characters(
+    connection: &rusqlite::Connection,
+) -> Result<Vec<(CardKind, i64)>, String> {
+    let mut statement = connection
+        .prepare(
+            "SELECT DISTINCT c.entity_id
+             FROM user_cards c
+             JOIN card_meta m ON m.kind = c.kind AND m.entity_id = c.entity_id
+             WHERE c.user_id = ?1 AND c.kind = 'character'
+               AND m.collection_title IS NOT NULL
+               AND m.collection_anime_id IS NULL AND m.collection_manga_id IS NULL",
+        )
+        .map_err(|error| error.to_string())?;
+    let rows = statement
+        .query_map([LOCAL_USER_ID], |row| Ok((CardKind::Character, row.get(0)?)))
+        .map_err(|error| error.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|error| error.to_string())
+}
+
+async fn repair_collection_links(app: &AppHandle, proxy: Option<&str>) -> Result<(), String> {
+    let keys = unlinked_owned_characters(&open_database(app)?)?;
+    for batch in keys.chunks(50) {
+        if let Err(error) = refresh_metadata(app, batch, proxy).await {
+            tracing::warn!(error = error.as_str(), "card collection link refresh failed");
+            break;
+        }
+    }
+    Ok(())
+}
+
 fn shelf_rows_in(connection: &rusqlite::Connection) -> Result<Vec<ShelfRow>, String> {
     let mut statement = connection
         .prepare(
@@ -632,6 +663,8 @@ pub async fn cards_collections(
     proxyUrl: Option<String>,
 ) -> Result<Vec<CollectionShelfItem>, String> {
     let mut trace = CommandTrace::start("cards_collections");
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
+    repair_collection_links(&app, proxy.as_deref()).await?;
     let rows = shelf_rows(&app)?;
     let mut shelf = shelf_from_rows(
         rows.into_iter(),
@@ -647,7 +680,6 @@ pub async fn cards_collections(
         .filter(|id| !totals.contains_key(id))
         .collect();
     if !missing.is_empty() {
-        let proxy = resolve_proxy(proxy_url, proxyUrl);
         totals.extend(fetch_roster_totals(&app, &missing, proxy.as_deref()).await);
     }
     for item in &mut shelf {
@@ -684,6 +716,7 @@ pub async fn cards_anime_collection(
         _ => ("collection_anime_id", "anime"),
     };
     let proxy = resolve_proxy(proxy_url, proxyUrl);
+    repair_collection_links(&app, proxy.as_deref()).await?;
     let connection = open_database(&app)?;
     let items = list_media_collection_items(&connection, LOCAL_USER_ID, kind, anime_id)?;
     let title: String = connection
@@ -958,6 +991,31 @@ mod tests {
         assert_eq!(shelf[0].total_value, 36);
         assert_eq!(shelf[0].rarity.epic, 1);
         assert_eq!(shelf[0].last_obtained_at, 40);
+    }
+
+    #[test]
+    fn collection_link_repair_selects_only_owned_unlinked_characters() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        connection.execute_batch(
+            "INSERT INTO card_meta
+                (kind, entity_id, title, collection_title, collection_manga_id, fetched_at)
+             VALUES ('character', 1, 'Unlinked', 'Manga', NULL, 1),
+                    ('character', 2, 'Linked', 'Manga', 10, 1),
+                    ('character', 3, 'Unowned', 'Manga', NULL, 1);",
+        ).unwrap();
+        connection.execute(
+            "INSERT INTO user_cards
+                (user_id, kind, entity_id, rarity, variant, copies, value, first_obtained_at, last_obtained_at)
+             VALUES (?1, 'character', 1, 'rare', 'normal', 1, 1, 1, 1),
+                    (?1, 'character', 1, 'rare', 'foil', 1, 1, 1, 1),
+                    (?1, 'character', 2, 'rare', 'normal', 1, 1, 1, 1)",
+            [LOCAL_USER_ID],
+        ).unwrap();
+        assert_eq!(
+            unlinked_owned_characters(&connection).unwrap(),
+            vec![(CardKind::Character, 1)]
+        );
     }
 
     #[test]

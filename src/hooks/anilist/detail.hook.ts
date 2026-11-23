@@ -57,6 +57,7 @@ export function useAnilistDetail(lists: AniListCollection[]) {
   useEffect(() => {
     setSelectedAnime(null);
     setAnimeHistory([]);
+  // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [manga]);
   useEffect(() => {
     if (!tracked) return;

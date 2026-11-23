@@ -24,7 +24,7 @@ export function MangaHeaderActions({
 }) {
   const { t } = useI18n();
   const browserDomain = useCell(settingsAtoms.mangaLibBrowserDomain);
-  const website = mangaTitleUrl(source, hit?.id ?? id, browserDomain);
+  const website = mangaTitleUrl(source, hit?.id ?? id, browserDomain, hit?.webUrl);
 
   return (
     <>

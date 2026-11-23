@@ -8,6 +8,7 @@ interface ContextMenuItem {
   labelVars?: TranslationVariables;
   rawText?: string;
   icon?: ComponentType<{ className?: string }>;
+  color?: string;
   hint?: string;
   checked?: boolean;
   onSelect: () => void;
@@ -22,12 +23,14 @@ interface ContextMenuSubmenu {
   labelVars?: TranslationVariables;
   rawText?: string;
   icon?: ComponentType<{ className?: string }>;
+  color?: string;
   hint?: string;
   disabled?: boolean;
   entries: readonly ContextMenuEntry[];
 }
 
-export type ContextMenuEntry = ContextMenuItem | ContextMenuSubmenu | ContextMenuSeparator;
+export type ContextMenuEntry =
+  ContextMenuItem | ContextMenuSubmenu | ContextMenuSeparator;
 
 interface ContextMenuSeparator {
   kind: "separator";

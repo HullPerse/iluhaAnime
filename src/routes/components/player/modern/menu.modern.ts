@@ -32,7 +32,11 @@ import {
 } from "@/config/settings/modes.config";
 import { PLAYER_SPEEDS } from "@/lib/core/player/speed.utils";
 import { selectableTracks, trackLabel } from "@/lib/torrent/tracks.utils";
-import { buildVariantId, isSubtitleVariant, variantOf } from "@/lib/player/streamHelpers.utils";
+import {
+  buildVariantId,
+  isSubtitleVariant,
+  variantOf,
+} from "@/lib/player/streamHelpers.utils";
 import { formatClock } from "@/lib/core/text/time.utils";
 import type { TranslationKey } from "@/types/core/i18n";
 import type {
@@ -73,7 +77,7 @@ const VIEW_HINTS: Record<PlayerViewMode, string> = {
 function trackEntries(
   kind: "audio" | "sub",
   tracks: MpvTrack[],
-  select: (id: number | "no") => void
+  select: (id: number | "no") => void,
 ): ContextMenuEntry[] {
   const list = selectableTracks(tracks, kind);
   const offId = kind === "sub" ? "sub-off" : "audio-off";
@@ -84,6 +88,7 @@ function trackEntries(
         kind: "item",
         id: offId,
         label: "player.media.controls.none",
+        icon: Square,
         disabled: true,
         onSelect: () => {},
       },
@@ -107,6 +112,7 @@ function trackEntries(
       kind: "item",
       id: `${offId}-${track.id}`,
       label: "player.media.menu.track",
+      icon: kind === "audio" ? Volume2 : Captions,
       rawText: trackLabel(track),
       checked: track.selected === true,
       onSelect: () => select(track.id),
@@ -118,7 +124,7 @@ function trackEntries(
 
 function chapterEntries(
   chapters: MpvChapter[],
-  onSeekTo: (time: number) => void
+  onSeekTo: (time: number) => void,
 ): ContextMenuEntry[] {
   if (chapters.length === 0) {
     return [
@@ -126,6 +132,7 @@ function chapterEntries(
         kind: "item",
         id: "chapter-empty",
         label: "player.media.menu.no.chapters",
+        icon: ListVideo,
         disabled: true,
         onSelect: () => {},
       },
@@ -139,6 +146,7 @@ function chapterEntries(
       kind: "item" as const,
       id: `chapter-${index}`,
       label: "player.media.menu.chapter" as const,
+      icon: ListVideo,
       labelVars: { n: index + 1 },
       rawText: title ? `${title} - ${formatClock(chapter.time)}` : undefined,
       onSelect: () => onSeekTo(chapter.time),
@@ -147,16 +155,25 @@ function chapterEntries(
 }
 
 function disabledEntry(id: string, label: TranslationKey): ContextMenuEntry {
-  return { kind: "item", id, label, disabled: true, onSelect: () => {} };
+  return {
+    kind: "item",
+    id,
+    label,
+    icon: Square,
+    disabled: true,
+    onSelect: () => {},
+  };
 }
 
 function streamVariantEntries(
   kind: "voice" | "sub",
   menu: ModernMenuStream,
-  actions: ModernMenuActions
+  actions: ModernMenuActions,
 ): ContextMenuEntry[] {
   const id = `stream-${kind}`;
-  const list = menu.variants.filter((variant) => isSubtitleVariant(variant) === (kind === "sub"));
+  const list = menu.variants.filter(
+    (variant) => isSubtitleVariant(variant) === (kind === "sub"),
+  );
 
   if (menu.variantsLoading) {
     return [disabledEntry(`${id}-loading`, "player.stream.menu.loading")];
@@ -175,7 +192,8 @@ function streamVariantEntries(
     ];
   }
 
-  if (list.length === 0) return [disabledEntry(`${id}-empty`, "player.media.tracks.empty")];
+  if (list.length === 0)
+    return [disabledEntry(`${id}-empty`, "player.media.tracks.empty")];
   const active = variantOf(list, menu.session.variantId);
   const activeId = active === null ? "" : buildVariantId(active);
 
@@ -186,6 +204,7 @@ function streamVariantEntries(
       kind: "item" as const,
       id: `${id}:${variantId}`,
       label: "player.media.menu.track" as const,
+      icon: kind === "voice" ? Mic : Captions,
       rawText: variant.name,
       hint: variant.language || undefined,
       checked: variantId === activeId,
@@ -196,7 +215,7 @@ function streamVariantEntries(
 
 function streamQualityEntries(
   menu: ModernMenuStream,
-  actions: ModernMenuActions
+  actions: ModernMenuActions,
 ): ContextMenuEntry[] {
   const labels = menu.session.sources.map((source) => source.label);
 
@@ -208,13 +227,17 @@ function streamQualityEntries(
     kind: "item" as const,
     id: `stream-quality:${label}`,
     label: "player.stream.quality" as const,
+    icon: SlidersHorizontal,
     rawText: label,
     checked: label === menu.session.quality,
     onSelect: () => actions.onSelectQuality(label),
   }));
 }
 
-function streamEntries(menu: ModernMenuStream, actions: ModernMenuActions): ContextMenuEntry[] {
+function streamEntries(
+  menu: ModernMenuStream,
+  actions: ModernMenuActions,
+): ContextMenuEntry[] {
   const entries: ContextMenuEntry[] = [
     {
       kind: "submenu",
@@ -252,7 +275,7 @@ function streamEntries(menu: ModernMenuStream, actions: ModernMenuActions): Cont
 
 export function buildModernPlayerMenu(
   snapshot: ModernMenuSnapshot,
-  actions: ModernMenuActions
+  actions: ModernMenuActions,
 ): ContextMenuEntry[] {
   const locked = !snapshot.hasFile;
   const trackChoices: ContextMenuEntry[] =
@@ -272,7 +295,11 @@ export function buildModernPlayerMenu(
             label: "player.media.tracks.audio",
             icon: Volume2,
             disabled: locked,
-            entries: trackEntries("audio", snapshot.tracks, actions.onSelectAudio),
+            entries: trackEntries(
+              "audio",
+              snapshot.tracks,
+              actions.onSelectAudio,
+            ),
           },
         ]
       : streamEntries(snapshot.stream, actions);
@@ -288,7 +315,9 @@ export function buildModernPlayerMenu(
         {
           kind: "item",
           id: "playback-toggle",
-          label: snapshot.paused ? "player.media.menu.play" : "player.media.menu.pause",
+          label: snapshot.paused
+            ? "player.media.menu.play"
+            : "player.media.menu.pause",
           icon: snapshot.paused ? Play : Pause,
           hint: "Space",
           onSelect: actions.onPlayPause,
@@ -347,12 +376,13 @@ export function buildModernPlayerMenu(
         kind: "item" as const,
         id: `speed-${value}`,
         label: "player.media.menu.speed" as const,
+        icon: Gauge,
         rawText: `${value}x`,
         checked: snapshot.speed === value,
         onSelect: () => actions.onSpeed(value),
       })),
     },
-    { kind: "separator", id: "sep-view" },
+
     {
       kind: "submenu",
       id: "eof-mode",
@@ -363,10 +393,19 @@ export function buildModernPlayerMenu(
         kind: "item" as const,
         id: `eof-${mode}`,
         label: EOF_LABELS[mode],
+        icon:
+          mode === "next"
+            ? SkipForward
+            : mode === "repeat"
+              ? RefreshCw
+              : mode === "pause"
+                ? Pause
+                : Square,
         checked: snapshot.eofMode === mode,
         onSelect: () => actions.onEofMode(mode),
       })),
     },
+    { kind: "separator", id: "sep-view" },
     {
       kind: "item",
       id: "toggle-playlist",
@@ -396,6 +435,7 @@ export function buildModernPlayerMenu(
         kind: "item" as const,
         id: `view-${mode}`,
         label: VIEW_LABELS[mode],
+        icon: Monitor,
         hint: VIEW_HINTS[mode],
         checked: snapshot.viewMode === mode,
         onSelect: () => actions.onViewMode(mode),
@@ -410,6 +450,7 @@ export function buildModernPlayerMenu(
         kind: "item" as const,
         id: `screen-mode-${mode}`,
         label: PLAYER_MODES[mode].labelKey,
+        icon: Tv,
         checked: snapshot.playerMode === mode,
         onSelect: () => actions.onPlayerMode(mode),
       })),
@@ -423,6 +464,7 @@ export function buildModernPlayerMenu(
         kind: "item" as const,
         id: `screen-cabinet-${cabinet}`,
         label: PLAYER_CABINETS[cabinet],
+        icon: Frame,
         checked: snapshot.cabinet === cabinet,
         onSelect: () => actions.onCabinet(cabinet),
       })),

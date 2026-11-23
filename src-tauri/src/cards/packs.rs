@@ -783,7 +783,9 @@ fn save_prepared(
     let mut connection = open_database(app)?;
     let now = now_seconds();
     for card in prepared {
-        upsert_meta(&connection, &card.meta_row(now))?;
+        if get_meta(&connection, card.card.kind, card.card.entity_id)?.is_none() {
+            upsert_meta(&connection, &card.meta_row(now))?;
+        }
     }
     let rows: Vec<CardPackCardRow> = prepared
         .iter()

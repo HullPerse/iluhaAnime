@@ -172,6 +172,10 @@ export function getStatusColor(status: AniListEntry["list_status"]): HexType {
   const statusMap: Record<AniListEntry["list_status"], HexType> = {
     COMPLETED: "#4caf50",
     CURRENT: "#e6b800",
+    WATCHING: "#e6b800",
+    READING: "#e6b800",
+    REWATCHING: "#9c27b0",
+    REREADING: "#9c27b0",
     DROPPED: "#f44336",
     PAUSED: "#ff9800",
     PLANNING: "#2196f3",

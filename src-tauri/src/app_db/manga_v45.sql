@@ -107,4 +107,5 @@ INSERT OR IGNORE INTO manga_source_settings (source_id, enabled, language) VALUE
     ('mangalib', 1, 'ru'),
     ('mangadex', 1, NULL),
     ('readmanga', 0, 'ru'),
-    ('asurascans', 0, 'en');
+    ('asurascans', 0, 'en'),
+    ('wamanga', 0, 'ru');

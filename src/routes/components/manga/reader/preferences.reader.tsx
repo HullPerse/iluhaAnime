@@ -43,10 +43,8 @@ export function ReaderPreferences({
   const containerWidth = useCell(settingsAtoms.mangaReaderWidth);
   const gap = useCell(settingsAtoms.mangaReaderGap);
   const animated = useCell(settingsAtoms.mangaReaderAnimated);
-  const bottomBarAlways = useCell(settingsAtoms.mangaBottomBarAlways);
-  const [section, setSection] = useState<"reading" | "tools" | "page" | "background">(
-    "reading"
-  );
+  const panelsAlways = useCell(settingsAtoms.mangaBottomBarAlways);
+  const [section, setSection] = useState<"reading" | "tools" | "page" | "background">("reading");
 
   return (
     <aside
@@ -155,7 +153,7 @@ export function ReaderPreferences({
             </label>
             <label className="flex items-center gap-2">
               <Checkbox
-                checked={bottomBarAlways}
+                checked={panelsAlways}
                 onChange={(mangaBottomBarAlways) => patchSettings({ mangaBottomBarAlways })}
               />
               {t("manga.reader.bottomBarAlways")}

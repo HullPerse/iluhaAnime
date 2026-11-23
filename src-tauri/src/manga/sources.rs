@@ -27,6 +27,7 @@ pub enum MangaSource {
     MangaDex,
     ReadManga,
     AsuraScans,
+    WaManga,
 }
 
 impl MangaSource {
@@ -36,6 +37,7 @@ impl MangaSource {
             Self::MangaDex => "mangadex",
             Self::ReadManga => "readmanga",
             Self::AsuraScans => "asurascans",
+            Self::WaManga => "wamanga",
         }
     }
 }
@@ -331,6 +333,8 @@ pub struct MangaSearchHit {
     pub(super) rating: String,
     pub(super) aliases: Vec<String>,
     pub(super) external_ids: ExternalIds,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) web_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -403,6 +407,7 @@ fn parse_lib(hit: &Value) -> Option<MangaSearchHit> {
             anilist: lib_anilist_id(hit),
             mal: None,
         },
+        web_url: None,
     })
 }
 
@@ -452,6 +457,7 @@ fn parse_dex(hit: &Value, nsfw: bool) -> Option<MangaSearchHit> {
                 .as_str()
                 .and_then(|id| id.parse().ok()),
         },
+        web_url: None,
     })
 }
 
@@ -696,9 +702,16 @@ pub async fn manga_search(
                 let client = dex_client(proxy_url.as_deref())?;
                 dex_person_search(&client, person, page, nsfw).await?
             }
-            MangaSource::ReadManga | MangaSource::AsuraScans => {
-                public_sources::search(source, query, page, proxy_url.as_deref(), Some(person))
-                    .await?
+            MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
+                public_sources::search(
+                    source,
+                    query,
+                    page,
+                    nsfw,
+                    proxy_url.as_deref(),
+                    Some(person),
+                )
+                .await?
             }
         };
         let mut result = result;
@@ -734,9 +747,10 @@ pub async fn manga_search(
             }
             source.get(request).await?
         }
-        MangaSource::ReadManga | MangaSource::AsuraScans => {
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
             let mut result =
-                public_sources::search(source, query, page, proxy_url.as_deref(), None).await?;
+                public_sources::search(source, query, page, nsfw, proxy_url.as_deref(), None)
+                    .await?;
             result.has_next &= page < 1000;
             return Ok(result);
         }
@@ -782,8 +796,9 @@ fn valid_dex_id(id: &str) -> bool {
         })
 }
 
-/// Chapter totals are missing from the MangaLib and MangaDex search payloads,
-/// so the frontend asks for them separately after the catalog page is painted.
+/// Chapter totals are missing from the MangaLib, MangaDex, and WaManga search
+/// payloads, so the frontend asks for them separately after the catalog page is
+/// painted.
 #[tauri::command]
 pub async fn manga_search_meta(
     source: MangaSource,
@@ -836,6 +851,20 @@ pub async fn manga_search_meta(
                     })
                 }
             }))
+            .await
+        }
+        MangaSource::WaManga => {
+            let proxy = proxy_url.as_deref();
+            join_all(
+                ids.into_iter()
+                    .filter(|id| valid_dex_id(id))
+                    .map(|id| async move {
+                        Some(MangaSearchMeta {
+                            id: id.to_owned(),
+                            chapters: public_sources::wamanga_chapter_count(id, proxy).await?,
+                        })
+                    }),
+            )
             .await
         }
         MangaSource::ReadManga | MangaSource::AsuraScans => Vec::new(),
@@ -1179,7 +1208,7 @@ async fn probe_source(
                 .query(&[("limit", "1")]),
             "api.mangadex.org",
         ),
-        MangaSource::ReadManga | MangaSource::AsuraScans => {
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
             // These sites reject the app user agent with 402, so reuse the
             // browser headers the catalog requests already send.
             let host = public_sources::referer(source);
@@ -1240,7 +1269,7 @@ pub async fn manga_details(
             .await
         }
         MangaSource::MangaDex => dex_details(&id, nsfw, proxy_url.as_deref()).await,
-        MangaSource::ReadManga | MangaSource::AsuraScans => {
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
             public_sources::details(source, &id, nsfw, proxy_url.as_deref()).await
         }
     }

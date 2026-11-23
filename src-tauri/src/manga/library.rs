@@ -178,6 +178,7 @@ fn validate_hit(source: MangaSource, hit: &mut MangaSearchHit) -> Result<(), Str
         MangaSource::MangaDex => allowed_cover(cover, "uploads.mangadex.org"),
         MangaSource::ReadManga => allowed_cover(cover, super::sources::public_sources::READ_CDN),
         MangaSource::AsuraScans => allowed_cover(cover, super::sources::public_sources::ASURA_CDN),
+        MangaSource::WaManga => allowed_cover(cover, super::sources::public_sources::WAMANGA_CDN),
     });
     hit.aliases.truncate(50);
     hit.aliases.retain(|alias| alias.len() <= 2048);
@@ -337,7 +338,7 @@ pub struct SourceSetting {
 #[tauri::command]
 pub async fn manga_sources_list(app: AppHandle) -> Result<Vec<SourceSetting>, String> {
     database(app, false, |connection| {
-        let mut query = connection.prepare("SELECT source_id, enabled FROM manga_source_settings WHERE source_id IN ('mangalib','mangadex','readmanga','asurascans')")
+        let mut query = connection.prepare("SELECT source_id, enabled FROM manga_source_settings WHERE source_id IN ('mangalib','mangadex','readmanga','asurascans','wamanga')")
             .map_err(|error| error.to_string())?;
         let rows = query.query_map([], |row| Ok(SourceSetting { id: row.get(0)?, enabled: row.get(1)? }))
             .map_err(|error| error.to_string())?;

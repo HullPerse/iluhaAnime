@@ -88,7 +88,14 @@ export function Strip({
             className="absolute top-0 left-0 w-full"
             style={{ transform: `translateY(${item.start}px)` }}
           >
-            <ReaderPage manifest={manifest} page={item.index} strip onLoad={onLoad} />
+            <ReaderPage
+              manifest={manifest}
+              page={item.index}
+              strip
+              first={item.index === 0}
+              last={item.index === count - 1}
+              onLoad={onLoad}
+            />
           </div>
         ))}
       </div>

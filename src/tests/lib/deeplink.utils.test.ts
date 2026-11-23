@@ -60,6 +60,11 @@ describe("utils/deeplink", () => {
   it.each([
     { source: "readmanga", id: "ecuba_i_", chapterId: "vol1-0.5" },
     { source: "asurascans", id: "reincarnator-7ba78ec7", chapterId: "chapter-0" },
+    {
+      source: "wamanga",
+      id: "99b7b6e4-7c7e-4a93-92d1-2ead150bda47",
+      chapterId: "79319247-a3fb-43a3-95b2-cf2ab98be2a3",
+    },
   ] as const)("opens chapter links from $source", (link) => {
     expect(parsePastedLink(buildMangaLink(link))).toEqual({ kind: "manga", link });
   });

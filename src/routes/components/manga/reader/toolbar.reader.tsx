@@ -10,6 +10,8 @@ export function ReaderToolbar({
   title,
   sourceName,
   controls,
+  onHoverStart,
+  onHoverEnd,
   page,
   count,
   chapters,
@@ -31,6 +33,8 @@ export function ReaderToolbar({
   title: string;
   sourceName: string | undefined;
   controls: boolean;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
   page: number;
   count: number;
   chapters: MangaChapter[];
@@ -57,7 +61,11 @@ export function ReaderToolbar({
     <header
       data-reader-chrome
       data-no-wheel
-      className={`absolute top-0 right-4 left-0 z-20 border-b border-white/20 bg-black/95 text-white ${motion} ${controls ? "opacity-100" : "opacity-0 focus-within:opacity-100 hover:opacity-100"}`}
+      aria-hidden={!controls}
+      inert={!controls}
+      onPointerEnter={onHoverStart}
+      onPointerLeave={onHoverEnd}
+      className={`absolute top-0 right-4 left-0 z-20 border-b border-white/20 bg-black/95 text-white ${motion} ${controls ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
     >
       <div className="flex items-center gap-1.5 px-2 py-1.5">
         <Button

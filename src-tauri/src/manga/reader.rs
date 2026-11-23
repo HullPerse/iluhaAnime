@@ -205,7 +205,7 @@ async fn resolve_manifest(chapter: ReaderChapter) -> Result<Manifest, SourceErro
     let urls = match chapter.source {
         MangaSource::MangaLib => lib_pages(&chapter).await?,
         MangaSource::MangaDex => dex_pages(&chapter).await?,
-        MangaSource::ReadManga | MangaSource::AsuraScans => {
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
             public_sources::pages(
                 chapter.source,
                 &chapter.manga_id,
@@ -387,7 +387,9 @@ fn referer(source: MangaSource, domain: MangaLibDomain) -> &'static str {
     match source {
         MangaSource::MangaLib => domain.referer(),
         MangaSource::MangaDex => "https://mangadex.org/",
-        MangaSource::ReadManga | MangaSource::AsuraScans => public_sources::referer(source),
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
+            public_sources::referer(source)
+        }
     }
 }
 
@@ -429,13 +431,18 @@ async fn download_image(
         }
         MangaSource::MangaLib => lib_client(proxy)?,
         MangaSource::MangaDex => dex_client(proxy)?,
-        MangaSource::ReadManga | MangaSource::AsuraScans => public_sources::client(source, proxy)?,
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga => {
+            public_sources::client(source, proxy)?
+        }
     };
     let request = client
         .client
         .get(url)
         .header(reqwest::header::REFERER, referer(source, domain));
-    let request = if matches!(source, MangaSource::ReadManga | MangaSource::AsuraScans) {
+    let request = if matches!(
+        source,
+        MangaSource::ReadManga | MangaSource::AsuraScans | MangaSource::WaManga
+    ) {
         public_sources::with_headers(request)
     } else {
         request
@@ -494,6 +501,9 @@ fn cover_source(value: &str) -> Option<(MangaSource, String)> {
     }
     if let Some(url) = allowed_cover(value, public_sources::ASURA_CDN) {
         return Some((MangaSource::AsuraScans, url));
+    }
+    if let Some(url) = allowed_cover(value, public_sources::WAMANGA_CDN) {
+        return Some((MangaSource::WaManga, url));
     }
     None
 }

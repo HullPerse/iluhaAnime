@@ -10,6 +10,7 @@ export const searchHitSchema = z.object({
   rating: z.string(),
   aliases: z.array(z.string()),
   externalIds: z.object({ anilist: z.nullable(z.number()), mal: z.nullable(z.number()) }),
+  webUrl: z.optional(z.nullable(z.string())),
 });
 
 export const searchPageSchema = z.compile(
@@ -63,7 +64,7 @@ export const manifestSchema = z.object({ key: z.string(), count: z.number() });
 
 export const pageCacheStatsSchema = z.compile(z.object({ bytes: z.number(), count: z.number() }));
 
-const sourceSchema = z.enum(["mangalib", "mangadex", "readmanga", "asurascans"]);
+const sourceSchema = z.enum(["mangalib", "mangadex", "readmanga", "asurascans", "wamanga"]);
 
 export const sourceSettingsSchema = z.array(z.object({ id: sourceSchema, enabled: z.boolean() }));
 

@@ -2167,7 +2167,10 @@ fn set_window_chrome(
         rounded_corners,
     };
     apply_window_chrome(&window, &chrome)?;
-    if let Some(player_window) = window.app_handle().get_webview_window(player::PLAYER_WINDOW_LABEL) {
+    if let Some(player_window) = window
+        .app_handle()
+        .get_webview_window(player::PLAYER_WINDOW_LABEL)
+    {
         apply_window_chrome(&player_window, &chrome)?;
     }
     let payload =

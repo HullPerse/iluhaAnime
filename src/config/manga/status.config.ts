@@ -1,7 +1,7 @@
 export const statusColors: Readonly<Record<string, string>> = {
-  highlight: "var(--color-highlight)",
-  success: "var(--color-success)",
-  text: "var(--color-text)",
-  warning: "var(--color-fav-gold)",
-  destructive: "var(--color-destructive)",
+  highlight: "#e6b800",
+  success: "#4caf50",
+  text: "#2196f3",
+  warning: "#ff9800",
+  destructive: "#f44336",
 };

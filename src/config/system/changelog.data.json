@@ -1,6 +1,87 @@
 {
   "changelog": [
     {
+      "version": "5.4.5",
+      "added": [
+        {
+          "key": "changelog.5_4_5.added.manga.source",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.added.manga.reader_tools",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.added.manga.image_actions",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.added.manga.random",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.added.settings.theme",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_5.added.settings.scroll_fade",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_5.added.settings.tab_order",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_5.added.anilist.adaptations",
+          "scope": "anilist"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_4_5.changed.manga.library",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.changed.manga.menus",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.changed.manga.status_colors",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.changed.manga.reader_panels",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.changed.app.clipboard",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_4_5.changed.collection.sort",
+          "scope": "collection"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_4_5.fixed.anilist.manga_mode",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_4_5.fixed.anilist.status_labels",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_4_5.fixed.manga.resume",
+          "scope": "manga"
+        },
+        {
+          "key": "changelog.5_4_5.fixed.manga.source_links",
+          "scope": "manga"
+        }
+      ]
+    },
+    {
       "version": "5.4.2",
       "added": [],
       "changed": [],
@@ -183,67 +264,199 @@
     {
       "version": "5.3.0",
       "added": [
-        { "key": "changelog.5_3_0.added.settings.diagnostics", "scope": "settings" },
-        { "key": "changelog.5_3_0.added.settings.zapret", "scope": "settings" }
+        {
+          "key": "changelog.5_3_0.added.settings.diagnostics",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_3_0.added.settings.zapret",
+          "scope": "settings"
+        }
       ],
       "changed": [
-        { "key": "changelog.5_3_0.changed.settings.proxy_inheritance", "scope": "settings" },
-        { "key": "changelog.5_3_0.changed.settings.find", "scope": "settings" },
-        { "key": "changelog.5_3_0.changed.search.sukebei_proxy", "scope": "search" },
-        { "key": "changelog.5_3_0.changed.torrents.proxy_removed", "scope": "torrents" },
-        { "key": "changelog.5_3_0.changed.player.remote_dns", "scope": "player" },
-        { "key": "changelog.5_3_0.changed.game.franchise_check", "scope": "game" },
-        { "key": "changelog.5_3_0.changed.game.audio_candidates", "scope": "game" },
-        { "key": "changelog.5_3_0.changed.game.proxy_test", "scope": "game" },
-        { "key": "changelog.5_3_0.changed.game.mirrors", "scope": "game" },
-        { "key": "changelog.5_3_0.changed.game.prepare_timeouts", "scope": "game" }
+        {
+          "key": "changelog.5_3_0.changed.settings.proxy_inheritance",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_3_0.changed.settings.find",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_3_0.changed.search.sukebei_proxy",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_3_0.changed.torrents.proxy_removed",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_3_0.changed.player.remote_dns",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_3_0.changed.game.franchise_check",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_3_0.changed.game.audio_candidates",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_3_0.changed.game.proxy_test",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_3_0.changed.game.mirrors",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_3_0.changed.game.prepare_timeouts",
+          "scope": "game"
+        }
       ],
       "fixed": [
-        { "key": "changelog.5_3_0.fixed.game.answer_leak", "scope": "game" },
-        { "key": "changelog.5_3_0.fixed.game.audio_result", "scope": "game" },
-        { "key": "changelog.5_3_0.fixed.game.clip_proxy", "scope": "game" }
+        {
+          "key": "changelog.5_3_0.fixed.game.answer_leak",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_3_0.fixed.game.audio_result",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_3_0.fixed.game.clip_proxy",
+          "scope": "game"
+        }
       ]
     },
     {
       "version": "5.2.5",
       "added": [
-        { "key": "changelog.5_2_5.added.settings.daily_proxy", "scope": "settings" },
-        { "key": "changelog.5_2_5.added.player.keyboard_sliders", "scope": "player" }
+        {
+          "key": "changelog.5_2_5.added.settings.daily_proxy",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_2_5.added.player.keyboard_sliders",
+          "scope": "player"
+        }
       ],
       "changed": [
-        { "key": "changelog.5_2_5.changed.collection.pack_draw", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.collection.rarity", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.collection.grouping", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.collection.payout", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.collection.pack_prepare", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.collection.cards_shell", "scope": "collection" },
-        { "key": "changelog.5_2_5.changed.player.loading", "scope": "player" },
-        { "key": "changelog.5_2_5.changed.player.file_polling", "scope": "player" },
-        { "key": "changelog.5_2_5.changed.torrents.delta_updates", "scope": "torrents" },
-        { "key": "changelog.5_2_5.changed.search.cover_cascade", "scope": "search" },
-        { "key": "changelog.5_2_5.changed.search.session_check", "scope": "search" },
-        { "key": "changelog.5_2_5.changed.anilist.bundles", "scope": "anilist" },
-        { "key": "changelog.5_2_5.changed.streaming.history_batch", "scope": "streaming" },
-        { "key": "changelog.5_2_5.changed.app.ipc_payloads", "scope": "app" }
+        {
+          "key": "changelog.5_2_5.changed.collection.pack_draw",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.changed.collection.rarity",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.changed.collection.grouping",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.changed.collection.payout",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.changed.collection.pack_prepare",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.changed.collection.cards_shell",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.changed.player.loading",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.changed.player.file_polling",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.changed.torrents.delta_updates",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.5_2_5.changed.search.cover_cascade",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_2_5.changed.search.session_check",
+          "scope": "search"
+        },
+        {
+          "key": "changelog.5_2_5.changed.anilist.bundles",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_2_5.changed.streaming.history_batch",
+          "scope": "streaming"
+        },
+        {
+          "key": "changelog.5_2_5.changed.app.ipc_payloads",
+          "scope": "app"
+        }
       ],
       "fixed": [
-        { "key": "changelog.5_2_5.fixed.game.reward_pack", "scope": "game" },
-        { "key": "changelog.5_2_5.fixed.collection.open_pending", "scope": "collection" },
-        { "key": "changelog.5_2_5.fixed.collection.reveal_images", "scope": "collection" },
+        {
+          "key": "changelog.5_2_5.fixed.game.reward_pack",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.collection.open_pending",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.collection.reveal_images",
+          "scope": "collection"
+        },
         {
           "key": "changelog.5_2_5.fixed.collection.studio_collage",
           "scope": "collection"
         },
-        { "key": "changelog.5_2_5.fixed.collection.source_keyboard", "scope": "collection" },
-        { "key": "changelog.5_2_5.fixed.anilist.people_race", "scope": "anilist" },
-        { "key": "changelog.5_2_5.fixed.player.stream_retry", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.player.lifecycle", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.player.episode_switch", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.player.watch_progress", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.player.tracks", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.player.recovery", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.player.network_state", "scope": "player" },
-        { "key": "changelog.5_2_5.fixed.settings.proxy_search", "scope": "settings" }
+        {
+          "key": "changelog.5_2_5.fixed.collection.source_keyboard",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.anilist.people_race",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.stream_retry",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.lifecycle",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.episode_switch",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.watch_progress",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.tracks",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.recovery",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.player.network_state",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_2_5.fixed.settings.proxy_search",
+          "scope": "settings"
+        }
       ]
     },
     {

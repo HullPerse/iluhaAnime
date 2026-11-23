@@ -31,6 +31,10 @@ export const characterRoleLabels: Record<string, TranslationKey> = {
 };
 
 export const listStatusLabels: Record<string, TranslationKey> = {
+  WATCHING: "anilist.list.status.CURRENT",
+  REWATCHING: "anilist.list.status.REPEATING",
+  READING: "manga.tracking.status.current",
+  REREADING: "manga.tracking.status.repeating",
   COMPLETED: "anilist.list.status.COMPLETED",
   CURRENT: "anilist.list.status.CURRENT",
   DROPPED: "anilist.list.status.DROPPED",

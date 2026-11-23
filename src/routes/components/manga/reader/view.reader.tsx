@@ -3,17 +3,16 @@ import { ChevronsDown } from "lucide-react";
 import { useReaderAutoScroll } from "@/hooks/manga/reader/autoScroll.hook";
 import {
   READER_BOTTOM_BAR_REVEAL_ZONE,
-  useReaderBottomBar,
+  READER_TOP_BAR_REVEAL_ZONE,
+  useReaderBar,
 } from "@/hooks/manga/reader/bottomBar.hook";
 import { useReaderScrollFade } from "@/hooks/manga/reader/scrollFade.hook";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
-import type {
-  PointerEvent as ReactPointerEvent,
-  WheelEvent as ReactWheelEvent,
-} from "react";
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
 import { mangaSources, openMangaChapter } from "@/api/manga.api";
 import type { MangaChapter, MangaHit, MangaReaderInput } from "@/api/manga.api";
+import TitleBar from "@/components/shared/titlebar.component";
 import { SelectPortalContainerContext } from "@/components/ui/select.component";
 import { activeMangaServer, readerDisplays } from "@/config/manga/reader.config";
 import type { readerModes } from "@/config/manga/reader.config";
@@ -110,13 +109,13 @@ export default function MangaReader({
   const brightness = useCell(settingsAtoms.mangaBrightness);
   const autoMark = useCell(settingsAtoms.mangaAutoMarkRead);
   const autoCorner = useCell(settingsAtoms.mangaAutoCorner);
-  const bottomBarAlways = useCell(settingsAtoms.mangaBottomBarAlways);
+  const panelsAlways = useCell(settingsAtoms.mangaBottomBarAlways);
   const scrollFade = useCell(settingsAtoms.scrollFade);
   const animated = useCell(settingsAtoms.mangaReaderAnimated);
   const readerGap = useCell(settingsAtoms.mangaReaderGap);
+  const customTitleBarEnabled = useCell(settingsAtoms.customTitleBarEnabled);
   const [page, setPage] = useState<number>(0);
   const [settings, setSettings] = useState<boolean>(false);
-  const [chrome, setChrome] = useState<boolean>(true);
   const [loaded, setLoaded] = useState<boolean>(false);
   const [stripRestart, setStripRestart] = useState<number>(0);
   const [stripJump, setStripJump] = useState<{ index: number; token: number }>({
@@ -134,7 +133,6 @@ export default function MangaReader({
     setPortalHost(node);
   }, []);
   const settingsButton = useRef<HTMLButtonElement>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
     pagePicker,
     chaptersOpen,
@@ -145,7 +143,8 @@ export default function MangaReader({
     openChapterPicker,
     closeOverlay,
   } = useReaderOverlays();
-  const bottomBar = useReaderBottomBar({ always: bottomBarAlways, pinned: pagePicker });
+  const bottomBar = useReaderBar({ always: panelsAlways, pinned: pagePicker });
+  const topBar = useReaderBar({ always: panelsAlways, pinned: settings || overlay });
   const { data, error, refetch } = useQuery({
     queryKey: manifestKey(chapter, activeMangaServer),
     queryFn: () => openMangaChapter(chapter, activeMangaServer),
@@ -197,8 +196,6 @@ export default function MangaReader({
 
   useEffect(
     () => () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-
       if (scrollTimer.current) clearTimeout(scrollTimer.current);
     },
     []
@@ -309,15 +306,8 @@ export default function MangaReader({
     next: next ? () => leave(next, true) : undefined,
   });
 
-  function showChrome() {
-    setChrome(true);
-
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setChrome(false), 2200);
-  }
-
   function trackPointer(event: ReactPointerEvent<HTMLDialogElement>) {
-    showChrome();
+    if (event.clientY <= READER_TOP_BAR_REVEAL_ZONE) topBar.reveal();
 
     if (event.clientY >= window.innerHeight - READER_BOTTOM_BAR_REVEAL_ZONE) bottomBar.reveal();
   }
@@ -379,7 +369,7 @@ export default function MangaReader({
     },
   });
 
-  const controls = chrome || settings || overlay;
+  const controls = topBar.shown || settings || overlay;
   const sourceName = mangaSources.find(({ id }) => id === chapter.source)?.name;
 
   return (
@@ -396,108 +386,115 @@ export default function MangaReader({
         closeReaderView({ closeOverlay, settings, closePreferences, leave, onClose });
       }}
       onPointerMove={trackPointer}
-      onFocus={showChrome}
+      onFocus={() => topBar.reveal()}
       onWheel={forwardWheel}
     >
       <SelectPortalContainerContext.Provider value={portalHost}>
-        <ReaderStage
-          key={stripRestart}
-          data={data}
-          ready={readerProgress.ready}
-          strip={strip}
-          current={page}
-          initialOffset={stripStart}
-          jump={stripJump}
-          gap={readerGap}
-          mode={mode}
-          pair={pair}
-          spread={spread}
-          half={half}
-          inspect={inspectPage}
-          step={step}
-          failed={error !== null}
-          onRetry={() => refetch()}
-          onPage={(next, position) => {
-            offset.current = position;
-            setPage(next);
+        <div className="flex h-full min-h-0 flex-col">
+          {customTitleBarEnabled && <TitleBar title="iluhaAnime" />}
+          <div className="relative min-h-0 flex-1">
+            <ReaderStage
+              key={stripRestart}
+              data={data}
+              ready={readerProgress.ready}
+              strip={strip}
+              current={page}
+              initialOffset={stripStart}
+              jump={stripJump}
+              gap={readerGap}
+              mode={mode}
+              pair={pair}
+              spread={spread}
+              half={half}
+              inspect={inspectPage}
+              step={step}
+              failed={error !== null}
+              onRetry={() => refetch()}
+              onPage={(next, position) => {
+                offset.current = position;
+                setPage(next);
 
-            if (scrollTimer.current) clearTimeout(scrollTimer.current);
-            scrollTimer.current = setTimeout(() => latest.current.save(next, position), 1000);
-          }}
-          onLoad={pageLoaded}
-          onOffset={(position) => {
-            offset.current = position;
-          }}
-        />
-        {auto.running && autoCorner !== "off" && (
-          <span
-            aria-hidden
-            data-reader-auto-indicator
-            title={t("manga.reader.autoRunning")}
-            className={`pointer-events-none absolute z-10 rounded-full border border-white/15 bg-black/45 p-1 text-white/65 backdrop-blur-sm ${AUTO_CORNER_CLASSES[autoCorner] ?? ""}`}
-          >
-            <ChevronsDown className="size-3.5" />
-          </span>
-        )}
-        <ReaderToolbar
-          title={title}
-          sourceName={sourceName}
-          controls={controls}
-          page={page}
-          count={data?.count ?? 0}
-          chapters={chapters}
-          chapterKey={chapterKey}
-          chaptersOpen={chaptersOpen}
-          chapterButton={chapterButton}
-          openChapterPicker={openChapterPicker}
-          onJumpChapter={(target) => leave(() => onJump(target))}
-          onBack={() => leave(onClose)}
-          onPrevious={() => previous && leave(previous)}
-          onNext={() => next && leave(next, true)}
-          previousEnabled={previous !== undefined}
-          nextEnabled={next !== undefined}
-          settings={settings}
-          settingsButton={settingsButton}
-          onToggleSettings={() => (settings ? closePreferences() : setSettings(true))}
-          animated={animated}
-        />
-        {readerProgress.failed && (
-          <p role="status" className="absolute top-14 right-2 bg-black p-1 text-xs text-white">
-            {t("manga.reader.positionFailed")}
-          </p>
-        )}
-        {settings && (
-          <ReaderPreferences
-            brightness={brightness}
-            autoMark={autoMark}
-            autoRunning={auto.running}
-            onAutoToggle={() => auto.toggle()}
-            onDisplayChange={displayChanged}
-            onClose={closePreferences}
-          />
-        )}
-        {data && (
-          <ReaderBottomBar
-            page={page}
-            counter={counter}
-            count={data.count}
-            shown={bottomBar.shown}
-            onHoverStart={() => bottomBar.hold()}
-            onHoverEnd={() => bottomBar.release()}
-            pagePicker={pagePicker}
-            openPagePicker={openPagePicker}
-            pageButton={pageButton}
-            onJump={(index) => {
-              onPosition?.(page);
+                if (scrollTimer.current) clearTimeout(scrollTimer.current);
+                scrollTimer.current = setTimeout(() => latest.current.save(next, position), 1000);
+              }}
+              onLoad={pageLoaded}
+              onOffset={(position) => {
+                offset.current = position;
+              }}
+            />
+            {auto.running && autoCorner !== "off" && (
+              <span
+                aria-hidden
+                data-reader-auto-indicator
+                title={t("manga.reader.autoRunning")}
+                className={`pointer-events-none absolute z-10 rounded-full border border-white/15 bg-black/45 p-1 text-white/65 backdrop-blur-sm ${AUTO_CORNER_CLASSES[autoCorner] ?? ""}`}
+              >
+                <ChevronsDown className="size-3.5" />
+              </span>
+            )}
+            <ReaderToolbar
+              title={title}
+              sourceName={sourceName}
+              controls={controls}
+              onHoverStart={() => topBar.hold()}
+              onHoverEnd={() => topBar.release()}
+              page={page}
+              count={data?.count ?? 0}
+              chapters={chapters}
+              chapterKey={chapterKey}
+              chaptersOpen={chaptersOpen}
+              chapterButton={chapterButton}
+              openChapterPicker={openChapterPicker}
+              onJumpChapter={(target) => leave(() => onJump(target))}
+              onBack={() => leave(onClose)}
+              onPrevious={() => previous && leave(previous)}
+              onNext={() => next && leave(next, true)}
+              previousEnabled={previous !== undefined}
+              nextEnabled={next !== undefined}
+              settings={settings}
+              settingsButton={settingsButton}
+              onToggleSettings={() => (settings ? closePreferences() : setSettings(true))}
+              animated={animated}
+            />
+            {readerProgress.failed && (
+              <p role="status" className="absolute top-14 right-2 bg-black p-1 text-xs text-white">
+                {t("manga.reader.positionFailed")}
+              </p>
+            )}
+            {settings && (
+              <ReaderPreferences
+                brightness={brightness}
+                autoMark={autoMark}
+                autoRunning={auto.running}
+                onAutoToggle={() => auto.toggle()}
+                onDisplayChange={displayChanged}
+                onClose={closePreferences}
+              />
+            )}
+            {data && (
+              <ReaderBottomBar
+                page={page}
+                counter={counter}
+                count={data.count}
+                shown={bottomBar.shown}
+                onHoverStart={() => bottomBar.hold()}
+                onHoverEnd={() => bottomBar.release()}
+                pagePicker={pagePicker}
+                openPagePicker={openPagePicker}
+                pageButton={pageButton}
+                onJump={(index) => {
+                  onPosition?.(page);
 
-              if (onVisitPage) onVisitPage(index);
-              else jumpTo(index);
-            }}
-            paged={!strip}
-            onStep={step}
-            rtl={rtl}
-          />
-        )}
+                  if (onVisitPage) onVisitPage(index);
+                  else jumpTo(index);
+                }}
+                paged={!strip}
+                onStep={step}
+                rtl={rtl}
+              />
+            )}
+          </div>
+        </div>
       </SelectPortalContainerContext.Provider>
     </dialog>
   );

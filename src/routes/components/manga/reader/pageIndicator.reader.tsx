@@ -88,7 +88,7 @@ export function PageIndicator({
         aria-expanded={open}
         aria-label={t("manga.reader.goToPage")}
         title={t("manga.reader.goToPage")}
-        className={`${readerButton} group relative flex min-h-7 min-w-24 items-center justify-center gap-1 overflow-hidden px-2 text-xs tabular-nums hover:border-white/60`}
+        className={`${readerButton} group relative flex min-h-7 min-w-24 cursor-pointer items-center justify-center gap-1 overflow-hidden px-2 text-xs tabular-nums hover:border-white/60`}
         onClick={() => onOpenChange(!open)}
       >
         <span>

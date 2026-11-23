@@ -1,3 +1,4 @@
+import { Copy, Pencil, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
@@ -18,7 +19,13 @@ function release(shot: ScreenshotCapture) {
   });
 }
 
-export function ReaderImageMenu({ data, children }: { data: Blob; children: ReactNode }) {
+export function ReaderImageMenu({
+  data,
+  children,
+}: {
+  data: Blob;
+  children: ReactNode;
+}) {
   const { t } = useI18n();
   const [capture, setCapture] = useState<ScreenshotCapture | null>(null);
   const [busy, setBusy] = useState(false);
@@ -71,7 +78,10 @@ export function ReaderImageMenu({ data, children }: { data: Blob; children: Reac
           }
 
           const [path, pickerError] = await attempt(
-            save({ defaultPath: "manga-page.png", filters: [{ name: "PNG", extensions: ["png"] }] })
+            save({
+              defaultPath: "manga-page.png",
+              filters: [{ name: "PNG", extensions: ["png"] }],
+            }),
           );
 
           if (!path || pickerError) {
@@ -90,12 +100,12 @@ export function ReaderImageMenu({ data, children }: { data: Blob; children: Reac
               name: path.slice(split + 1).replace(/\.png$/i, ""),
               format: "png",
               crop: null,
-            })
+            }),
           );
           release(shot);
 
           if (saveError) throw saveError;
-        })()
+        })(),
       );
 
       if (active.current) {
@@ -114,6 +124,7 @@ export function ReaderImageMenu({ data, children }: { data: Blob; children: Reac
             kind: "item",
             id: "copy",
             label: "manga.reader.copyImage",
+            icon: Copy,
             disabled: busy,
             onSelect: () => run("copy"),
           },
@@ -121,6 +132,7 @@ export function ReaderImageMenu({ data, children }: { data: Blob; children: Reac
             kind: "item",
             id: "edit",
             label: "manga.reader.editImage",
+            icon: Pencil,
             disabled: busy,
             onSelect: () => run("edit"),
           },
@@ -128,6 +140,7 @@ export function ReaderImageMenu({ data, children }: { data: Blob; children: Reac
             kind: "item",
             id: "save",
             label: "manga.reader.saveImage",
+            icon: Save,
             disabled: busy,
             onSelect: () => run("save"),
           },

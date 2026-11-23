@@ -147,7 +147,7 @@ export default {
   "manga.reader.splitWide": "Разделять широкие страницы",
   "manga.reader.preload": "Страниц вперёд",
   "manga.reader.autoMark": "Отмечать прочитанные главы",
-  "manga.reader.bottomBarAlways": "Всегда показывать нижнюю панель",
+  "manga.reader.bottomBarAlways": "Всегда показывать панели",
   "manga.reader.positionFailed": "Прогресс не сохранён",
   "manga.reader.brightness": "Яркость",
   "manga.reader.zoom": "Масштаб",

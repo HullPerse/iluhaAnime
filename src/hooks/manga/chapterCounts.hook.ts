@@ -8,7 +8,9 @@ export function useMangaChapterCounts(source: MangaSource, hits: MangaHit[] | un
   const counts = useQuery({
     queryKey: ["manga", "chapters", source, missing],
     queryFn: () => getMangaSearchMeta(source, missing),
-    enabled: (source === "mangalib" || source === "mangadex") && missing.length > 0,
+    enabled:
+      (source === "mangalib" || source === "mangadex" || source === "wamanga") &&
+      missing.length > 0,
     staleTime: 10 * 60_000,
     retry: false,
     refetchOnWindowFocus: false,

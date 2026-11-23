@@ -109,14 +109,15 @@ function parseMangaLink(raw: string): MangaDeepLink | null {
     raw
       .trim()
       .match(
-        /^iluhaanime:\/\/manga\/(mangalib|mangadex|readmanga|asurascans)\/([a-zA-Z0-9_-]{1,160})(?:\/([a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,159}))?$/
+        /^iluhaanime:\/\/manga\/(mangalib|mangadex|readmanga|asurascans|wamanga)\/([a-zA-Z0-9_-]{1,160})(?:\/([a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,159}))?$/
       ) ?? [];
 
   if (
     (source !== "mangalib" &&
       source !== "mangadex" &&
       source !== "readmanga" &&
-      source !== "asurascans") ||
+      source !== "asurascans" &&
+      source !== "wamanga") ||
     !id
   )
     return null;

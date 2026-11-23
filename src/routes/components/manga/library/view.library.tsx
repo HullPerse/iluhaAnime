@@ -14,7 +14,7 @@ import { MangaSearchField } from "@/routes/components/manga/searchField.manga";
 import { MangaState } from "@/routes/components/manga/state.manga";
 import MangaStatuses from "@/routes/components/manga/status/view.status";
 import { compareItems } from "@/lib/manga/library.utils";
-import { librarySort, mangaLibraryFilter, mangaLibraryStatus } from "@/store/manga.store";
+import { mangaDetail, librarySort, mangaLibraryFilter, mangaLibraryStatus } from "@/store/manga.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { LibrarySort } from "@/routes/components/manga/library/sort.library";
 import { LibraryEntry } from "@/routes/components/manga/library/entry.library";
@@ -85,7 +85,14 @@ export default function MangaLibrary() {
         items={matching ?? []}
         onCreate={() => setCreating(true)}
       />
-      <LibrarySort />
+      <LibrarySort
+        randomDisabled={!items?.length}
+        onRandom={() => {
+          const item = items?.[Math.floor(Math.random() * items.length)];
+
+          if (item) mangaDetail.set({ source: item.source, id: item.mangaId, title: item.title });
+        }}
+      />
       {creating && (
         <MangaStatuses
           statuses={library.data?.statuses ?? []}

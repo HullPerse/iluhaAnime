@@ -7,7 +7,7 @@ export interface AnimeDeepLink {
 }
 
 export interface MangaDeepLink {
-  source: "mangalib" | "mangadex" | "readmanga" | "asurascans";
+  source: "mangalib" | "mangadex" | "readmanga" | "asurascans" | "wamanga";
   id: string;
   chapterId?: string;
 }

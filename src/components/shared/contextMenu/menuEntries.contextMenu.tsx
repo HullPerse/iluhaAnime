@@ -9,7 +9,13 @@ import type { TFunc } from "@/types/core/i18n";
 
 import { EntryLabel } from "@/components/shared/contextMenu/entryLabel.contextMenu";
 
-export function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry[]; t: TFunc }) {
+export function MenuEntries({
+  entries,
+  t,
+}: {
+  entries: readonly ContextMenuEntry[];
+  t: TFunc;
+}) {
   return (
     <>
       {entries.map((entry) => {
@@ -27,8 +33,17 @@ export function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry
 
           return (
             <ContextMenuPrimitive.SubmenuRoot key={entry.id}>
-              <ContextMenuPrimitive.SubmenuTrigger disabled={entry.disabled} className={ITEM_CLASS}>
-                <EntryLabel icon={entry.icon} text={text} hint={entry.hint} chevron />
+              <ContextMenuPrimitive.SubmenuTrigger
+                disabled={entry.disabled}
+                className={ITEM_CLASS}
+              >
+                <EntryLabel
+                  icon={entry.icon}
+                  color={entry.color}
+                  text={text}
+                  hint={entry.hint}
+                  chevron
+                />
               </ContextMenuPrimitive.SubmenuTrigger>
               <ContextMenuPrimitive.Portal>
                 <ContextMenuPrimitive.Positioner className="z-50 outline-none">
@@ -51,7 +66,13 @@ export function MenuEntries({ entries, t }: { entries: readonly ContextMenuEntry
             className={ITEM_CLASS}
             onClick={() => entry.onSelect()}
           >
-            <EntryLabel icon={entry.icon} text={text} hint={entry.hint} checked={entry.checked} />
+            <EntryLabel
+              icon={entry.icon}
+              color={entry.color}
+              text={text}
+              hint={entry.hint}
+              checked={entry.checked}
+            />
           </ContextMenuPrimitive.Item>
         );
       })}

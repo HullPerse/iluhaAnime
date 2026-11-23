@@ -2,10 +2,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export const READER_BOTTOM_BAR_HIDE_MS = 3000;
 export const READER_BOTTOM_BAR_REVEAL_ZONE = 120;
+export const READER_TOP_BAR_REVEAL_ZONE = 120;
 
-export function useReaderBottomBar({ always, pinned }: { always: boolean; pinned: boolean }) {
-  const [shown, setShown] = useState<boolean>(true);
+export function useReaderBar({ always, pinned }: { always: boolean; pinned: boolean }) {
+  const [visible, setVisible] = useState<boolean>(true);
+  const shown = useRef<boolean>(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const update = useCallback((value: boolean) => {
+    if (shown.current === value) return;
+    shown.current = value;
+    setVisible(value);
+  }, []);
   const clear = useCallback(() => {
     if (timer.current) {
       clearTimeout(timer.current);
@@ -16,21 +23,21 @@ export function useReaderBottomBar({ always, pinned }: { always: boolean; pinned
     clear();
 
     if (always || pinned) return;
-    timer.current = setTimeout(() => setShown(false), READER_BOTTOM_BAR_HIDE_MS);
-  }, [always, pinned, clear]);
+    timer.current = setTimeout(() => update(false), READER_BOTTOM_BAR_HIDE_MS);
+  }, [always, pinned, clear, update]);
   const reveal = useCallback(() => {
-    setShown(true);
+    update(true);
     release();
-  }, [release]);
+  }, [release, update]);
   const hold = useCallback(() => {
     clear();
-    setShown(true);
-  }, [clear]);
+    update(true);
+  }, [clear, update]);
 
   useEffect(() => {
     if (always || pinned) {
       clear();
-      setShown(true);
+      update(true);
 
       return clear;
     }
@@ -38,7 +45,9 @@ export function useReaderBottomBar({ always, pinned }: { always: boolean; pinned
     reveal();
 
     return clear;
-  }, [always, pinned, reveal, clear]);
+  }, [always, pinned, reveal, clear, update]);
 
-  return { shown, reveal, hold, release };
+  return { shown: visible, reveal, hold, release };
 }
+
+export const useReaderBottomBar = useReaderBar;

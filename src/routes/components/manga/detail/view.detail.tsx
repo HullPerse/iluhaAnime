@@ -1,5 +1,3 @@
-import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { RotateCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { mangaSources } from "@/api/manga.api";
@@ -45,22 +43,6 @@ export default function MangaDetail({
   const groups = useMemo(() => groupChapters(data?.chapters ?? []), [data]);
   const reading = chapter !== null && data !== undefined;
   useMangaReadingPresence(data?.title.title, chapter?.number);
-  useEffect(() => {
-    if (!reading) return;
-    const win = getCurrentWindow();
-    const fullscreen = win.isFullscreen().then(async (already) => {
-      if (!already) await win.setFullscreen(true);
-
-      return already;
-    });
-    fullscreen.catch((error: unknown) => reportBackgroundError("manga.fullscreen.open", error));
-
-    return () => {
-      fullscreen
-        .then((already) => (already ? undefined : win.setFullscreen(false)))
-        .catch((error: unknown) => reportBackgroundError("manga.fullscreen.close", error));
-    };
-  }, [reading]);
   useEffect(() => {
     if ((!chapterKey && !chapterId) || !data || visitedHistory.current) return;
     visitedHistory.current = true;

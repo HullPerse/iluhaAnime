@@ -500,7 +500,7 @@ pub(crate) async fn prewarm_player(app: AppHandle) -> Result<(), String> {
         .title("iluhaAnime")
         .inner_size(1280.0, 720.0)
         .min_inner_size(480.0, 300.0)
-        .decorations(false)
+        .decorations(cached_player_decorations(&app))
         .transparent(true)
         .visible(false)
         .focused(false)

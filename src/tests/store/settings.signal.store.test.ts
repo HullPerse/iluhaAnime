@@ -62,6 +62,27 @@ describe("settings signal defaults", () => {
   });
 });
 
+describe("settings shared between windows", () => {
+  it("keeps the title bar preference when a stale window saves unrelated settings", () => {
+    const { store: main, backing } = setup();
+    const { store: player } = setup(backing);
+
+    player.patch({ anilistPageSize: 42 });
+    main.patch({ customTitleBarEnabled: true });
+    player.patch({ statusBarEnabled: false });
+    player.persistor.flush();
+
+    expect(setup(backing).store.snapshot()).toMatchObject({
+      customTitleBarEnabled: true,
+      anilistPageSize: 42,
+      statusBarEnabled: false,
+    });
+
+    main.patch({ customTitleBarEnabled: false });
+    expect(setup(backing).store.snapshot().customTitleBarEnabled).toBe(false);
+  });
+});
+
 describe("settings signal legacy fallback", () => {
   it("migrates legacy limits and locale from the zustand envelope", () => {
     const backing = new Map<string, string>([

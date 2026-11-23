@@ -1,6 +1,37 @@
 {
   "changelog": [
     {
+      "version": "5.4.2",
+      "added": [],
+      "changed": [],
+      "fixed": [
+        {
+          "key": "changelog.5_4_2.fixed.app.window_state",
+          "scope": "app"
+        }
+      ]
+    },
+    {
+      "version": "5.4.1",
+      "added": [],
+      "changed": [
+        {
+          "key": "changelog.5_4_1.changed.manga.reader_window",
+          "scope": "manga"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_4_1.fixed.settings.custom_titlebar",
+          "scope": "settings"
+        },
+        {
+          "key": "changelog.5_4_1.fixed.player.window_frame",
+          "scope": "player"
+        }
+      ]
+    },
+    {
       "version": "5.4.0",
       "added": [
         {

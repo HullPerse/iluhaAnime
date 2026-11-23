@@ -17,6 +17,7 @@ pub fn with_plugins(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::all()
                         & !tauri_plugin_window_state::StateFlags::DECORATIONS
+                        & !tauri_plugin_window_state::StateFlags::FULLSCREEN
                         & !tauri_plugin_window_state::StateFlags::VISIBLE,
                 )
                 .build(),

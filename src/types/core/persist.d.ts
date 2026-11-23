@@ -22,7 +22,7 @@ export interface PersistOptions {
 }
 
 export interface Persistor {
-  write: (data: Record<string, unknown>) => void;
+  write: (data: Record<string, unknown>, changes?: Record<string, unknown>) => void;
   flush: () => void;
   read: () => PersistedData | null;
   dispose: () => void;

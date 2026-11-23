@@ -66,9 +66,17 @@ export function createSettingsSignalStore(options: SignalStoreOptions = {}): Set
   if (data.selectedDitherId === DITHER_PLACEHOLDER_ID) data.selectedDitherId = null;
   const mirror: Record<string, unknown> = { ...data };
   const atoms = buildMirrorAtoms(store, data, mirror);
+  let lastSnapshot = { ...mirror };
 
   store.subscribeAll(() => {
-    persistor.write(mirror);
+    const changes = Object.fromEntries(
+      Object.entries(mirror).filter(([key, value]) => !Object.is(value, lastSnapshot[key]))
+    );
+
+    lastSnapshot = { ...mirror };
+    persistor.write(mirror, changes);
+
+    if ("customTitleBarEnabled" in changes) persistor.flush();
   });
 
   const snapshot = (): SettingsData => ({ ...mirror }) as SettingsData;

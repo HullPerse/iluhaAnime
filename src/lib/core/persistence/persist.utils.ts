@@ -47,6 +47,7 @@ export function createPersistor(options: PersistOptions): Persistor {
   const key = persistKey(options.storeName);
   const debounceMs = options.debounceMs ?? 250;
   const now = options.now ?? Date.now;
+  let pendingChanges: Record<string, unknown> | undefined;
 
   const report = (scope: string, error: unknown): void => {
     options.onError?.(scope, error);
@@ -69,7 +70,19 @@ export function createPersistor(options: PersistOptions): Persistor {
     }
 
     if (!storage) return;
-    const [, writeError] = attemptSync(() => storage.setItem(key, JSON.stringify(envelope)));
+    const [, writeError] = attemptSync(() => {
+      if (pendingChanges) {
+        const raw = storage.getItem(key);
+        const previous = raw ? readEnvelope(raw, options.storeName) : null;
+
+        if (previous?.schemaVersion === options.schemaVersion) {
+          envelope.data = { ...previous.data, ...pendingChanges };
+        }
+      }
+
+      storage.setItem(key, JSON.stringify(envelope));
+      pendingChanges = undefined;
+    });
 
     if (writeError !== null) report("persist.write", writeError);
   };
@@ -84,7 +97,10 @@ export function createPersistor(options: PersistOptions): Persistor {
   };
 
   return {
-    write: (data) => writer.arm(data),
+    write: (data, changes) => {
+      pendingChanges = changes ? { ...pendingChanges, ...changes } : undefined;
+      writer.arm(data);
+    },
     flush,
     read: () => {
       const [storage, storageError] = attemptSync(() => options.getStorage());
@@ -110,6 +126,7 @@ export function createPersistor(options: PersistOptions): Persistor {
     },
     dispose: () => {
       writer.cancel();
+      pendingChanges = undefined;
     },
   };
 }

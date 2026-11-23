@@ -2158,13 +2158,17 @@ fn set_window_chrome(
     effect: WindowEffect,
     rounded_corners: bool,
 ) -> Result<(), String> {
+    if window.label() != "main" {
+        return Ok(());
+    }
     let chrome = WindowChrome {
         decorations,
         effect,
         rounded_corners,
     };
-    for window in window.app_handle().webview_windows().values() {
-        apply_window_chrome(window, &chrome)?;
+    apply_window_chrome(&window, &chrome)?;
+    if let Some(player_window) = window.app_handle().get_webview_window(player::PLAYER_WINDOW_LABEL) {
+        apply_window_chrome(&player_window, &chrome)?;
     }
     let payload =
         serde_json::to_string(&chrome).map_err(|error| format!("encode window chrome: {error}"))?;

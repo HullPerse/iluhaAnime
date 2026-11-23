@@ -31,6 +31,7 @@ it("preserves the loaded page and its object URL while toggling reader settings"
   const createUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:page");
   const revokeUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
   const client = new QueryClient();
+  const navigate = vi.fn();
   const commit = vi.fn();
   const reader = render(
     <Profiler id="manga-reader" onRender={commit}>
@@ -45,6 +46,7 @@ it("preserves the loaded page and its object URL while toggling reader settings"
             branch: null,
           }}
           title="Test manga"
+          onHistory={navigate}
           hit={{
             id: "title",
             title: "Test manga",
@@ -82,6 +84,12 @@ it("preserves the loaded page and its object URL while toggling reader settings"
     "nested-update",
     "update",
   ]);
+  const dialog = screen.getByRole("dialog");
+  fireEvent.mouseDown(dialog, { button: 3 });
+  expect(navigate).not.toHaveBeenCalled();
+  fireEvent.mouseUp(dialog, { button: 3 });
+  fireEvent.keyDown(dialog, { code: "ArrowRight", key: "ArrowRight", shiftKey: true });
+  expect(navigate.mock.calls).toEqual([[-1], [1]]);
   reader.unmount();
   expect(revokeUrl).toHaveBeenCalledExactlyOnceWith("blob:page");
 });

@@ -50,6 +50,7 @@ export function PagedReader({
       <div
         ref={scroll}
         data-reader-scroll
+        style={{ scrollBehavior: "auto" }}
         className="h-full w-full overflow-auto"
         onScroll={(event) => onOffset(event.currentTarget.scrollTop)}
       >

@@ -1,3 +1,4 @@
+import { MangaCardMenu } from "@/routes/components/manga/card/menu.card";
 import { useCell } from "@hullperse/hp_utils/react";
 import { useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
@@ -67,18 +68,20 @@ export function SearchResults({
               <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),1fr))] gap-2">
                 {hits.map((hit) => (
                   <li key={hit.id} className="min-w-0">
-                    <MangaCard
-                      title={hit.title}
-                      cover={hit.cover}
-                      mosaic={hit.suggestive}
-                      entry={saved.get(hit.id)}
-                      status={library.data?.statuses.find(
-                        (status) => status.id === saved.get(hit.id)?.status
-                      )}
-                      publicationStatus={hit.status}
-                      chapters={hit.chapters ?? chaptersById.get(hit.id)}
-                      onOpen={() => mangaDetail.set({ source, id: hit.id, title: hit.title })}
-                    />
+                    <MangaCardMenu source={source} hit={hit}>
+                      <MangaCard
+                        title={hit.title}
+                        cover={hit.cover}
+                        mosaic={hit.suggestive}
+                        entry={saved.get(hit.id)}
+                        status={library.data?.statuses.find(
+                          (status) => status.id === saved.get(hit.id)?.status
+                        )}
+                        publicationStatus={hit.status}
+                        chapters={hit.chapters ?? chaptersById.get(hit.id)}
+                        onOpen={() => mangaDetail.set({ source, id: hit.id, title: hit.title })}
+                      />
+                    </MangaCardMenu>
                   </li>
                 ))}
               </ul>

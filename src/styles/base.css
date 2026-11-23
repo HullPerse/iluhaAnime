@@ -38,4 +38,8 @@
     border: 2px solid;
     border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
   }
+
+  label {
+    user-select: none;
+  }
 }

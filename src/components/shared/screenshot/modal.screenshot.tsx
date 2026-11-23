@@ -1,4 +1,3 @@
-import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Check, ClipboardCopy } from "lucide-react";
@@ -27,7 +26,6 @@ import type { ResolvedHotkeyDef } from "@/types/ui/hotkeys";
 import { useI18n } from "@/hooks/i18n.hook";
 import type { TranslationKey } from "@/lib/locale/i18n.utils";
 import { Debouncer } from "@hullperse/hp_utils/debounce";
-import { ignore } from "@/lib/core/shared/promise.utils";
 import {
   canRedo,
   canUndo,
@@ -152,36 +150,18 @@ export default function ScreenshotModal({
   const copy = async () => {
     if (copying) return;
     setCopying(true);
-    setCopied(true);
-    hideCopiedSoon();
     const [, copyError] = await attempt(
       (async () => {
-        const [path, prepareError] = await attempt(
+        const [, writeError] = await attempt(
           systemApi.copyScreenshot(capture.path, selection, stageRef.current?.layers() ?? undefined)
         );
-
-        if (prepareError) {
-          setCopied(false);
-          showError(t("common.error"), t("screenshot.copy.error"));
-
-          return;
-        }
-
-        const [, writeError] = await attempt(writeImage(path));
-
-        if (path !== capture.path) {
-          ignore(
-            attempt(systemApi.discardScreenshot(path)).then(([, error]) => {
-              if (error) reportBackgroundError("screenshot.discard-copy", error);
-
-              return null;
-            })
-          );
-        }
 
         if (writeError) {
           setCopied(false);
           showError(t("common.error"), t("screenshot.copy.error"));
+        } else {
+          setCopied(true);
+          hideCopiedSoon();
         }
       })()
     );

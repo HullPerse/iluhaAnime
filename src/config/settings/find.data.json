@@ -608,6 +608,7 @@
         "settings.keybinds.manga.right",
         "settings.keybinds.manga.up",
         "settings.keybinds.manga.down",
+        "settings.keybinds.manga.auto",
         "settings.keybinds.manga.close",
         "settings.keybinds.record.reserved",
         "settings.keybinds.record.reset",

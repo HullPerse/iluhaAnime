@@ -1,4 +1,6 @@
 import { useCell } from "@hullperse/hp_utils/react";
+import { ReaderLoupe } from "@/routes/components/manga/reader/loupe.reader";
+import { ReaderImageMenu } from "@/routes/components/manga/reader/imageMenu.reader";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -36,6 +38,7 @@ export function ReaderPage({
   onLoad: (page: number) => void;
 }) {
   const { t } = useI18n();
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [progress, setProgress] = useState<{ loaded: number; total: number | null } | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [size, setSize] = useState<{ width: number; height: number }>();
@@ -75,9 +78,9 @@ export function ReaderPage({
     );
   }
 
-  if (!url) {
+  if (!url || !data) {
     return (
-      <div role="status" className="grid min-h-72 place-content-center gap-2 text-center">
+      <div role="status" data-manga-loading className="grid min-h-72 place-content-center gap-2 text-center">
         <span>{t("manga.reader.pageLoading")}</span>
         <ProgressBar
           indeterminate={!progress?.total}
@@ -93,49 +96,54 @@ export function ReaderPage({
   const split = size && half && size.width > size.height;
 
   return (
-    <span
-      style={
-        split
-          ? {
-              overflow: "clip",
-              width: `min(100%, ${size.width / 2}px, ${(size.width / size.height) * 50}dvh)`,
+    <ReaderImageMenu data={data}>
+      <span
+        style={
+          split
+            ? {
+                overflow: "clip",
+                width: `min(100%, ${size.width / 2}px, ${(size.width / size.height) * 50}dvh)`,
+              }
+            : strip
+              ? { width: `${stripWidth}%`, maxWidth: `${(52 * zoom) / 100}rem` }
+              : undefined
+        }
+        className={strip ? "relative mx-auto grid" : "relative block w-full max-w-full"}
+      >
+        <img
+          ref={setImage}
+          data-manga-image={page}
+          src={url}
+          alt={t("manga.search.page", { page: page + 1 })}
+          className="block h-auto w-full"
+          onLoad={(event) => {
+            const image = event.currentTarget;
+
+            if (!strip) {
+              setSize({ width: image.naturalWidth, height: image.naturalHeight });
+              inspect?.(page, image.naturalWidth > image.naturalHeight);
             }
-          : strip
-            ? { width: `${stripWidth}%`, maxWidth: `${(52 * zoom) / 100}rem` }
-            : undefined
-      }
-      className={strip ? "relative mx-auto grid" : "relative block w-full max-w-full"}
-    >
-      <img
-        src={url}
-        alt={t("manga.search.page", { page: page + 1 })}
-        className="block h-auto w-full"
-        onLoad={(event) => {
-          const image = event.currentTarget;
 
-          if (!strip) {
-            setSize({ width: image.naturalWidth, height: image.naturalHeight });
-            inspect?.(page, image.naturalWidth > image.naturalHeight);
-          }
-
-          onLoad(page);
-        }}
-        style={{
-          filter: `brightness(${brightness}%)`,
-          ...(split && {
-            width: "200%",
-            maxWidth: "none",
-            transform: half === "right" ? "translateX(-50%)" : undefined,
-          }),
-        }}
-      />
-      {pageFrames[frame] && (
-        <span
-          aria-hidden
-          data-manga-page-frame={frame}
-          className={`pointer-events-none absolute inset-0 ${pageFrames[frame]}`}
+            onLoad(page);
+          }}
+          style={{
+            filter: `brightness(${brightness}%)`,
+            ...(split && {
+              width: "200%",
+              maxWidth: "none",
+              transform: half === "right" ? "translateX(-50%)" : undefined,
+            }),
+          }}
         />
-      )}
-    </span>
+        <ReaderLoupe image={image} />
+        {pageFrames[frame] && (
+          <span
+            aria-hidden
+            data-manga-page-frame={frame}
+            className={`pointer-events-none absolute inset-0 ${pageFrames[frame]}`}
+          />
+        )}
+      </span>
+    </ReaderImageMenu>
   );
 }

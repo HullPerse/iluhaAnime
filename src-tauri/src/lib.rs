@@ -2696,6 +2696,7 @@ pub fn run() {
             toast::show_toast,
             set_window_chrome,
             screenshot::capture_screenshot,
+            screenshot::import_screenshot,
             screenshot::save_screenshot,
             screenshot::copy_screenshot,
             screenshot::discard_screenshot,

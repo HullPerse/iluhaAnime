@@ -224,7 +224,7 @@ const collection = {
   "collection.sort.title": "По названию",
   "collection.sort.kind": "По типу",
   "collection.sort.completion": "По наполненности",
-  "collection.sort.owned": "По количеству карточек",
+  "collection.sort.owned": "По числу карт",
   "collection.mode.all": "Все",
   "collection.mode.collections": "Коллекция",
   "collection.shelf.owned": "Карточек: {{count}}",

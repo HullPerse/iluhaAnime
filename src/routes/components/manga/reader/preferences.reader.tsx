@@ -1,4 +1,5 @@
 import { useCell } from "@hullperse/hp_utils/react";
+import { ReaderToolsSettings } from "@/routes/components/manga/reader/toolsSettings.reader";
 import { X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button.component";
@@ -20,11 +21,15 @@ import { ReaderBackgroundSettings } from "@/routes/components/manga/reader/backg
 export function ReaderPreferences({
   brightness,
   autoMark,
+  autoRunning,
+  onAutoToggle,
   onDisplayChange,
   onClose,
 }: {
   brightness: number;
   autoMark: boolean;
+  autoRunning: boolean;
+  onAutoToggle: () => void;
   onDisplayChange: (display: (typeof readerDisplays)[number]) => void;
   onClose: () => void;
 }) {
@@ -38,7 +43,10 @@ export function ReaderPreferences({
   const containerWidth = useCell(settingsAtoms.mangaReaderWidth);
   const gap = useCell(settingsAtoms.mangaReaderGap);
   const animated = useCell(settingsAtoms.mangaReaderAnimated);
-  const [section, setSection] = useState<"reading" | "page" | "background">("reading");
+  const bottomBarAlways = useCell(settingsAtoms.mangaBottomBarAlways);
+  const [section, setSection] = useState<"reading" | "tools" | "page" | "background">(
+    "reading"
+  );
 
   return (
     <aside
@@ -53,7 +61,7 @@ export function ReaderPreferences({
         </Button>
       </header>
       <div className="ui-toolbar shrink-0" role="group" aria-label={t("manga.reader.settings")}>
-        {(["reading", "page", "background"] as const).map((value) => (
+        {(["reading", "tools", "page", "background"] as const).map((value) => (
           <Button
             key={value}
             variant={section === value ? "outline" : "default"}
@@ -145,7 +153,17 @@ export function ReaderPreferences({
               />
               {t("manga.reader.autoMark")}
             </label>
+            <label className="flex items-center gap-2">
+              <Checkbox
+                checked={bottomBarAlways}
+                onChange={(mangaBottomBarAlways) => patchSettings({ mangaBottomBarAlways })}
+              />
+              {t("manga.reader.bottomBarAlways")}
+            </label>
           </div>
+        )}
+        {section === "tools" && (
+          <ReaderToolsSettings autoRunning={autoRunning} onAutoToggle={onAutoToggle} />
         )}
         {section === "page" && (
           <div className="grid gap-3">

@@ -106,7 +106,7 @@ export default function AlbumToolbar({
     start,
     end,
     stepPage,
-  } = usePagedRow(sortOptions.length, Math.max(0, activeSortIndex), 208);
+  } = usePagedRow(sortOptions.length, Math.max(0, activeSortIndex));
 
   const titleSuggestions = useMemo<SearchSuggestion[]>(
     () =>
@@ -169,7 +169,7 @@ export default function AlbumToolbar({
                 <Button
                   key={option.value}
                   variant={active ? "outline" : "default"}
-                  className="h-6 w-52 shrink-0 px-1"
+                  className="h-6 w-33 shrink-0 px-1"
                   aria-current={active ? true : undefined}
                   onClick={() => {
                     if (active) onSortDir(nextSortDir);

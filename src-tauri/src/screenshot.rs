@@ -220,22 +220,6 @@ pub fn capture_temp_path() -> PathBuf {
     ))
 }
 
-fn copy_temp_path() -> PathBuf {
-    let dir = std::env::temp_dir();
-    let stamp = timestamp_millis();
-    for _ in 0..COLLISION_LIMIT {
-        let sequence = COPY_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let candidate = dir.join(format!("{TEMP_PREFIX}copy_{stamp}_{sequence}.png"));
-        if !candidate.exists() {
-            return candidate;
-        }
-    }
-    dir.join(format!(
-        "{TEMP_PREFIX}copy_{stamp}_{}.png",
-        COPY_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-    ))
-}
-
 fn same_directory(left: &Path, right: &Path) -> bool {
     match (left.canonicalize(), right.canonicalize()) {
         (Ok(left), Ok(right)) => left == right,
@@ -415,23 +399,14 @@ fn prepare_copy(
     source_path: &str,
     crop: Option<&CropRegion>,
     layers: Option<&ScreenshotLayers>,
-) -> Result<String, String> {
+) -> Result<image::DynamicImage, String> {
     let source = guard_source(source_path)?;
-    let has_layers = layers.is_some_and(|layers| layers.drawing.is_some() || layers.blur.is_some());
-    if crop.is_none() && !has_layers {
-        return Ok(source.to_string_lossy().to_string());
-    }
     let mut image = image::open(&source).map_err(|error| format!("read the capture: {error}"))?;
     bake_layers(&mut image, layers)?;
-    let Some(region) = crop else {
-        let target = copy_temp_path();
-        encode_to(&target, &image, ScreenshotFormat::Png)?;
-        return Ok(target.to_string_lossy().to_string());
-    };
-    let cropped = crop_image(&image, region)?;
-    let target = copy_temp_path();
-    encode_to(&target, &cropped, ScreenshotFormat::Png)?;
-    Ok(target.to_string_lossy().to_string())
+    match crop {
+        Some(region) => crop_image(&image, region),
+        None => Ok(image),
+    }
 }
 
 #[cfg(windows)]
@@ -517,6 +492,40 @@ fn capture_webview_png(_webview: &tauri::webview::PlatformWebview) -> Result<Vec
 }
 
 #[tauri::command]
+pub async fn import_screenshot(
+    window: tauri::WebviewWindow,
+    bytes: Vec<u8>,
+) -> Result<ScreenshotCapture, String> {
+    let directory = default_dir(&window);
+    tokio::task::spawn_blocking(move || import_capture(&bytes, directory))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn import_capture(bytes: &[u8], directory: String) -> Result<ScreenshotCapture, String> {
+    if bytes.is_empty() || bytes.len() as u64 > MAX_CAPTURE_BYTES {
+        return Err("invalid image size".to_string());
+    }
+    let (width, height) = image_size(bytes)?;
+    if width == 0 || height == 0 || u64::from(width) * u64::from(height) > 100_000_000 {
+        return Err("image dimensions exceed the limit".to_string());
+    }
+    let format = image::guess_format(bytes).map_err(|error| error.to_string())?;
+    let extension = format.extensions_str().first().copied().unwrap_or("png");
+    let path = capture_temp_path().with_extension(extension);
+    if let Err(error) = std::fs::write(&path, bytes) {
+        let _ = std::fs::remove_file(&path);
+        return Err(error.to_string());
+    }
+    Ok(ScreenshotCapture {
+        path: path.to_string_lossy().to_string(),
+        width,
+        height,
+        default_dir: directory,
+    })
+}
+
+#[tauri::command]
 pub async fn capture_screenshot(
     window: tauri::WebviewWindow,
     video_rect: Option<VideoRegion>,
@@ -584,13 +593,25 @@ pub async fn save_screenshot(
 
 #[tauri::command]
 pub async fn copy_screenshot(
+    app: tauri::AppHandle,
     source_path: String,
     crop: Option<CropRegion>,
     layers: Option<ScreenshotLayers>,
-) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || prepare_copy(&source_path, crop.as_ref(), layers.as_ref()))
-        .await
-        .map_err(|error| format!("copy task failed: {error}"))?
+) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        use tauri_plugin_clipboard_manager::ClipboardExt;
+        let image = prepare_copy(&source_path, crop.as_ref(), layers.as_ref())?.to_rgba8();
+        let (width, height) = image.dimensions();
+        app.clipboard()
+            .write_image(&tauri::image::Image::new_owned(
+                image.into_raw(),
+                width,
+                height,
+            ))
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| format!("copy task failed: {error}"))?
 }
 
 fn discard_capture(source_path: &str) -> Result<(), String> {
@@ -616,6 +637,68 @@ mod tests {
     use image::GenericImageView;
 
     use super::*;
+
+    #[test]
+    #[ignore = "manual clipboard preparation benchmark"]
+    fn copy_preparation_benchmark() {
+        let source = capture_temp_path();
+        let intermediate = capture_temp_path();
+        let pixels = image::RgbaImage::from_fn(1920, 1080, |x, y| {
+            let shade = ((x.wrapping_mul(13) ^ y.wrapping_mul(7)) % 256) as u8;
+            image::Rgba([shade, shade, shade, 255])
+        });
+        pixels.save(&source).unwrap();
+        let region = CropRegion {
+            x: 0,
+            y: 0,
+            width: 1920,
+            height: 1080,
+        };
+        for direct in [false, true] {
+            let started = std::time::Instant::now();
+            for _ in 0..3 {
+                let image = prepare_copy(&source.to_string_lossy(), Some(&region), None).unwrap();
+                let rgba = if direct {
+                    image.to_rgba8()
+                } else {
+                    encode_to(&intermediate, &image, ScreenshotFormat::Png).unwrap();
+                    image::open(&intermediate).unwrap().to_rgba8()
+                };
+                assert_eq!(rgba, pixels);
+            }
+            println!(
+                "copy preparation direct={direct}: {:?} for 3 cycles",
+                started.elapsed()
+            );
+        }
+        std::fs::remove_file(source).unwrap();
+        std::fs::remove_file(intermediate).unwrap();
+    }
+
+    #[test]
+    fn importing_a_page_checks_image_bytes_and_uses_a_guarded_temporary_path() {
+        assert!(import_capture(&[], String::new()).is_err());
+        assert!(import_capture(b"not an image", String::new()).is_err());
+        let mut bytes = Vec::new();
+        let image = image::RgbaImage::from_pixel(8, 12, image::Rgba([1, 2, 3, 255]));
+        image
+            .write_with_encoder(image::codecs::png::PngEncoder::new(&mut bytes))
+            .unwrap();
+        let capture = import_capture(&bytes, "chosen-directory".to_string()).unwrap();
+        assert_eq!((capture.width, capture.height), (8, 12));
+        assert_eq!(capture.default_dir, "chosen-directory");
+        assert!(guard_source(&capture.path).is_ok());
+        assert_eq!(std::fs::read(&capture.path).unwrap(), bytes);
+        discard_capture(&capture.path).unwrap();
+        let mut jpeg = Vec::new();
+        image::DynamicImage::ImageRgba8(image)
+            .to_rgb8()
+            .write_with_encoder(image::codecs::jpeg::JpegEncoder::new(&mut jpeg))
+            .unwrap();
+        let capture = import_capture(&jpeg, String::new()).unwrap();
+        assert_eq!(image::open(&capture.path).unwrap().dimensions(), (8, 12));
+        discard_capture(&capture.path).unwrap();
+    }
 
     fn temp_dir_for(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
@@ -802,12 +885,14 @@ mod tests {
     }
 
     #[test]
-    fn copying_without_a_region_reuses_the_pending_capture() {
+    fn copying_without_a_region_preserves_the_pixels() {
         let (dir, source) = seed_source("copy-full", 4, 4);
         let source_path = source.to_string_lossy().to_string();
         assert_eq!(
-            prepare_copy(&source_path, None, None).expect("copy full"),
-            source_path
+            prepare_copy(&source_path, None, None)
+                .expect("copy full")
+                .to_rgba8(),
+            image::open(&source).unwrap().to_rgba8()
         );
         let _ = std::fs::remove_dir_all(&dir);
         let _ = std::fs::remove_file(&source);
@@ -954,17 +1039,16 @@ mod tests {
             blur: None,
         };
 
-        let copy_path = prepare_copy(&source_path, None, Some(&layers)).expect("copy layers");
-        assert_ne!(copy_path, source_path);
-        let out = image::open(&copy_path).expect("open copy").to_rgba8();
+        let out = prepare_copy(&source_path, None, Some(&layers))
+            .expect("copy layers")
+            .to_rgba8();
         assert_eq!(out.get_pixel(2, 2).0, [255, 0, 0, 255]);
 
-        let _ = std::fs::remove_file(&copy_path);
         let _ = std::fs::remove_file(&source);
     }
 
     #[test]
-    fn copying_a_region_writes_a_separate_temp_file_of_that_size() {
+    fn copying_a_region_returns_only_the_selected_pixels() {
         let (_dir, source) = seed_source("copy-region", 12, 6);
         let source_path = source.to_string_lossy().to_string();
         let region = CropRegion {
@@ -974,15 +1058,9 @@ mod tests {
             height: 4,
         };
 
-        let copy_path = prepare_copy(&source_path, Some(&region), None).expect("copy region");
-        assert_ne!(copy_path, source_path);
-        assert_eq!(
-            image::open(&copy_path).expect("open copy").dimensions(),
-            (5, 4)
-        );
-        assert!(copy_path.contains(TEMP_PREFIX));
+        let copy = prepare_copy(&source_path, Some(&region), None).expect("copy region");
+        assert_eq!(copy.dimensions(), (5, 4));
 
-        let _ = std::fs::remove_file(&copy_path);
         let _ = std::fs::remove_file(&source);
     }
 }

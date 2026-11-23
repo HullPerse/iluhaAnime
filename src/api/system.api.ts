@@ -77,6 +77,10 @@ export class SystemApi {
     return this.call("capture_screenshot", { videoRect });
   }
 
+  importScreenshot(bytes: number[]): Promise<ScreenshotCapture> {
+    return this.call("import_screenshot", { bytes });
+  }
+
   saveScreenshot(input: SaveScreenshotInput): Promise<SavedScreenshot> {
     return this.call("save_screenshot", { ...input });
   }
@@ -85,7 +89,7 @@ export class SystemApi {
     sourcePath: string,
     crop: CropRect | null,
     layers?: ScreenshotLayersPayload
-  ): Promise<string> {
+  ): Promise<void> {
     return this.call("copy_screenshot", { sourcePath, crop, layers });
   }
 

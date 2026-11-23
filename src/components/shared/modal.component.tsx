@@ -1,7 +1,7 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 
 import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
@@ -15,6 +15,7 @@ import { settingsAtoms } from "@/store/settings.store";
 import type { ModalWindow } from "@/types/core/ui";
 
 import { Button } from "@/components/ui/button.component";
+import { SelectPortalContainerContext } from "@/components/ui/select.component";
 
 const MODAL_CONTENT_FADE_MS = 150;
 
@@ -35,6 +36,7 @@ function Modal({
   children,
 }: ModalWindow) {
   const { t } = useI18n();
+  const portalContainer = useContext(SelectPortalContainerContext);
   const modalAnimation = useCell(settingsAtoms.modalAnimation);
   const animateModalContent = useCell(settingsAtoms.animateModalContent);
   const enable3dBorders = useCell(settingsAtoms.enable3dBorders);
@@ -107,10 +109,11 @@ function Modal({
         onClose();
       }}
     >
-      <Dialog.Portal className="z-9999">
+      <Dialog.Portal className="z-9999" container={portalContainer ?? undefined}>
         {!hideBackdrop && (
           <Dialog.Backdrop
             data-modal-backdrop=""
+            data-no-wheel
             className={cn(
               "fixed inset-0 z-40",
               modalAnimation && "modal-motion transition-opacity duration-150 ease-out",
@@ -119,6 +122,7 @@ function Modal({
             style={{ backgroundColor: `rgba(0,0,0,${backdropOpacity / 100})` }}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
+            onWheel={(event) => event.stopPropagation()}
           />
         )}
         <Dialog.Popup
@@ -132,6 +136,7 @@ function Modal({
           )}
           style={style}
           onClick={(e) => e.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
           onKeyDown={(event) => {
             if (!pager || pager.total < 2) return;
 

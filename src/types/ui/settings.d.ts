@@ -151,7 +151,16 @@ export interface SettingsStore {
   mangaReaderZoom: number;
   mangaReaderWidth: number;
   mangaReaderGap: number;
+  mangaLoupeSize: number;
+  mangaLoupeZoom: number;
+  mangaAutoSpeed: number;
+  mangaAutoInterval: number;
+  mangaAutoPause: number;
+  mangaAutoNext: boolean;
+  mangaAutoHold: boolean;
+  mangaAutoCorner: MangaAutoCorner;
   mangaReaderAnimated: boolean;
+  mangaBottomBarAlways: boolean;
   mangaBrightness: number;
   mangaPreload: number;
   mangaSplitWide: boolean;
@@ -253,6 +262,8 @@ export type TabId =
   | "news";
 
 export type TorrentCoverMode = "off" | "pages" | "full";
+
+export type MangaAutoCorner = "off" | "tl" | "tr" | "bl" | "br";
 
 export type NotificationPopupMode = "off" | "system" | "inapp" | "both";
 

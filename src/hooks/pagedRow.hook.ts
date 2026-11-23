@@ -4,8 +4,7 @@ import { STATUS_TAB_WIDTH } from "@/config/anilist/statuses.config";
 
 export function usePagedRow(
   count: number,
-  activeIndex: number,
-  itemWidth = STATUS_TAB_WIDTH
+  activeIndex: number
 ): {
   rowRef: RefObject<HTMLDivElement | null>;
   start: number;
@@ -23,7 +22,7 @@ export function usePagedRow(
 
     if (!el) return;
     const update = () =>
-      setPerPage(Math.max(1, Math.floor((el.clientWidth + 4) / (itemWidth + 4))));
+      setPerPage(Math.max(1, Math.floor((el.clientWidth + 4) / (STATUS_TAB_WIDTH + 4))));
     update();
 
     if (typeof ResizeObserver === "undefined") return;
@@ -31,7 +30,7 @@ export function usePagedRow(
     observer.observe(el);
 
     return () => observer.disconnect();
-  }, [itemWidth]);
+  }, []);
 
   useEffect(() => {
     setPage(Math.floor(Math.max(0, activeIndex) / perPage));

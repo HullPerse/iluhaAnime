@@ -1,4 +1,5 @@
 import { RotateCw } from "lucide-react";
+import { useReaderNavigation } from "@/hooks/manga/reader/navigation.hook";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { mangaSources } from "@/api/manga.api";
 import type { MangaChapter, MangaPersonRole, MangaReaderInput, MangaSource } from "@/api/manga.api";
@@ -36,7 +37,9 @@ export default function MangaDetail({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const [chapter, setChapter] = useState<MangaChapter | null>(null);
+  const navigation = useReaderNavigation();
+  const chapter = navigation.chapter;
+  const setChapter = navigation.visit;
   const [missingChapter, setMissingChapter] = useState<boolean>(false);
   const visitedHistory = useRef<boolean>(false);
   const { data, error, isPending, refetch, refresh } = useMangaDetailData(source, id, nsfw);
@@ -52,7 +55,7 @@ export default function MangaDetail({
 
     if (row) setChapter(row);
     else setMissingChapter(true);
-  }, [chapterId, chapterKey, data]);
+  }, [chapterId, chapterKey, data, setChapter]);
   const searchFor = (query: string, role?: MangaPersonRole, key?: string) => {
     const value = query.trim();
 
@@ -90,6 +93,11 @@ export default function MangaDetail({
     return (
       <MangaReader
         key={chapter.id}
+        navigationToken={navigation.token}
+        initialPage={navigation.page}
+        onPosition={(page) => navigation.position(page)}
+        onHistory={(delta) => navigation.move(delta)}
+        onVisitPage={(page) => navigation.visit(chapter, page)}
         chapter={readerInput(chapter)}
         nextChapter={nextChapter ? readerInput(nextChapter) : undefined}
         title={data.title.title}

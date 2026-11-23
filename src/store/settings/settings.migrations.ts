@@ -399,6 +399,8 @@ const SETTINGS_VALIDATORS: Record<string, (value: unknown) => boolean> = {
     value === null || (typeof value === "number" && value >= 0 && value <= 100),
   anilistPollIntervalMin: (value) =>
     typeof value === "number" && Number.isInteger(value) && value > 0,
+  mangaAutoCorner: (value) =>
+    value === "off" || value === "tl" || value === "tr" || value === "bl" || value === "br",
 };
 
 export function migrateSettingsData(persistedState: unknown, version: number): SettingsData {

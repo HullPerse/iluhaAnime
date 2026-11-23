@@ -1,9 +1,4 @@
-import {
-  mockInvoke,
-  mockDialogOpen as mockOpen,
-  mockWriteImage,
-  mockOpenPath,
-} from "@/tests/mocks";
+import { mockInvoke, mockDialogOpen as mockOpen, mockOpenPath } from "@/tests/mocks";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -22,10 +17,6 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: mockOpen,
 }));
 
-vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
-  writeImage: mockWriteImage,
-}));
-
 vi.mock("@tauri-apps/plugin-opener", () => ({
   openPath: mockOpenPath,
 }));
@@ -42,8 +33,6 @@ const SAVED: SavedScreenshot = {
   width: 1280,
   height: 720,
 };
-
-const CROPPED_PATH = "C:/Temp/iluha_screenshot_2.png";
 
 const LAYER_DATA_URL = "data:image/png;base64,LAYER";
 
@@ -101,14 +90,12 @@ const drawStroke = (x1: number, y1: number, x2: number, y2: number) => {
 
 interface CommandOptions {
   saved?: SavedScreenshot;
-  copyPath?: string;
   failSave?: boolean;
   failCopy?: boolean;
 }
 
 const serveCommands = ({
   saved = SAVED,
-  copyPath = CAPTURE.path,
   failSave = false,
   failCopy = false,
 }: CommandOptions = {}) => {
@@ -120,7 +107,7 @@ const serveCommands = ({
     if (command === "copy_screenshot") {
       return failCopy
         ? Promise.reject(new Error("could not cut the image"))
-        : Promise.resolve(copyPath);
+        : Promise.resolve(undefined);
     }
 
     return Promise.resolve(undefined);
@@ -225,9 +212,7 @@ const installPointerCapture = (): { element: Element | null } => {
 beforeEach(() => {
   mockInvoke.mockReset();
   mockOpen.mockReset();
-  mockWriteImage.mockReset();
   mockOpenPath.mockReset();
-  mockWriteImage.mockResolvedValue(undefined);
   mockOpenPath.mockResolvedValue(undefined);
   notificationAtoms.items.set([]);
   notificationAtoms.unreadCount.set(0);
@@ -334,7 +319,7 @@ describe("ScreenshotModal", () => {
       sourcePath: CAPTURE.path,
       crop: null,
     });
-    await waitFor(() => expect(mockWriteImage).toHaveBeenCalledWith(CAPTURE.path));
+    await screen.findByRole("button", { name: "Скопировано" });
     expect(mockInvoke).not.toHaveBeenCalledWith("save_screenshot", expect.anything());
     const copied = await screen.findByRole("button", { name: "Скопировано" });
     expect(isDisabled(copied)).toBe(true);
@@ -494,9 +479,9 @@ describe("ScreenshotModal", () => {
     );
   });
 
-  it("copies the cropped area and clears the temporary file", async () => {
+  it("copies the cropped area directly without creating an intermediate file", async () => {
     const user = userEvent.setup();
-    serveCommands({ copyPath: CROPPED_PATH });
+    serveCommands();
     renderModal();
     dragSelection(100, 100, 500, 400);
     await user.click(screen.getByRole("button", { name: "Копировать" }));
@@ -505,10 +490,7 @@ describe("ScreenshotModal", () => {
       sourcePath: CAPTURE.path,
       crop: { x: 100, y: 100, width: 400, height: 300 },
     });
-    await waitFor(() => expect(mockWriteImage).toHaveBeenCalledWith(CROPPED_PATH));
-    await waitFor(() =>
-      expect(mockInvoke).toHaveBeenCalledWith("discard_screenshot", { sourcePath: CROPPED_PATH })
-    );
+    await screen.findByRole("button", { name: "Скопировано" });
     expect(mockInvoke).not.toHaveBeenCalledWith("discard_screenshot", {
       sourcePath: CAPTURE.path,
     });
@@ -519,7 +501,7 @@ describe("ScreenshotModal", () => {
     serveCommands();
     renderModal();
     await user.click(screen.getByRole("button", { name: "Копировать" }));
-    await waitFor(() => expect(mockWriteImage).toHaveBeenCalled());
+    await screen.findByRole("button", { name: "Скопировано" });
     expect(mockInvoke).not.toHaveBeenCalledWith("discard_screenshot", expect.anything());
   });
 
@@ -530,7 +512,6 @@ describe("ScreenshotModal", () => {
     await user.click(screen.getByRole("button", { name: "Копировать" }));
     await waitFor(() => expect(notificationAtoms.items.get()).toHaveLength(1));
     expect(notificationAtoms.items.get()[0]?.type).toBe("error");
-    expect(mockWriteImage).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole("button", { name: "Копировать" })).toBeTruthy());
   });
 });

@@ -56,6 +56,7 @@ export function ReaderToolbar({
   return (
     <header
       data-reader-chrome
+      data-no-wheel
       className={`absolute top-0 right-4 left-0 z-20 border-b border-white/20 bg-black/95 text-white ${motion} ${controls ? "opacity-100" : "opacity-0 focus-within:opacity-100 hover:opacity-100"}`}
     >
       <div className="flex items-center gap-1.5 px-2 py-1.5">

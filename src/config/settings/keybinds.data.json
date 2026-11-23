@@ -5,6 +5,7 @@
     { "id": "right", "chord": "ArrowRight", "repeat": "hold" },
     { "id": "up", "chord": "ArrowUp", "repeat": "hold" },
     { "id": "down", "chord": "ArrowDown", "repeat": "hold" },
+    { "id": "auto", "chord": "Space", "repeat": "hold" },
     { "id": "close", "chord": "Escape", "repeat": "once" }
   ],
   "KEYBINDS": [

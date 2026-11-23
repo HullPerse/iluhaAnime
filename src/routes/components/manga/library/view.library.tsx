@@ -120,7 +120,7 @@ export default function MangaLibrary() {
           className={
             view === "cards"
               ? "grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),1fr))] gap-2"
-              : "divide-muted grid divide-y"
+              : "windows95-active-border bg-field divide-muted grid divide-y"
           }
         >
           {items.map((item) => (

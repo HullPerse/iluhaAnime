@@ -1,6 +1,7 @@
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu";
 import { cn } from "cn";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useContext } from "react";
+import { SelectPortalContainerContext } from "@/components/ui/select.component";
 
 import { useI18n } from "@/hooks/i18n.hook";
 import { registerContextMenuCloser } from "@/lib/ui/contextMenuClose.utils";
@@ -19,6 +20,7 @@ export default function ContextMenu({
   onOpenChange,
 }: ContextMenuProps) {
   const { t } = useI18n();
+  const container = useContext(SelectPortalContainerContext);
   const [uncontrolledOpen, setUncontrolledOpen] = useState<boolean>(defaultOpen);
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : uncontrolledOpen;
@@ -57,9 +59,9 @@ export default function ContextMenu({
   return (
     <ContextMenuPrimitive.Root open={isOpen} onOpenChange={(next) => setOpen(next)}>
       <ContextMenuPrimitive.Trigger className="contents">{children}</ContextMenuPrimitive.Trigger>
-      <ContextMenuPrimitive.Portal>
+      <ContextMenuPrimitive.Portal container={container ?? undefined}>
         <ContextMenuPrimitive.Positioner className="z-50 outline-none">
-          <ContextMenuPrimitive.Popup className={cn(POPUP_CLASS, className)}>
+          <ContextMenuPrimitive.Popup data-no-wheel className={cn(POPUP_CLASS, className)}>
             <MenuEntries entries={entries} t={t} />
           </ContextMenuPrimitive.Popup>
         </ContextMenuPrimitive.Positioner>

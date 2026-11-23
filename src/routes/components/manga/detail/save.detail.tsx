@@ -15,11 +15,11 @@ import { useI18n } from "@/hooks/i18n.hook";
 import { LibraryFavourite } from "@/routes/components/manga/detail/favourite.detail";
 import { patchSettings } from "@/store/settings.store";
 
-type LibraryChange =
+export type LibraryChange =
   | { kind: "status"; status: string; allowDuplicate?: boolean }
   | { kind: "favourite"; id: string; favourite: boolean };
 
-async function applyLibraryChange(
+export async function applyLibraryChange(
   action: LibraryChange,
   copy: { source: MangaSource; hit: MangaHit; unread: number },
   itemId: string | undefined

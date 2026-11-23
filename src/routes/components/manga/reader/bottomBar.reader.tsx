@@ -11,7 +11,9 @@ export function ReaderBottomBar({
   page,
   counter,
   count,
-  visible,
+  shown,
+  onHoverStart,
+  onHoverEnd,
   pagePicker,
   openPagePicker,
   pageButton,
@@ -23,7 +25,9 @@ export function ReaderBottomBar({
   page: number;
   counter: string | number;
   count: number;
-  visible: boolean;
+  shown: boolean;
+  onHoverStart: () => void;
+  onHoverEnd: () => void;
   pagePicker: boolean;
   openPagePicker: (open: boolean) => void;
   pageButton: RefObject<HTMLButtonElement | null>;
@@ -39,42 +43,52 @@ export function ReaderBottomBar({
   const rightEnabled = rtl ? page > 0 : page < count - 1;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 pb-2">
-      {(visible || showTurnButtons) && (
-        <div className="pointer-events-auto flex items-center gap-1.5">
-          {showTurnButtons && (
-            <Button
-              variant="ghost"
-              className={readerButton}
-              disabled={!leftEnabled}
-              onClick={() => onStep(rtl ? 1 : -1)}
-              aria-label={t(rtl ? "common.next" : "common.previous")}
-            >
-              <ChevronLeft aria-hidden />
-            </Button>
-          )}
-          <PageIndicator
-            page={page}
-            counter={counter}
-            count={count}
-            open={pagePicker}
-            onOpenChange={openPagePicker}
-            trigger={pageButton}
-            onJump={onJump}
-          />
-          {showTurnButtons && (
-            <Button
-              variant="ghost"
-              className={readerButton}
-              disabled={!rightEnabled}
-              onClick={() => onStep(rtl ? -1 : 1)}
-              aria-label={t(rtl ? "common.previous" : "common.next")}
-            >
-              <ChevronRight aria-hidden />
-            </Button>
-          )}
-        </div>
-      )}
+    <div
+      data-no-wheel
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 pb-2"
+    >
+      <div
+        data-reader-bottom-bar
+        aria-hidden={!shown}
+        inert={!shown}
+        onPointerEnter={onHoverStart}
+        onPointerLeave={onHoverEnd}
+        className={`flex items-center gap-1.5 transition-opacity duration-200 ${
+          shown ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        {showTurnButtons && (
+          <Button
+            variant="ghost"
+            className={readerButton}
+            disabled={!leftEnabled}
+            onClick={() => onStep(rtl ? 1 : -1)}
+            aria-label={t(rtl ? "common.next" : "common.previous")}
+          >
+            <ChevronLeft aria-hidden />
+          </Button>
+        )}
+        <PageIndicator
+          page={page}
+          counter={counter}
+          count={count}
+          open={pagePicker}
+          onOpenChange={openPagePicker}
+          trigger={pageButton}
+          onJump={onJump}
+        />
+        {showTurnButtons && (
+          <Button
+            variant="ghost"
+            className={readerButton}
+            disabled={!rightEnabled}
+            onClick={() => onStep(rtl ? -1 : 1)}
+            aria-label={t(rtl ? "common.previous" : "common.next")}
+          >
+            <ChevronRight aria-hidden />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

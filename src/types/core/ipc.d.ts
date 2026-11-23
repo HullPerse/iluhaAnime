@@ -275,6 +275,7 @@ export type CommandName =
   | "report_startup"
   | "save_poster_bytes"
   | "save_screenshot"
+  | "import_screenshot"
   | "save_session_config"
   | "scan_extra_files"
   | "scan_sidecar_tracks"

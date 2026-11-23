@@ -5,6 +5,7 @@ import type { MangaPersonSearch, MangaSource } from "@/api/manga.api";
 import type { LibrarySortKey } from "@/types/manga/library";
 
 const store = createSignalStore();
+export const mangaAutoRunning = store.atom("manga.reader.autoRunning", false);
 export const mangaLibraryFilter = store.atom<string>("manga.library.filter", "");
 export const mangaLibraryStatus = store.atom<string>("manga.library.status", "");
 

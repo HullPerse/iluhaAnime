@@ -1,7 +1,17 @@
 import { useCell } from "@hullperse/hp_utils/react";
+import { ChevronsDown } from "lucide-react";
+import { useReaderAutoScroll } from "@/hooks/manga/reader/autoScroll.hook";
+import {
+  READER_BOTTOM_BAR_REVEAL_ZONE,
+  useReaderBottomBar,
+} from "@/hooks/manga/reader/bottomBar.hook";
+import { useReaderScrollFade } from "@/hooks/manga/reader/scrollFade.hook";
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { WheelEvent as ReactWheelEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import type {
+  PointerEvent as ReactPointerEvent,
+  WheelEvent as ReactWheelEvent,
+} from "react";
 import { mangaSources, openMangaChapter } from "@/api/manga.api";
 import type { MangaChapter, MangaHit, MangaReaderInput } from "@/api/manga.api";
 import { SelectPortalContainerContext } from "@/components/ui/select.component";
@@ -16,14 +26,25 @@ import { useReaderOverlays } from "@/hooks/manga/reader/overlays.hook";
 import { useMangaPreload } from "@/hooks/manga/reader/preload.hook";
 import { useReaderLayout } from "@/hooks/manga/reader/layout.hook";
 import { manifestKey } from "@/lib/manga/readerQuery.utils";
+import { shouldForwardReaderWheel } from "@/lib/manga/readerAuto.utils";
 import { readerColors, readerMode } from "@/lib/manga/reader.utils";
 import { useReaderProgress } from "@/hooks/manga/reader/progress.hook";
 import { settingsAtoms } from "@/store/settings.store";
+import { mangaAutoRunning } from "@/store/manga.store";
 import { ReaderToolbar } from "@/routes/components/manga/reader/toolbar.reader";
 import { ReaderBottomBar } from "@/routes/components/manga/reader/bottomBar.reader";
 import { ReaderPreferences } from "@/routes/components/manga/reader/preferences.reader";
 import { ReaderStage } from "@/routes/components/manga/reader/stage.reader";
 import { ignoreReaderHotkey, runReaderHotkey } from "@/lib/manga/readerHotkeys.utils";
+
+const READER_NAVIGATION_HOTKEYS = MANGA_READER_HOTKEYS.filter(({ id }) => id !== "auto");
+
+const AUTO_CORNER_CLASSES: Record<string, string> = {
+  tl: "top-12 left-2",
+  tr: "top-12 right-4",
+  bl: "bottom-4 left-2",
+  br: "bottom-4 right-4",
+};
 
 function closeReaderView({
   closeOverlay,
@@ -56,6 +77,11 @@ export default function MangaReader({
   next,
   nextChapter,
   onClose,
+  initialPage,
+  navigationToken,
+  onPosition,
+  onHistory,
+  onVisitPage,
 }: {
   chapter: MangaReaderInput;
   title: string;
@@ -68,6 +94,11 @@ export default function MangaReader({
   next: (() => void) | undefined;
   nextChapter: MangaReaderInput | undefined;
   onClose: () => void;
+  initialPage?: number;
+  navigationToken?: number;
+  onPosition?: (page: number) => void;
+  onHistory?: (delta: number) => void;
+  onVisitPage?: (page: number) => void;
 }) {
   const { t } = useI18n();
   useOverlayDialog(true);
@@ -78,6 +109,9 @@ export default function MangaReader({
   const customBackground = useCell(settingsAtoms.mangaReaderBackgroundCustom);
   const brightness = useCell(settingsAtoms.mangaBrightness);
   const autoMark = useCell(settingsAtoms.mangaAutoMarkRead);
+  const autoCorner = useCell(settingsAtoms.mangaAutoCorner);
+  const bottomBarAlways = useCell(settingsAtoms.mangaBottomBarAlways);
+  const scrollFade = useCell(settingsAtoms.scrollFade);
   const animated = useCell(settingsAtoms.mangaReaderAnimated);
   const readerGap = useCell(settingsAtoms.mangaReaderGap);
   const [page, setPage] = useState<number>(0);
@@ -111,6 +145,7 @@ export default function MangaReader({
     openChapterPicker,
     closeOverlay,
   } = useReaderOverlays();
+  const bottomBar = useReaderBottomBar({ always: bottomBarAlways, pinned: pagePicker });
   const { data, error, refetch } = useQuery({
     queryKey: manifestKey(chapter, activeMangaServer),
     queryFn: () => openMangaChapter(chapter, activeMangaServer),
@@ -120,12 +155,15 @@ export default function MangaReader({
   });
   const { strip, pair, spread, rtl, half, end, inspectPage, turnPage, goToPage, counter } =
     useReaderLayout(mode, page, data?.count ?? 0, setPage);
-  const resume = useCallback((next: number, scrollOffset: number) => {
-    const restored = modeRef.current === "strip" ? scrollOffset : 0;
-    offset.current = restored;
-    setStripStart(restored);
-    setPage(next);
-  }, []);
+  const resume = useCallback(
+    (next: number, _scrollOffset: number) => {
+      const restored = 0;
+      offset.current = restored;
+      setStripStart(restored);
+      setPage(initialPage ?? next);
+    },
+    [initialPage]
+  );
   const readerProgress = useReaderProgress({
     chapter,
     chapterKey,
@@ -133,6 +171,10 @@ export default function MangaReader({
     count: data?.count ?? 0,
     mode,
     onResume: resume,
+  });
+  useReaderScrollFade(readerRef, {
+    enabled: scrollFade,
+    ready: readerProgress.ready,
   });
   const latest = useRef<ReturnType<typeof useReaderProgress>>(readerProgress);
 
@@ -181,13 +223,14 @@ export default function MangaReader({
   }
 
   function leave(action: () => void, complete = false) {
+    onPosition?.(page);
     readerProgress.save(page, offset.current, complete && autoMark && loaded ? previousKeys : []);
     action();
   }
 
   function closePreferences() {
     setSettings(false);
-    settingsButton.current?.focus();
+    readerRef.current?.focus();
   }
 
   function jumpTo(index: number) {
@@ -198,13 +241,85 @@ export default function MangaReader({
     goToPage(index);
   }
 
+  const restoreNavigation = useEffectEvent(() => {
+    if (initialPage !== undefined) jumpTo(initialPage);
+  });
+  const restoredNavigation = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!readerProgress.ready || restoredNavigation.current === navigationToken) return;
+    restoredNavigation.current = navigationToken;
+    restoreNavigation();
+  }, [navigationToken, readerProgress.ready]);
+  const moveHistory = useEffectEvent((delta: number) => {
+    mangaAutoRunning.set(false);
+    leave(() => onHistory?.(delta));
+  });
+
+  useEffect(() => {
+    const node = readerRef.current;
+
+    if (!node) return;
+    const key = (event: KeyboardEvent) => {
+      if (!event.shiftKey || event.ctrlKey || event.altKey || settings || overlay) return;
+
+      if (event.code !== "ArrowLeft" && event.code !== "ArrowRight") return;
+
+      if (
+        (event.target as HTMLElement).closest(
+          "input,textarea,[contenteditable=true],[role=dialog],[role=menu]"
+        )
+      )
+        return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      moveHistory(event.code === "ArrowLeft" ? -1 : 1);
+    };
+
+    const mouse = (event: MouseEvent) => {
+      if (event.button !== 3 && event.button !== 4) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      if ((event.target as HTMLElement).closest("[role=dialog],[role=menu]")) return;
+
+      if (!settings && !overlay) {
+        if (event.type === "mouseup") moveHistory(event.button === 3 ? -1 : 1);
+      }
+    };
+
+    node.addEventListener("keydown", key, true);
+    node.addEventListener("mouseup", mouse, true);
+    node.addEventListener("mousedown", mouse, true);
+    node.addEventListener("auxclick", mouse, true);
+
+    return () => {
+      node.removeEventListener("keydown", key, true);
+      node.removeEventListener("mouseup", mouse, true);
+      node.removeEventListener("mousedown", mouse, true);
+      node.removeEventListener("auxclick", mouse, true);
+    };
+  }, [settings, overlay]);
+
   useMangaPreload(data, page, nextChapter);
+  const auto = useReaderAutoScroll(readerRef, {
+    blocked: overlay,
+    ready: readerProgress.ready,
+    end,
+    step: () => step(1),
+    next: next ? () => leave(next, true) : undefined,
+  });
 
   function showChrome() {
     setChrome(true);
 
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setChrome(false), 2200);
+  }
+
+  function trackPointer(event: ReactPointerEvent<HTMLDialogElement>) {
+    showChrome();
+
+    if (event.clientY >= window.innerHeight - READER_BOTTOM_BAR_REVEAL_ZONE) bottomBar.reveal();
   }
 
   function step(delta: number) {
@@ -224,10 +339,10 @@ export default function MangaReader({
   }
 
   function forwardWheel(event: ReactWheelEvent<HTMLDialogElement>) {
-    if (event.ctrlKey) return;
+    if (event.ctrlKey || event.altKey) return;
     const { target } = event;
 
-    if (!(target instanceof Element) || target.closest("[data-reader-ui]")) return;
+    if (!(target instanceof Element) || !shouldForwardReaderWheel(target)) return;
     const scroller = readerRef.current?.querySelector<HTMLElement>("[data-reader-scroll]");
 
     if (!scroller || scroller.contains(target)) return;
@@ -240,7 +355,7 @@ export default function MangaReader({
 
   useReaderZoomShortcuts(readerRef);
 
-  useResolvedHotkeys(MANGA_READER_HOTKEYS, {
+  useResolvedHotkeys(READER_NAVIGATION_HOTKEYS, {
     target: readerRef,
     capture: true,
     ignore: (event) => ignoreReaderHotkey(event, overlay, settings),
@@ -280,7 +395,7 @@ export default function MangaReader({
         event.preventDefault();
         closeReaderView({ closeOverlay, settings, closePreferences, leave, onClose });
       }}
-      onPointerMove={showChrome}
+      onPointerMove={trackPointer}
       onFocus={showChrome}
       onWheel={forwardWheel}
     >
@@ -314,6 +429,16 @@ export default function MangaReader({
             offset.current = position;
           }}
         />
+        {auto.running && autoCorner !== "off" && (
+          <span
+            aria-hidden
+            data-reader-auto-indicator
+            title={t("manga.reader.autoRunning")}
+            className={`pointer-events-none absolute z-10 rounded-full border border-white/15 bg-black/45 p-1 text-white/65 backdrop-blur-sm ${AUTO_CORNER_CLASSES[autoCorner] ?? ""}`}
+          >
+            <ChevronsDown className="size-3.5" />
+          </span>
+        )}
         <ReaderToolbar
           title={title}
           sourceName={sourceName}
@@ -345,6 +470,8 @@ export default function MangaReader({
           <ReaderPreferences
             brightness={brightness}
             autoMark={autoMark}
+            autoRunning={auto.running}
+            onAutoToggle={() => auto.toggle()}
             onDisplayChange={displayChanged}
             onClose={closePreferences}
           />
@@ -354,11 +481,18 @@ export default function MangaReader({
             page={page}
             counter={counter}
             count={data.count}
-            visible={controls}
+            shown={bottomBar.shown}
+            onHoverStart={() => bottomBar.hold()}
+            onHoverEnd={() => bottomBar.release()}
             pagePicker={pagePicker}
             openPagePicker={openPagePicker}
             pageButton={pageButton}
-            onJump={jumpTo}
+            onJump={(index) => {
+              onPosition?.(page);
+
+              if (onVisitPage) onVisitPage(index);
+              else jumpTo(index);
+            }}
             paged={!strip}
             onStep={step}
             rtl={rtl}

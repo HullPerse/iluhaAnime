@@ -76,6 +76,7 @@ export function Strip({
       ref={scroll}
       data-manga-strip
       data-reader-scroll
+      style={{ scrollBehavior: "auto" }}
       className="absolute inset-0 overflow-y-auto"
     >
       <div className="relative" style={{ blockSize: list.getTotalSize() }}>

@@ -25,7 +25,7 @@ const KeybindsDataSchema = z.object({
   KEYBINDS: z.array(KeybindDefSchema),
   MANGA_READER_HOTKEYS: z.array(
     z.object({
-      id: z.enum(["left", "right", "up", "down", "close"]),
+      id: z.enum(["left", "right", "up", "down", "auto", "close"]),
       chord: z.string(),
       repeat: z.enum(["hold", "once"]),
     })

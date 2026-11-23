@@ -1,6 +1,17 @@
 {
   "changelog": [
     {
+      "version": "5.4.7",
+      "added": [],
+      "changed": [],
+      "fixed": [
+        {
+          "key": "changelog.5_4_7.fixed.manga.pages",
+          "scope": "manga"
+        }
+      ]
+    },
+    {
       "version": "5.4.6",
       "added": [],
       "changed": [],

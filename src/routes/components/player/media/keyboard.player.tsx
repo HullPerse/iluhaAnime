@@ -51,6 +51,8 @@ function Keyboard({
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
+      if (event.defaultPrevented) return;
+
       if (shouldIgnoreHotkeys(event.target)) return;
 
       if (isInsideScrollable(event.target)) return;

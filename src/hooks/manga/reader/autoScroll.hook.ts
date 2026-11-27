@@ -42,10 +42,7 @@ export function useReaderAutoScroll(
   const pause = useCell(settingsAtoms.mangaAutoPause);
   const autoNext = useCell(settingsAtoms.mangaAutoNext);
   const hold = useCell(settingsAtoms.mangaAutoHold);
-  const chordString = useMemo(
-    () => activeChordForKeybind(overrides, AUTO_KEYBIND_ID),
-    [overrides]
-  );
+  const chordString = useMemo(() => activeChordForKeybind(overrides, AUTO_KEYBIND_ID), [overrides]);
   const latest = useRef(options);
   useEffect(() => {
     latest.current = options;
@@ -78,7 +75,8 @@ export function useReaderAutoScroll(
 
       const target = event.target instanceof HTMLElement ? event.target : null;
 
-      if (target?.closest("input,textarea,[contenteditable=true],[role=dialog],[role=menu]")) return;
+      if (target?.closest("input,textarea,[contenteditable=true],[role=dialog],[role=menu]"))
+        return;
 
       if (target?.closest("[data-reader-ui]") && !target.closest("[data-reader-auto]")) return;
       event.preventDefault();

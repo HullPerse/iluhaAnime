@@ -15,6 +15,7 @@ export interface AnimeLibAccount {
 }
 
 export interface StreamSourcesInput {
+  refresh?: boolean;
   episodeId: string;
   variantId: string;
 }

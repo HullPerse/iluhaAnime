@@ -4,6 +4,7 @@ import { createInterval } from "@hullperse/hp_utils/interval";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { openStream } from "@/lib/player/playback.utils";
+import { refreshStream } from "@/lib/player/playerStream.utils";
 import {
   alternateProxyUrl,
   streamRetryPosition,
@@ -30,6 +31,7 @@ interface GuardState {
   gaveUp: boolean;
   baseProxy: string | null;
   retriedAt: number;
+  retrying: boolean;
 }
 
 export interface StreamRouteGuard {
@@ -50,6 +52,7 @@ function freshState(key: string, baseProxy: string | null): GuardState {
     gaveUp: false,
     baseProxy,
     retriedAt: 0,
+    retrying: false,
   };
 }
 
@@ -78,6 +81,7 @@ export function useStreamRouteGuard({
     gaveUp: false,
     baseProxy: null,
     retriedAt: 0,
+    retrying: false,
   });
   const sessionRef = useRef<StreamOpen | null>(session);
   const retryRef = useRef<number>(0);
@@ -111,68 +115,83 @@ export function useStreamRouteGuard({
     ioRef.current.setFailed(true);
   }, []);
 
-  const retry = useCallback(() => {
-    const state = stateRef.current;
-    const current = sessionRef.current;
+  const retry = useCallback(
+    (refresh = false) => {
+      const state = stateRef.current;
+      const current = sessionRef.current;
 
-    if (!current || state.gaveUp) return;
-    const now = Date.now();
+      if (!current || state.gaveUp || state.retrying) return;
+      const now = Date.now();
 
-    if (now - state.retriedAt < RETRY_COOLDOWN_MS) return;
+      if (now - state.retriedAt < RETRY_COOLDOWN_MS) return;
 
-    if (state.attempts >= MAX_RETRIES) {
-      giveUp();
+      if (state.attempts >= MAX_RETRIES) {
+        giveUp();
 
-      return;
-    }
+        return;
+      }
 
-    let nextProxy: string | null | undefined;
+      let nextProxy: string | null | undefined;
 
-    if (state.attempts === 0) {
-      nextProxy = alternateProxyUrl(
-        state.baseProxy,
-        getStreamProxyUrl(current.sourceId as StreamSourceId)
-      );
-    }
+      if (state.attempts === 0) {
+        nextProxy = alternateProxyUrl(
+          state.baseProxy,
+          getStreamProxyUrl(current.sourceId as StreamSourceId)
+        );
+      }
 
-    if (nextProxy === undefined) nextProxy = state.baseProxy;
+      if (nextProxy === undefined) nextProxy = state.baseProxy;
 
-    const resume = streamRetryPosition(current, playbackAtoms.timePos.get());
-    const next: StreamOpen = {
-      ...current,
-      proxyUrl: nextProxy,
-      resume,
-      paused: playbackAtoms.paused.get(),
-    };
-    state.attempts += 1;
-    state.retriedAt = now;
-    state.startedAt = now;
-    state.playing = false;
-    const retryId = ++retryRef.current;
+      const resume = streamRetryPosition(current, playbackAtoms.timePos.get());
+      const next: StreamOpen = {
+        ...current,
+        proxyUrl: nextProxy,
+        resume,
+        paused: playbackAtoms.paused.get(),
+      };
+      state.attempts += 1;
+      state.retriedAt = now;
+      state.startedAt = now;
+      state.playing = false;
+      const retryId = ++retryRef.current;
+      state.retrying = true;
 
-    if (resume !== undefined) playbackAtoms.streamResume.set(resume);
-    ioRef.current.setFailed(false);
-    ioRef.current.setLoadingFile(true);
-    ignore(
-      openStream(next)
-        .then(() => {
+      if (resume !== undefined) playbackAtoms.streamResume.set(resume);
+      ioRef.current.setFailed(false);
+      ioRef.current.setLoadingFile(true);
+      ignore(
+        (async () => {
+          const resolved =
+            refresh || state.attempts === MAX_RETRIES ? await refreshStream(next) : next;
+
+          if (retryRef.current !== retryId || streamSession.get() !== current) return;
+          await openStream(resolved);
           const latest = streamSession.get();
 
           if (
             retryRef.current !== retryId ||
-            latest === null ||
-            streamRouteKey(latest) !== state.key ||
+            latest?.watchKey !== current.watchKey ||
             latest.mediaUrl !== current.mediaUrl
           )
-            return undefined;
-          sessionRef.current = next;
-          streamSession.set(next);
+            return;
+          sessionRef.current = resolved;
+          streamSession.set(resolved);
+        })()
+          .then(() => {
+            state.retrying = false;
 
-          return undefined;
-        })
-        .catch((error: unknown) => reportBackgroundError("player.stream.route", error))
-    );
-  }, [giveUp]);
+            return undefined;
+          })
+          .catch((error: unknown) => {
+            state.retrying = false;
+            reportBackgroundError("player.stream.route", error);
+
+            if (retryRef.current === retryId && state.attempts >= MAX_RETRIES) giveUp();
+          })
+      );
+    },
+    [giveUp]
+  );
 
   useEffect(() => {
     const { cancel } = createInterval(() => {
@@ -227,7 +246,7 @@ export function useStreamRouteGuard({
     state.retriedAt = 0;
     state.startedAt = Date.now();
     state.playing = false;
-    retry();
+    retry(true);
   }, [retry]);
 
   return { markPlaying, failNow, retryNow };

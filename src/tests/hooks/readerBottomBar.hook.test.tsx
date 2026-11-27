@@ -1,9 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import {
-  READER_BOTTOM_BAR_HIDE_MS,
-  useReaderBottomBar,
-} from "@/hooks/manga/reader/bottomBar.hook";
+import { READER_BOTTOM_BAR_HIDE_MS, useReaderBottomBar } from "@/hooks/manga/reader/bottomBar.hook";
 
 afterEach(() => {
   vi.useRealTimers();

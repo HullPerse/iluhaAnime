@@ -46,6 +46,39 @@ const SNAPSHOT: PlaybackSnapshot = {
 };
 
 describe("player settings atoms", () => {
+  it("defaults older settings to pause on episode switch and persists the opt-out", () => {
+    const backing = new Map<string, string>([
+      [
+        "iluha.v1.player",
+        JSON.stringify({
+          f: 1,
+          store: "player",
+          sv: 2,
+          ts: 1,
+          data: { settings: { brightness: 125 } },
+        }),
+      ],
+    ]);
+    const getStorage = () => memoryStorage(backing);
+    const first = createPlayerSignalStore({ getStorage });
+    expect(first.atoms.settings.get().pauseNextEpisode).toBe(true);
+    expect(first.atoms.settings.get().brightness).toBe(125);
+    expect(first.atoms.settings.get().audioDevice).toBe("auto");
+    expect(first.atoms.settings.get().audioLanguage).toBe("");
+    expect(first.atoms.settings.get().subtitleLanguage).toBe("");
+    first.patchPlayerSettings({
+      audioLanguage: "ja",
+      subtitleLanguage: "ru",
+      audioDevice: "wasapi/headphones",
+    });
+    first.patchPlayerSettings({ pauseNextEpisode: false });
+    first.persistor.flush();
+    const second = createPlayerSignalStore({ getStorage });
+    expect(second.atoms.settings.get().pauseNextEpisode).toBe(false);
+    expect(second.atoms.settings.get().audioDevice).toBe("wasapi/headphones");
+    expect(second.atoms.settings.get().audioLanguage).toBe("ja");
+    expect(second.atoms.settings.get().subtitleLanguage).toBe("ru");
+  });
   it("starts from defaults", () => {
     const store = createPlayerSignalStore({ getStorage: () => memoryStorage() });
     expect(store.atoms.volume.get()).toBe(0.2);
@@ -105,6 +138,8 @@ describe("player settings atoms", () => {
     const backing = new Map<string, string>();
     const first = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
     expect(first.atoms.settings.get().playerMode).toBe("normal");
+    expect(first.atoms.settings.get().deband).toBe(false);
+    first.patchPlayerSettings({ deband: true });
     expect(first.atoms.settings.get().cabinet).toBe("none");
     expect(first.atoms.settings.get().crtCurvature).toBe(0.04);
 
@@ -114,8 +149,26 @@ describe("player settings atoms", () => {
     const second = createPlayerSignalStore({ getStorage: () => memoryStorage(backing) });
     const settings = second.atoms.settings.get();
     expect(settings.playerMode).toBe("tv");
+    expect(settings.deband).toBe(true);
     expect(settings.cabinet).toBe("wood");
     expect(settings.crtCurvature).toBe(0.07);
+  });
+
+  it("persists the selected loupe renderer and repairs an unknown saved mode", () => {
+    const backing = new Map<string, string>();
+    const getStorage = () => memoryStorage(backing);
+    const first = createPlayerSignalStore({ getStorage });
+    expect(first.atoms.settings.get().loupeMode).toBe("native");
+    first.patchPlayerSettings({ loupeMode: "shader" });
+    first.persistor.flush();
+    expect(createPlayerSignalStore({ getStorage }).atoms.settings.get().loupeMode).toBe("shader");
+
+    const legacy = memoryStorage(
+      new Map([["playerState", JSON.stringify({ state: { settings: { loupeMode: "invalid" } } })]])
+    );
+    expect(
+      createPlayerSignalStore({ getStorage: () => legacy }).atoms.settings.get().loupeMode
+    ).toBe("native");
   });
 
   it("adds the screen fields to a settings payload that predates them", () => {

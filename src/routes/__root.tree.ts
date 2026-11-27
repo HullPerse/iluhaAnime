@@ -22,7 +22,9 @@ import {
 
 const App = lazy(() => import("@/App"));
 
-const PlayerWindow = lazy(() => import("@/routes/components/player/player.component"));
+const PlayerWindow = lazyRouteComponent(
+  () => import("@/routes/components/player/player.component")
+);
 
 const cardsLabRoute = import.meta.env.DEV
   ? createRoute({

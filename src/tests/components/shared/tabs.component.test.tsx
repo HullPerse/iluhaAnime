@@ -178,7 +178,11 @@ it("requires a 250ms hold before dragging a main tab", () => {
   vi.useFakeTimers();
   const onReorder = vi.fn();
   render(<Tabs tabs={TABS} activeTab="one" onChange={vi.fn()} onReorder={onReorder} />);
-  fireEvent.mouseDown(screen.getByRole("tab", { name: "One" }), { button: 0, clientX: 10, clientY: 10 });
+  fireEvent.mouseDown(screen.getByRole("tab", { name: "One" }), {
+    button: 0,
+    clientX: 10,
+    clientY: 10,
+  });
   act(() => vi.advanceTimersByTime(249));
   expect(screen.getAllByText("One")).toHaveLength(1);
   act(() => vi.advanceTimersByTime(1));

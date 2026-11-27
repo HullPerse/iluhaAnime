@@ -97,9 +97,7 @@ it("stops at the end by default, supports held Space, and cancels animation fram
 
 it("starts from the auto key when focus is outside the reader dialog", () => {
   const test = setup();
-  act(() =>
-    window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true }))
-  );
+  act(() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true })));
   expect(test.result.current.running).toBe(true);
   act(() => window.dispatchEvent(new KeyboardEvent("keyup", { code: "Space" })));
   test.unmount();

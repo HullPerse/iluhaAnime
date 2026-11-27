@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::Serialize;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use super::packs::OpenedCard;
 use super::rarity::card_value;
@@ -47,6 +47,8 @@ pub struct CollectionPage {
     pub page: u32,
     pub page_size: u32,
 }
+
+static ALBUM_REFRESH: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -461,9 +463,6 @@ pub async fn cards_collection(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let search = query.as_deref().and_then(search_pattern);
 
-    // One sorted pass per request. The page itself provides the keys for the
-    // metadata refresh, so sorting no longer runs the same ORDER BY twice and
-    // a cached page costs no network call at all.
     let connection = open_database(&app)?;
     let total: i64 = connection
         .query_row(
@@ -488,7 +487,7 @@ pub async fn cards_collection(
             |row| row.get(0),
         )
         .map_err(|error| format!("count collection: {error}"))?;
-    let mut items = collection_page(
+    let items = collection_page(
         &connection,
         kind_filter,
         rarity_filter,
@@ -504,24 +503,23 @@ pub async fn cards_collection(
         .collect();
     drop(connection);
 
-    let refreshed = super::metadata::refresh_metadata(&app, &keys, proxy.as_deref())
-        .await
-        .unwrap_or_else(|error| {
-            tracing::warn!(error = error.as_str(), "card metadata refresh failed");
-            0
-        });
-    if refreshed > 0 {
-        let connection = open_database(&app)?;
-        items = collection_page(
-            &connection,
-            kind_filter,
-            rarity_filter,
-            variant_filter,
-            search.as_deref(),
-            order,
-            page_size,
-            offset,
-        )?;
+    if !keys.is_empty() {
+        if let Ok(guard) = ALBUM_REFRESH.try_lock() {
+            tauri::async_runtime::spawn(async move {
+                let _guard = guard;
+                match super::metadata::refresh_metadata_with_changes(&app, &keys, proxy.as_deref())
+                    .await
+                {
+                    Ok((_, true)) => {
+                        if let Err(error) = app.emit("cards-album-metadata-updated", ()) {
+                            tracing::warn!(%error, "emit card metadata update failed");
+                        }
+                    }
+                    Ok((_, false)) => {}
+                    Err(error) => tracing::warn!(%error, "card metadata refresh failed"),
+                }
+            });
+        }
     }
     Ok(CollectionPage {
         items,

@@ -186,6 +186,8 @@ pub struct AnimeLibPlayersInput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnimeLibSourcesInput {
+    #[serde(default)]
+    pub refresh: bool,
     pub episode_id: String,
     /// `<player>:<teamId>`, for example `Kodik:32416`.
     pub variant_id: String,
@@ -301,7 +303,11 @@ pub async fn anime_lib_stream_sources(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<StreamVariant>, String> {
-    let sources = client_for(proxy_url, proxyUrl)?
+    let client = client_for(proxy_url, proxyUrl)?;
+    if input.refresh {
+        client.invalidate_episode_sources(&input.episode_id, &input.variant_id);
+    }
+    let sources = client
         .resolve_episode_variant(&input.episode_id, &input.variant_id)
         .await
         .map_err(|error| error.to_string())?;
@@ -474,6 +480,12 @@ mod tests {
                 .expect("parses");
         assert_eq!(input.episode_id, "455");
         assert_eq!(input.variant_id, "Kodik:32416");
+        assert!(!input.refresh);
+        let refreshed: AnimeLibSourcesInput = serde_json::from_str(
+            r#"{ "episodeId": "455", "variantId": "Kodik:32416", "refresh": true }"#,
+        )
+        .expect("refresh input");
+        assert!(refreshed.refresh);
     }
 
     #[test]

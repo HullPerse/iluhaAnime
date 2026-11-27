@@ -1,6 +1,8 @@
 import type { TorrentFileInfo, TorrentInfo } from "@/types/torrent/torrent";
 
-export type ScanType = { current: number; total: number } | null;
+export type ScanType =
+  | { type: "folder"; path: string; walked: number }
+  | { type: "library"; current: number; total: number };
 
 interface HiddenFolder {
   path: string;
@@ -10,10 +12,6 @@ interface HiddenFolder {
 interface HiddenTorrent {
   infoHash: string;
   name: string;
-}
-
-export interface ScanPlayerProps {
-  scanProgress: ScanType;
 }
 
 export interface ShaderPlayerProps {

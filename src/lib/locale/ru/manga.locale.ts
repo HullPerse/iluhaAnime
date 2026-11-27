@@ -7,6 +7,7 @@ export default {
   "manga.reader.auto": "Автопрокрутка",
   "manga.reader.loupeSize": "Диаметр",
   "manga.reader.loupeZoom": "Увеличение",
+  "manga.reader.loupeHideCursor": "Скрывать курсор при работе лупы",
   "manga.reader.autoSpeed": "Скорость прокрутки",
   "manga.reader.autoInterval": "Перелистывание",
   "manga.reader.autoPause": "Пауза в конце",

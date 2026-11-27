@@ -523,6 +523,7 @@
       "keys": [
         "settings.theme.effects.cards",
         "settings.theme.effects.cards.fill",
+        "settings.theme.effects.scrollFade",
         "settings.theme.effects.cards.full",
         "settings.theme.effects.cards.subtle",
         "settings.theme.effects.cards.off",
@@ -631,6 +632,7 @@
     }
   ],
   "SETTINGS_FIND_EXCLUDED_PREFIXES": [
+    "settings.animelib",
     "settings.changelog",
     "settings.summary",
     "settings.find",

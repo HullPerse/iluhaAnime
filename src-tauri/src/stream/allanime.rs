@@ -317,7 +317,7 @@ fn derive_mask(build_id: &str) -> Result<[u8; 32], StreamResolutionError> {
 
 fn boot_token(build_id: &str, epoch: i64) -> Result<String, StreamResolutionError> {
     let mask = derive_mask(build_id)?;
-    let mut hmac = <Hmac<Sha256> as Mac>::new_from_slice(&mask).map_err(|error| {
+    let mut hmac = <Hmac<Sha256> as hmac::KeyInit>::new_from_slice(&mask).map_err(|error| {
         StreamResolutionError::NetworkError {
             message: format!("AllAnime boot key is invalid: {error}"),
         }
@@ -344,11 +344,12 @@ fn boot_token(build_id: &str, epoch: i64) -> Result<String, StreamResolutionErro
         .collect::<Vec<_>>()
         .join(BOOT_JOIN);
 
-    let mut signature = <Hmac<Sha256> as Mac>::new_from_slice(&inner).map_err(|error| {
-        StreamResolutionError::NetworkError {
-            message: format!("AllAnime boot key is invalid: {error}"),
-        }
-    })?;
+    let mut signature =
+        <Hmac<Sha256> as hmac::KeyInit>::new_from_slice(&inner).map_err(|error| {
+            StreamResolutionError::NetworkError {
+                message: format!("AllAnime boot key is invalid: {error}"),
+            }
+        })?;
     signature.update(payload.as_bytes());
     Ok(hex::encode(signature.finalize().into_bytes()))
 }
@@ -926,7 +927,7 @@ impl AllAnimeClient {
             Err(error @ StreamResolutionError::NetworkError { .. })
                 if error.to_string().contains("Too many requests") =>
             {
-                return Err(error)
+                return Err(error);
             }
             Err(error) => last_error = Some(error),
         }
@@ -951,6 +952,21 @@ impl AllAnimeClient {
                 message: format!("AllAnime has no {mode} sources for episode {episode}"),
             }),
         )
+    }
+
+    /// Drop the failed episode answer while retaining other episodes and routes.
+    pub fn invalidate_episode_sources(
+        &self,
+        episode_id: &str,
+        variant_id: &str,
+    ) -> Result<(), StreamResolutionError> {
+        let (show, episode) = parse_episode_id(episode_id)?;
+        let (mode, _) = parse_variant_id(variant_id)?;
+        source_cache()
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(&self.cache_key(&show, &episode, mode));
+        Ok(())
     }
 
     /// Resolve one provider row into playable candidates.
@@ -1342,11 +1358,9 @@ fn build_aa_req(keys: &KeyGen) -> Result<String, StreamResolutionError> {
         Aes256Gcm::new_from_slice(&key).map_err(|_| StreamResolutionError::UnsupportedFormat {
             message: "AllAnime keygen key has the wrong length".to_string(),
         })?;
+    let nonce = Nonce::try_from(&nonce_hash[..12]).expect("SHA-256 prefix is a 12-byte nonce");
     let sealed = cipher
-        .encrypt(
-            Nonce::from_slice(&nonce_hash[..12]),
-            payload.to_string().as_bytes(),
-        )
+        .encrypt(&nonce, payload.to_string().as_bytes())
         .map_err(|_| StreamResolutionError::UnsupportedFormat {
             message: "AllAnime aaReq could not be encrypted".to_string(),
         })?;
@@ -1378,11 +1392,12 @@ fn decrypt_gcm_payload(blob: &str, key_hex: &str) -> Result<String, StreamResolu
         Aes256Gcm::new_from_slice(&key).map_err(|_| StreamResolutionError::UnsupportedFormat {
             message: "AllAnime keygen key has the wrong length".to_string(),
         })?;
-    let plain = cipher
-        .decrypt(Nonce::from_slice(&data[1..13]), &data[13..])
-        .map_err(|_| StreamResolutionError::UnsupportedFormat {
+    let nonce = Nonce::try_from(&data[1..13]).expect("validated GCM payload has a 12-byte nonce");
+    let plain = cipher.decrypt(&nonce, &data[13..]).map_err(|_| {
+        StreamResolutionError::UnsupportedFormat {
             message: "AllAnime episode payload failed authentication".to_string(),
-        })?;
+        }
+    })?;
     String::from_utf8(plain).map_err(|error| StreamResolutionError::UnsupportedFormat {
         message: format!("AllAnime episode payload is not UTF-8: {error}"),
     })
@@ -1667,7 +1682,13 @@ pub async fn allanime_stream_sources(
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<Vec<StreamVariant>, String> {
-    client_for(proxy_url, proxyUrl)?
+    let client = client_for(proxy_url, proxyUrl)?;
+    if input.refresh {
+        client
+            .invalidate_episode_sources(&input.episode_id, &input.variant_id)
+            .map_err(|error| error.to_string())?;
+    }
+    client
         .stream_sources(&input.episode_id, &input.variant_id)
         .await
         .map_err(|error| error.to_string())
@@ -1676,6 +1697,23 @@ pub async fn allanime_stream_sources(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refreshing_an_episode_leaves_other_cached_episodes_available() {
+        let client = AllAnimeClient::with_proxy(None).expect("client");
+        let key = client.cache_key("refresh-test", "1", "sub");
+        let other = client.cache_key("refresh-test", "2", "sub");
+        cache_put(key.clone(), vec![]);
+        cache_put(other.clone(), vec![]);
+        client
+            .invalidate_episode_sources("allanime:refresh-test|1", "AllAnime:sub:Default")
+            .expect("valid identity");
+        assert!(cache_get(&key).is_none());
+        assert!(cache_get(&other).is_some());
+        assert!(client
+            .invalidate_episode_sources("invalid", "AllAnime:sub:Default")
+            .is_err());
+    }
 
     #[test]
     fn rate_limit_wait_is_bounded_and_only_retries_the_server_limit() {

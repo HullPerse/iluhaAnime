@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { RefObject } from "react";
 
 import { attempt, reportBackgroundError } from "@hullperse/hp_utils/attempt";
@@ -12,8 +12,9 @@ import {
   readPath,
   seekTo,
   setPaused,
+  setMpvProperty,
 } from "@/lib/player/playback.utils";
-import { fileStatePatch, restoreReloadPaused } from "@/lib/player/playerChrome.utils";
+import { fileStatePatch, restoreLoadedPause } from "@/lib/player/playerChrome.utils";
 import {
   RESUME_END_MARGIN,
   RESUME_MIN,
@@ -23,9 +24,15 @@ import {
 } from "@/lib/player/resume.utils";
 import { loadSidecarTracks } from "@/lib/player/sidecar.utils";
 import { loadStreamSubtitles } from "@/lib/player/streamSubtitles.utils";
-import { resolveTrackId } from "@/lib/player/trackIdentity.utils";
+import { measurePlayerStartup, recordPlayerControlsReady } from "@/lib/player/startup.utils";
+import { preferredLanguageTrackId, resolveTrackId } from "@/lib/player/trackIdentity.utils";
 import { hydrateMediaEntry } from "@/store/media.store";
-import { playbackAtoms, seedTrackSelection, streamSession } from "@/store/player.store";
+import {
+  playerAtoms,
+  playbackAtoms,
+  seedTrackSelection,
+  streamSession,
+} from "@/store/player.store";
 import type { FilePlaybackState } from "@/types/player/playback";
 import type { HwdecReload } from "@/types/player/resume";
 import type { StreamOpen, WatchState } from "@/types/player/videoPlayer";
@@ -63,11 +70,19 @@ async function seekToSavedPosition(
 
 async function applyRestoredTracks(state: FilePlaybackState, loaded: string): Promise<void> {
   const tracks = playbackAtoms.tracks.get();
-  const audioTrack = resolveTrackId(tracks, "audio", state.audioTrack, state.audioTrackKey);
+  const settings = playerAtoms.settings.get();
+  const audioTrack =
+    resolveTrackId(tracks, "audio", state.audioTrack, state.audioTrackKey) ??
+    (state.audioTrackKey
+      ? undefined
+      : preferredLanguageTrackId(tracks, "audio", settings.audioLanguage));
   const subtitleTrack =
     state.subtitleTrack === "no"
       ? "no"
-      : resolveTrackId(tracks, "sub", state.subtitleTrack, state.subtitleTrackKey);
+      : (resolveTrackId(tracks, "sub", state.subtitleTrack, state.subtitleTrackKey) ??
+        (state.subtitleTrackKey
+          ? undefined
+          : preferredLanguageTrackId(tracks, "sub", settings.subtitleLanguage)));
 
   if (audioTrack === undefined && subtitleTrack === undefined) return;
   const [, failure] = await attempt(applyFileTracks({ audioTrack, subtitleTrack }, loaded));
@@ -105,6 +120,7 @@ export function usePlayerFileLoad({
   setFailed,
   setFileReady,
 }: PlayerFileLoadDeps) {
+  const previousFileRef = useRef<string | null>(null);
   useEffect(
     () => () => {
       loadEpochRef.current += 1;
@@ -141,6 +157,7 @@ export function usePlayerFileLoad({
   }, [reloadPlayingFile, setFailed, stream, streamRoute]);
 
   const handleFileLoaded = useCallback(async () => {
+    recordPlayerControlsReady(false);
     loadEpochRef.current += 1;
     const epoch = loadEpochRef.current;
     const isCurrent = () => loadEpochRef.current === epoch;
@@ -160,6 +177,7 @@ export function usePlayerFileLoad({
     seedTrackSelection({});
 
     if (streamSession.get() !== null) {
+      previousFileRef.current = null;
       syncMarginsRef.current(true);
       await loadStreamSubtitles(streamSession.get(), isCurrent);
 
@@ -167,10 +185,16 @@ export function usePlayerFileLoad({
     }
 
     playbackAtoms.duration.set(0);
+    const previousFile = previousFileRef.current;
+    previousFileRef.current = loaded;
     const reload = hwdecReloadRef.current;
     const initialWatch = initialWatchRef.current;
     initialWatchRef.current = undefined;
-    const entry = await hydrateMediaEntry(loaded, initialWatch);
+    const entry = await measurePlayerStartup(
+      "watch-state",
+      () => hydrateMediaEntry(loaded, initialWatch),
+      isCurrent
+    );
 
     if (!isCurrent()) return;
     const hintedDuration = watchDuration(entry);
@@ -184,10 +208,19 @@ export function usePlayerFileLoad({
     });
 
     await setPaused(true);
+    const [, audioFailure] = await attempt(
+      setMpvProperty("audio-device", playerAtoms.settings.get().audioDevice)
+    );
+
+    if (audioFailure) reportBackgroundError("player.audio-device", audioFailure);
 
     if (!isCurrent()) return;
     const [, timingFailure] = await attempt(
-      applyFileState({ ...state, audioTrack: undefined, subtitleTrack: undefined }, loaded)
+      measurePlayerStartup(
+        "file-state",
+        () => applyFileState({ ...state, audioTrack: undefined, subtitleTrack: undefined }, loaded),
+        isCurrent
+      )
     );
 
     if (timingFailure) reportBackgroundError("player.file-state", timingFailure);
@@ -204,20 +237,26 @@ export function usePlayerFileLoad({
 
     if (!isCurrent()) return;
 
-    await loadSidecarTracks(loaded, isCurrent);
+    await measurePlayerStartup("sidecars", () => loadSidecarTracks(loaded, isCurrent), isCurrent);
 
     if (!isCurrent()) return;
-    await applyRestoredTracks(state, loaded);
+    await measurePlayerStartup("tracks", () => applyRestoredTracks(state, loaded), isCurrent);
 
     if (!isCurrent()) return;
     hwdecReloadRef.current = null;
 
     await setPaused(true);
-    await restoreReloadPaused(reload);
+    await restoreLoadedPause(
+      reload,
+      previousFile,
+      loaded,
+      playerAtoms.settings.get().pauseNextEpisode
+    );
 
     if (!isCurrent()) return;
     syncMarginsRef.current(true);
     setFileReady(true);
+    recordPlayerControlsReady(true);
   }, [
     hwdecReloadRef,
     initialWatchRef,

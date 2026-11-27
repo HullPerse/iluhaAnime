@@ -7,11 +7,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 import { buildVariantId } from "@/lib/player/streamHelpers.utils";
 import { preferNativeVariants } from "@/lib/player/streamPrefs.utils";
 import { rememberStreamPrefs as rememberPrefs } from "@/lib/player/streamPreferences.utils";
-import {
-  loadEpisodes,
-  loadPlayers,
-  loadSources,
-} from "@/lib/core/player/sessionCache.utils";
+import { loadEpisodes, loadPlayers, loadSources } from "@/lib/core/player/sessionCache.utils";
 import { pickSource, toVariantSources, variantSourceUrl } from "@/lib/search/sources.utils";
 import { playbackProxyUrl } from "@/lib/player/streamProxy.utils";
 import { lowerQualityLabel } from "@/lib/player/streamQuality.utils";
@@ -19,12 +15,12 @@ import { resolveEpisodeStream, resolveNextStream } from "@/lib/player/playerStre
 import { attempt } from "@hullperse/hp_utils/attempt";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { addNotification } from "@/store/notification.store";
-import { playbackAtoms, streamSession } from "@/store/player.store";
+import { playerAtoms, playbackAtoms, streamSession } from "@/store/player.store";
 import { getStreamProxyUrl, settingsAtoms } from "@/store/settings.store";
 import { DEFAULT_STREAM_SOURCE } from "@/config/player/streamSources.config";
 import type { StreamSourceId, StreamVariant, StreamingEpisode } from "@/types/player/stream";
 import type { StreamOpen } from "@/types/player/videoPlayer";
-import type { PlayerStream, PlayerStreamNext } from "@/types/player/playerStream";
+import type { EpisodeResolver, PlayerStream, PlayerStreamNext } from "@/types/player/playerStream";
 
 function currentPosition(): number {
   const current = streamSession.get();
@@ -279,14 +275,32 @@ export function usePlayerStream(): PlayerStream {
   };
 }
 
-export function useStreamNext(): PlayerStreamNext {
-  const runOperation = useStreamOperation();
+export function useStreamNext({
+  onLoading,
+  onFailure,
+}: {
+  onLoading?: () => void;
+  onFailure?: () => void;
+} = {}): PlayerStreamNext {
+  const [failed, setFailed] = useState(false);
+  const retryResolveRef = useRef<EpisodeResolver | null>(null);
+  const handleFailure = useCallback(() => {
+    setFailed(true);
+    onFailure?.();
+  }, [onFailure]);
+  const runOperation = useStreamOperation(handleFailure);
   const session = useCell(streamSession);
   const mediaId = session?.mediaId;
   const sourceId = (session?.sourceId ?? DEFAULT_STREAM_SOURCE) as StreamSourceId;
   const episodeNumber = session?.episodeNumber ?? null;
   const [episodes, setEpisodes] = useState<StreamingEpisode[]>([]);
   const [episodesLoading, setEpisodesLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    retryResolveRef.current = null;
+    setFailed(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Another episode invalidates the saved retry target.
+  }, [session?.watchKey]);
 
   useEffect(() => {
     setEpisodes([]);
@@ -318,27 +332,39 @@ export function useStreamNext(): PlayerStreamNext {
     episodeNumber !== null && episodes.some((episode) => episode.number > episodeNumber);
 
   const open = useCallback(
-    async (resolve: (current: StreamOpen) => Promise<StreamOpen | null>) => {
-      const opened = await runOperation(resolve);
+    async (resolve: EpisodeResolver, refresh = false) => {
+      retryResolveRef.current = resolve;
+      setFailed(false);
+      onLoading?.();
+      const opened = await runOperation((current) => resolve(current, refresh));
       const next = streamSession.get();
 
-      if (opened && next)
+      if (opened && next) {
         await rememberPrefs(next, { variantId: next.variantId, quality: next.quality });
+      }
     },
-    [runOperation]
+    [onLoading, runOperation]
   );
 
   const goNext = useCallback(async () => {
-    await open((current) => resolveNextStream(current));
+    await open((current, refresh) =>
+      resolveNextStream(current, playerAtoms.settings.get().pauseNextEpisode, refresh)
+    );
   }, [open]);
 
   const goTo = useCallback(
     async (episode: StreamingEpisode) => {
       if (episode.id === streamSession.get()?.episodeId) return;
-      await open((current) => resolveEpisodeStream(current, episode));
+      await open((current, refresh) =>
+        resolveEpisodeStream(current, episode, playerAtoms.settings.get().pauseNextEpisode, refresh)
+      );
     },
     [open]
   );
 
-  return { hasNext, episodes, episodesLoading, goNext, goTo };
+  const retry = useCallback(async () => {
+    if (retryResolveRef.current) await open(retryResolveRef.current, true);
+  }, [open]);
+
+  return { hasNext, episodes, episodesLoading, goNext, goTo, failed, retry };
 }

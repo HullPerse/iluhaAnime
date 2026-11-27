@@ -244,6 +244,16 @@ pub async fn refresh_metadata(
     cards: &[(CardKind, i64)],
     proxy: Option<&str>,
 ) -> Result<usize, String> {
+    refresh_metadata_with_changes(app, cards, proxy)
+        .await
+        .map(|(count, _)| count)
+}
+
+pub(super) async fn refresh_metadata_with_changes(
+    app: &AppHandle,
+    cards: &[(CardKind, i64)],
+    proxy: Option<&str>,
+) -> Result<(usize, bool), String> {
     let connection = open_database(app)?;
     let now = now_seconds();
     let mut stale: Vec<(CardKind, i64)> = Vec::new();
@@ -262,7 +272,7 @@ pub async fn refresh_metadata(
     }
     drop(connection);
     if stale.is_empty() {
-        return Ok(0);
+        return Ok((0, false));
     }
     let token = optional_token(app);
     let mut parts: Vec<String> = Vec::new();
@@ -320,14 +330,24 @@ pub async fn refresh_metadata(
         }
     }
     if rows.is_empty() {
-        return Ok(0);
+        return Ok((0, false));
     }
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(app)?;
+    let mut changed = false;
     for row in &rows {
+        if !changed {
+            changed = get_meta(&connection, row.kind, row.entity_id)?.is_none_or(|mut previous| {
+                previous.fetched_at = row.fetched_at;
+                previous
+                    .preferred_image_url
+                    .clone_from(&row.preferred_image_url);
+                previous != *row
+            });
+        }
         upsert_meta(&connection, row)?;
     }
-    Ok(rows.len())
+    Ok((rows.len(), changed))
 }
 
 #[cfg(test)]

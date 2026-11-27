@@ -20,6 +20,7 @@ export function ReaderToolsSettings({
   const strip = display === "strip";
   const size = useCell(settingsAtoms.mangaLoupeSize);
   const zoom = useCell(settingsAtoms.mangaLoupeZoom);
+  const hideCursor = useCell(settingsAtoms.mangaLoupeHideCursor);
   const speed = useCell(settingsAtoms.mangaAutoSpeed);
   const interval = useCell(settingsAtoms.mangaAutoInterval);
   const pause = useCell(settingsAtoms.mangaAutoPause);
@@ -57,6 +58,14 @@ export function ReaderToolsSettings({
           value={zoom}
           onChange={(mangaLoupeZoom) => patchSettings({ mangaLoupeZoom })}
         />
+        <label className="flex items-center gap-2">
+          <Checkbox
+            checked={hideCursor}
+            onChange={(mangaLoupeHideCursor) => patchSettings({ mangaLoupeHideCursor })}
+            aria-label={t("manga.reader.loupeHideCursor")}
+          />
+          {t("manga.reader.loupeHideCursor")}
+        </label>
       </fieldset>
       <fieldset className="grid gap-1.5">
         <legend className="pb-1 font-bold">{t("manga.reader.auto")}</legend>
@@ -125,9 +134,7 @@ export function ReaderToolsSettings({
           />
         </div>
         <span className="text-hint text-xs">
-          {chord
-            ? t("manga.reader.autoKeyHint", { chord })
-            : t("manga.reader.autoKeyUnbound")}
+          {chord ? t("manga.reader.autoKeyHint", { chord }) : t("manga.reader.autoKeyUnbound")}
         </span>
       </fieldset>
     </div>

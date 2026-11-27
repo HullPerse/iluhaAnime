@@ -5,7 +5,7 @@ use base64::Engine as _;
 use librqbit_dualstack_sockets::ConnectOpts;
 use librqbit_utp::{BindDevice, UtpSocketUdp};
 use serde::Serialize;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tracing::debug;
 
 use crate::{
@@ -90,6 +90,7 @@ fn decode_component(value: &str) -> String {
 }
 
 impl SocksProxyConfig {
+    /// socks5h:// resolves hostnames via the proxy; socks5:// resolves them locally.
     pub fn parse(url: &str) -> anyhow::Result<Self> {
         let url = ::url::Url::parse(url).context("invalid proxy URL")?;
         if !matches!(url.scheme(), "socks5" | "socks5h") {
@@ -208,37 +209,8 @@ impl ProxyConfig {
     }
 }
 
-async fn read_connect_response(stream: &mut tokio::net::TcpStream) -> anyhow::Result<()> {
-    let mut buffer = Vec::with_capacity(1024);
-    let mut chunk = [0u8; 512];
-    loop {
-        let read = stream
-            .read(&mut chunk)
-            .await
-            .context("error reading HTTP proxy response")?;
-        if read == 0 {
-            bail!("HTTP proxy closed the connection during CONNECT");
-        }
-        buffer.extend_from_slice(&chunk[..read]);
-        if buffer.windows(4).any(|window| window == b"\r\n\r\n") {
-            break;
-        }
-        if buffer.len() > 16 * 1024 {
-            bail!("HTTP proxy response is too large");
-        }
-    }
-    let head = String::from_utf8_lossy(&buffer);
-    let status = head.lines().next().unwrap_or_default();
-    let code = status
-        .split_whitespace()
-        .nth(1)
-        .and_then(|value| value.parse::<u16>().ok());
-    match code {
-        Some(200..=299) => Ok(()),
-        Some(code) => bail!("HTTP proxy refused CONNECT with status {code}"),
-        None => bail!("invalid HTTP proxy response: {status}"),
-    }
-}
+mod http_connect;
+use http_connect::read_connect_response;
 
 gen_stats!(SingleStatAtomic SingleStatSnapshot, [
     attempts u64,
@@ -453,5 +425,53 @@ impl StreamConnector {
                 },
             };
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_socks5() {
+        let c = SocksProxyConfig::parse("socks5://myhost:1234").unwrap();
+        assert_eq!(c.host, "myhost");
+        assert_eq!(c.port, 1234);
+        assert_eq!(c.username_password, None);
+    }
+
+    #[test]
+    fn test_parse_socks5h() {
+        let c = SocksProxyConfig::parse("socks5h://myhost:1234").unwrap();
+        assert_eq!(c.host, "myhost");
+        assert_eq!(c.port, 1234);
+    }
+
+    #[test]
+    fn test_parse_with_password() {
+        let c = SocksProxyConfig::parse("socks5h://user:pass@myhost:1234").unwrap();
+        assert_eq!(c.host, "myhost");
+        assert_eq!(c.port, 1234);
+        assert_eq!(
+            c.username_password,
+            Some(("user".to_owned(), "pass".to_owned()))
+        );
+    }
+
+    #[test]
+    fn test_parse_rejects_other_schemes() {
+        for url in [
+            "http://myhost:1234",
+            "socks4://myhost:1234",
+            "socks4a://myhost:1234",
+        ] {
+            assert!(SocksProxyConfig::parse(url).is_err(), "should reject {url}");
+        }
+    }
+
+    #[test]
+    fn test_parse_rejects_garbage() {
+        assert!(SocksProxyConfig::parse("not a url").is_err());
+        assert!(SocksProxyConfig::parse("socks5://").is_err());
     }
 }

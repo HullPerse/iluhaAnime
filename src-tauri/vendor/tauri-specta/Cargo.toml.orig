@@ -1,0 +1,83 @@
+[package]
+name = "tauri-specta"
+description = "Completely typesafe Tauri commands"
+version = "2.0.0-rc.29"
+authors = ["Oscar Beaumont <oscar@otbeaumont.me>"]
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+include = ["/src", "/README.md", "/LICENSE"]
+repository = "https://github.com/specta-rs/tauri-specta"
+documentation = "https://docs.rs/tauri-specta/latest/tauri-specta"
+keywords = ["async", "specta", "rspc", "typescript", "typesafe"]
+categories = ["web-programming", "asynchronous"]
+
+# /bin/sh RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps
+# `--no-deps` matters: RUSTDOCFLAGS applies to every crate rustdoc builds, and some
+# dependencies still gate removed nightly features behind `cfg(docsrs)`.
+[package.metadata."docs.rs"]
+all-features = true
+
+[features]
+default = []
+derive = ["dep:tauri-specta-macros"]
+javascript = ["dep:specta-typescript"]
+typescript = ["dep:specta-typescript"]
+
+[lints]
+workspace = true
+
+[dependencies]
+# Public
+specta = { workspace = true, features = ["function"] }
+specta-typescript = { workspace = true, optional = true }
+tauri-specta-macros = { version = "=2.0.0-rc.29", optional = true, path = "./macros" }
+serde = "1"
+serde_json = "1"
+thiserror = "2"
+tauri = { workspace = true, features = ["specta"] }
+
+# Private
+heck = "0.5"
+paste = "1"
+specta-serde = { workspace = true }
+specta-util = { workspace = true }
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test", "wry"] }
+
+[workspace]
+members = [
+  "crates/tauri-specta-query",
+  "examples/app/src-tauri",
+  "examples/tanstack-query/src-tauri",
+  "examples/custom-plugin/app/src-tauri",
+  "examples/custom-plugin/plugin",
+  "macros",
+]
+
+[workspace.lints.rust]
+unsafe_code = { level = "forbid", priority = -1 }
+missing_docs = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+multiple_crate_versions = { level = "allow", priority = 1 }
+unwrap_used = { level = "warn", priority = -1 }
+panic = { level = "warn", priority = -1 }
+todo = { level = "warn", priority = -1 }
+panic_in_result_fn = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+tauri = { version = "2", default-features = false }
+tauri-build = { version = "2" }
+tauri-plugin = { version = "2" }
+specta = { version = "=2.0.0-rc.28", features = ["derive"] }
+specta-typescript = { version = "0.0.15" }
+specta-serde = { version = "0.0.15" }
+specta-util = { version = "0.0.15" }
+
+[patch.crates-io]
+# Waiting on: https://github.com/tauri-apps/tauri/pull/16374
+tauri = { git = "https://github.com/oscartbeaumont/tauri", rev = "a4f7b3a62a06ec9267d9461c4f6738d432d26634" }

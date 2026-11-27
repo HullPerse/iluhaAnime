@@ -95,8 +95,17 @@ export const rootClass = ({
   );
 };
 
-export const restoreReloadPaused = async (reload: HwdecReload | null): Promise<void> => {
-  if (reload && !reload.paused) await setPaused(false);
+/** Keep first open paused; switches follow the preference and reloads keep their prior state. */
+export const restoreLoadedPause = async (
+  reload: HwdecReload | null,
+  previousFile: string | null,
+  loaded: string,
+  pauseNextEpisode: boolean
+): Promise<void> => {
+  const paused =
+    reload?.paused ?? (previousFile === null || previousFile === loaded || pauseNextEpisode);
+
+  if (!paused) await setPaused(false);
 };
 
 export const fileStatePatch = (entry: MediaEntry | undefined, speed: number): FilePlaybackState => {

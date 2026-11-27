@@ -227,7 +227,7 @@ async fn resolve_manifest(chapter: ReaderChapter) -> Result<Manifest, SourceErro
 
 fn manifest_key(chapter: &ReaderChapter) -> Result<String, SourceError> {
     let bytes = serde_json::to_vec(chapter).map_err(|_| SourceError::Parse)?;
-    Ok(format!("{:x}", Sha256::digest(bytes)))
+    Ok(hex::encode(Sha256::digest(bytes)))
 }
 
 async fn put_manifest(key: String, manifest: Manifest) {
@@ -510,7 +510,7 @@ fn cover_source(value: &str) -> Option<(MangaSource, String)> {
 
 fn cover_cache_name(url: &str) -> String {
     let digest = Sha256::digest(format!("cover:{url}:{USER_AGENT}"));
-    format!("{digest:x}")
+    hex::encode(digest)
 }
 
 async fn fetch_lib_cover(
@@ -592,7 +592,7 @@ pub async fn manga_page_fetch(
             "{key}:{page}:{url}:{}:{USER_AGENT}",
             referer(manifest.chapter.source, manifest.chapter.manga_lib_domain)
         ));
-        Ok(dir.as_ref().map(|dir| dir.join(format!("{digest:x}"))))
+        Ok(dir.as_ref().map(|dir| dir.join(hex::encode(digest))))
     };
     if let Some(path) = cache_path(&manifest)? {
         if let Ok(Some(bytes)) =

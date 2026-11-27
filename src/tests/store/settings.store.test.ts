@@ -16,6 +16,14 @@ beforeAll(async () => {
 });
 
 describe("settings signal migration", () => {
+  it("defaults manga loupe cursor hiding on and restores a saved opt-out", () => {
+    const version = settings.SETTINGS_SCHEMA_VERSION;
+    expect(settings.migrateSettingsData({}, version).mangaLoupeHideCursor).toBe(true);
+    expect(
+      settings.migrateSettingsData({ mangaLoupeHideCursor: false }, version).mangaLoupeHideCursor
+    ).toBe(false);
+  });
+
   it("defaults scroll fade off and preserves the saved choice", () => {
     expect(settings.migrateSettingsData({}, 63).scrollFade).toBe(false);
     expect(settings.migrateSettingsData({ scrollFade: true }, 63).scrollFade).toBe(true);

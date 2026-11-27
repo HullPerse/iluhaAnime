@@ -42,7 +42,6 @@ export function FeedTab({
     queryKey: [...queryKeys.activity(activityUserIds), manga],
     queryFn: () => anilistApi.getActivity(activityUserIds, manga ? "MANGA" : "ANIME"),
     enabled: userId > 0,
-
   });
 
   const scoresByMedia = useMemo(() => buildScoreByMedia(lists), [lists]);

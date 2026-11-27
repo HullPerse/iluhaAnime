@@ -275,6 +275,14 @@ impl AnimeLibClient {
         Ok(sources)
     }
 
+    /// Discard a failed media URL and the episode payload that supplied it.
+    pub fn invalidate_episode_sources(&self, episode_id: &str, variant_id: &str) {
+        crate::sync_utils::lock_or_recover(source_cache(), "animelib source cache")
+            .remove(&self.sources_cache_key(episode_id, variant_id));
+        crate::sync_utils::lock_or_recover(detail_cache(), "animelib detail cache")
+            .remove(&self.detail_cache_key(episode_id));
+    }
+
     /// The token decides which rows the API returns, so it is part of the key.
     fn sources_cache_key(&self, episode_id: &str, variant_id: &str) -> String {
         let mut hasher = DefaultHasher::new();
@@ -1555,6 +1563,23 @@ mod tests {
             second.detail_cache_key("455")
         );
         assert_ne!(first.detail_cache_key("455"), first.detail_cache_key("456"));
+    }
+
+    #[test]
+    fn refreshing_sources_invalidates_the_episode_payload_and_only_the_selected_variant() {
+        let client = AnimeLibClient::with_token("refresh-cache-test".to_string()).expect("client");
+        let key = client.sources_cache_key("refresh-455", "Kodik:1");
+        let other = client.sources_cache_key("refresh-455", "Kodik:2");
+        let detail_key = client.detail_cache_key("refresh-455");
+        let detail: WireEpisodeDetail =
+            serde_json::from_str(r#"{ "players": [] }"#).expect("detail");
+        store_sources(key.clone(), &[]);
+        store_sources(other.clone(), &[]);
+        store_detail(detail_key.clone(), &detail);
+        client.invalidate_episode_sources("refresh-455", "Kodik:1");
+        assert!(cached_sources(&key).is_none());
+        assert!(cached_detail(&detail_key).is_none());
+        assert!(cached_sources(&other).is_some());
     }
 
     #[test]

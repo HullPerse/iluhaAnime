@@ -3,7 +3,7 @@ use std::time::Duration;
 use tauri::AppHandle;
 
 use crate::app_db::db::{lock_app_data_write_timeout, open_database, APP_DATA_WRITE_TIMEOUT};
-use crate::cards::packs::spawn_prepare_packs;
+use crate::cards::packs::spawn_prepare_packs_with_proxy;
 
 use super::pool;
 use super::prepare;
@@ -471,7 +471,7 @@ pub async fn guess(
             }
         };
         if correct {
-            spawn_prepare_packs(app.clone());
+            spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_owned));
         }
         return Ok(DailyGuessView {
             correct,
@@ -701,7 +701,7 @@ async fn guess_clip_game(
             )?;
         }
         if correct {
-            spawn_prepare_packs(app.clone());
+            spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_owned));
         }
     } else {
         let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;

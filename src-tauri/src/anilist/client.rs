@@ -11,6 +11,7 @@ static CLIENT: LazyLock<Result<reqwest::Client, String>> = LazyLock::new(|| {
         .build()
         .map_err(|error| format!("failed to build reqwest client: {error}"))
 });
+static PROXY_CLIENT: Mutex<Option<(String, reqwest::Client)>> = Mutex::new(None);
 
 const RATE_LIMIT_PER_MIN: usize = 25;
 const RATE_LIMIT_ADAPTIVE_CEILING: usize = 30;
@@ -33,6 +34,7 @@ static ANILIST_CONCURRENCY: LazyLock<tokio::sync::Semaphore> = LazyLock::new(|| 
 });
 static RATE_LOG: LazyLock<Mutex<VecDeque<Instant>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
 static RATE_LIMIT_ADAPTIVE: AtomicUsize = AtomicUsize::new(RATE_LIMIT_PER_MIN);
+static COOLDOWN_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn update_rate_limit(header: Option<&str>) {
     let Some(limit) = header.and_then(|v| v.parse::<usize>().ok()) else {
@@ -129,8 +131,21 @@ fn rate_limit_per_min() -> usize {
 
 async fn acquire_request_slot() -> Result<tokio::sync::SemaphorePermit<'static>, String> {
     loop {
+        let permit = ANILIST_CONCURRENCY
+            .acquire()
+            .await
+            .map_err(|_| "AniList request queue is closed".to_string())?;
         let now = Instant::now();
-        {
+        let cooldown = COOLDOWN_UNTIL
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .and_then(|deadline| deadline.checked_duration_since(now));
+        if let Some(delay) = cooldown {
+            drop(permit);
+            tokio::time::sleep(delay).await;
+            continue;
+        }
+        let delay = {
             let mut log = RATE_LOG.lock().unwrap_or_else(|poisoned| {
                 tracing::warn!("AniList rate-limit log mutex was poisoned; recovering");
                 poisoned.into_inner()
@@ -144,15 +159,15 @@ async fn acquire_request_slot() -> Result<tokio::sync::SemaphorePermit<'static>,
             }
             if log.len() < rate_limit_per_min() {
                 log.push_back(now);
-                break;
+                return Ok(permit);
             }
-        }
-        tokio::time::sleep(Duration::from_millis(600)).await;
+            log.front().map_or(Duration::from_millis(600), |first| {
+                Duration::from_secs(60).saturating_sub(now.duration_since(*first))
+            })
+        };
+        drop(permit);
+        tokio::time::sleep(delay).await;
     }
-    ANILIST_CONCURRENCY
-        .acquire()
-        .await
-        .map_err(|_| "AniList request queue is closed".to_string())
 }
 pub fn forbidden_error(authenticated: bool) -> String {
     if authenticated {
@@ -164,13 +179,21 @@ pub fn forbidden_error(authenticated: bool) -> String {
 
 fn client_for_proxy(proxy: Option<&str>) -> Result<reqwest::Client, String> {
     if let Some(url) = proxy {
+        let mut cached = PROXY_CLIENT
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((_, client)) = cached.as_ref().filter(|(address, _)| address == url) {
+            return Ok(client.clone());
+        }
         let proxy = reqwest::Proxy::all(url).map_err(|e| format!("Invalid proxy URL: {e}"))?;
-        reqwest::Client::builder()
+        let client = reqwest::Client::builder()
             .user_agent("iluhaAnime/1.0")
             .proxy(proxy)
             .timeout(Duration::from_secs(30))
             .build()
-            .map_err(|e| format!("Failed to build proxied AniList client: {e}"))
+            .map_err(|e| format!("Failed to build proxied AniList client: {e}"))?;
+        *cached = Some((url.to_owned(), client.clone()));
+        Ok(client)
     } else {
         CLIENT.clone()
     }
@@ -184,7 +207,8 @@ pub async fn graphql_request(
 ) -> Result<serde_json::Value, String> {
     let client = client_for_proxy(proxy)?;
     let mut last_err = "AniList request failed".to_string();
-    for attempt in 0..3 {
+    const ATTEMPTS: u32 = 3;
+    for attempt in 0..ATTEMPTS {
         let permit = acquire_request_slot().await?;
 
         let mut builder = client.post("https://graphql.anilist.co").json(&query);
@@ -192,13 +216,15 @@ pub async fn graphql_request(
             builder = builder.header("Authorization", format!("Bearer {t}"));
         }
         let send_result = builder.send().await;
-        drop(permit);
         let resp = match send_result {
             Ok(r) => r,
             Err(e) => {
                 last_err = format!("AniList request failed: {e}");
                 tracing::warn!(attempt, error = last_err.as_str(), "anilist network error");
-                tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
+                drop(permit);
+                if attempt + 1 < ATTEMPTS {
+                    tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
+                }
                 continue;
             }
         };
@@ -234,7 +260,11 @@ pub async fn graphql_request(
             let delay = rate_limit_delay_secs(retry_after, reset, now_unix_secs(), 1 << attempt);
             last_err = "AniList rate limit exceeded".to_string();
             tracing::warn!(attempt, delay_secs = delay, "anilist rate limited");
-            tokio::time::sleep(Duration::from_secs(delay)).await;
+            let mut cooldown = COOLDOWN_UNTIL
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let deadline = Instant::now() + Duration::from_secs(delay);
+            *cooldown = Some(cooldown.map_or(deadline, |current| current.max(deadline)));
             continue;
         }
 
@@ -268,7 +298,10 @@ pub async fn graphql_request(
             if !should_retry_http(status) {
                 return Err(last_err);
             }
-            tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
+            drop(permit);
+            if attempt + 1 < ATTEMPTS {
+                tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
+            }
             continue;
         }
 

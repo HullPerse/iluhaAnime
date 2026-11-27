@@ -5,9 +5,21 @@ import {
   FolderScanResultListSchema,
   SidecarTrackListSchema,
 } from "@/schemas/fileIndex.schema";
-import { PendingOpenSchema, SavedFrameSchema, WatchStateSchema } from "@/schemas/player.schema";
+import {
+  PendingOpenSchema,
+  PlayerInstanceIdSchema,
+  SavedFrameSchema,
+  WatchStateSchema,
+} from "@/schemas/player.schema";
 
 describe("player and file-index schemas", () => {
+  it("accepts positive safe instance identities and rejects malformed native replies", () => {
+    expect(PlayerInstanceIdSchema.safeParse(17).success).toBe(true);
+
+    for (const invalid of [undefined, "player", 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(PlayerInstanceIdSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
   it("accepts file entries and rejects a missing size", () => {
     expect(FileEntryListSchema.safeParse([{ path: "a.mkv", name: "a", size: 1 }]).success).toBe(
       true

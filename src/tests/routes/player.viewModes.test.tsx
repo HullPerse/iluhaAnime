@@ -82,7 +82,9 @@ const video = (): Element => {
 
 beforeEach(() => {
   invokeMock.mockReset();
-  invokeMock.mockResolvedValue(undefined);
+  invokeMock.mockImplementation(async (command: string) =>
+    command === "player_init" ? 17 : undefined
+  );
   listenMock.mockReset();
   listenMock.mockResolvedValue(() => undefined);
   mockDialogOpen.mockResolvedValue(null);
@@ -256,6 +258,15 @@ describe("player view modes", () => {
     setAlwaysOnTop(true);
     await mountPlayer();
     expect(mockSetAlwaysOnTop).toHaveBeenCalledWith(true);
+  });
+
+  it("keeps the confirmed pin state when Windows rejects the toggle", async () => {
+    await mountPlayer();
+    mockSetAlwaysOnTop.mockRejectedValueOnce(new Error("window unavailable"));
+    await act(async () => {
+      pressKey("KeyA", { ctrlKey: true });
+    });
+    expect(playerAtoms.alwaysOnTop.get()).toBe(false);
   });
 
   it("drags the window from the video in a preset without header", async () => {

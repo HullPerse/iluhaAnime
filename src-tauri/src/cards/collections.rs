@@ -5,11 +5,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::AppHandle;
 
+use super::ceilings::max_page_for;
 use super::collection::{list_media_collection_items, CollectionItem};
+use super::config::CHOICE_PACK_SIZE;
 use super::metadata::refresh_metadata;
 use super::rarity::score_for;
 use super::rng::Rng;
-use super::sampling::CardNode;
+use super::sampling::{pick_distinct, CardNode};
 use super::types::{CardKind, CardRarity};
 use crate::anilist::auth::optional_token;
 use crate::anilist::client::graphql_request;
@@ -189,42 +191,52 @@ fn roster_page_has_next_but_no_characters(characters: &[RosterMeta], has_next: b
     characters.is_empty() && has_next
 }
 
-/// One character from the title's roster for a choice pack. Rarity follows the
+/// Distinct characters from the title's roster for a choice pack. Rarity follows the
 /// standard character formula, using the title's popularity as the bonus term.
-pub(crate) async fn roster_choice_character(
+pub(crate) async fn roster_choice_characters(
     app: &AppHandle,
     media_id: i64,
     media_popularity: u32,
     seed: u64,
     proxy: Option<&str>,
-) -> Result<Option<CardNode>, String> {
-    let page = match cached_roster_page(app, media_id, 1, proxy).await {
-        Ok(page) => page,
-        Err(error) => {
-            tracing::warn!(
-                error = error.as_str(),
-                media_id,
-                "choice pack roster unavailable"
-            );
-            return Ok(None);
+) -> Result<Vec<CardNode>, String> {
+    let mut characters = Vec::new();
+    for page in 1..=max_page_for(ROSTER_PAGE_SIZE as u32) as usize {
+        let cached = cached_roster_page(app, media_id, page, proxy).await?;
+        characters.extend(cached.characters);
+        if !cached.has_next {
+            return pick_choice_characters(characters, media_popularity, seed);
         }
-    };
-    if page.characters.is_empty() {
-        return Ok(None);
     }
+    Err("choice pack roster exceeds the AniList page limit".into())
+}
+
+fn pick_choice_characters(
+    characters: Vec<RosterMeta>,
+    media_popularity: u32,
+    seed: u64,
+) -> Result<Vec<CardNode>, String> {
+    let pool: Vec<_> = characters
+        .into_iter()
+        .map(|character| {
+            let favourites = u32::try_from(character.favourites.max(0)).unwrap_or(0);
+            CardNode {
+                kind: CardKind::Character,
+                entity_id: character.entity_id,
+                title: character.title,
+                image_url: character.image_url,
+                favourites,
+                popularity: media_popularity,
+                score: score_for(CardKind::Character, favourites, media_popularity),
+            }
+        })
+        .collect();
     let mut rng = Rng::new(seed ^ 0x5E1E_C7A1);
-    let index = rng.next_below(page.characters.len() as u64) as usize;
-    let character = &page.characters[index];
-    let favourites = u32::try_from(character.favourites.max(0)).unwrap_or(0);
-    Ok(Some(CardNode {
-        kind: CardKind::Character,
-        entity_id: character.entity_id,
-        title: character.title.clone(),
-        image_url: character.image_url.clone(),
-        favourites,
-        popularity: media_popularity,
-        score: score_for(CardKind::Character, favourites, media_popularity),
-    }))
+    let picked = pick_distinct(&pool, CHOICE_PACK_SIZE, &mut rng);
+    if picked.len() != CHOICE_PACK_SIZE {
+        return Err("choice pack roster has fewer than two distinct characters".into());
+    }
+    Ok(picked)
 }
 
 async fn fetch_roster_page(
@@ -565,16 +577,22 @@ fn unlinked_owned_characters(
         )
         .map_err(|error| error.to_string())?;
     let rows = statement
-        .query_map([LOCAL_USER_ID], |row| Ok((CardKind::Character, row.get(0)?)))
+        .query_map([LOCAL_USER_ID], |row| {
+            Ok((CardKind::Character, row.get(0)?))
+        })
         .map_err(|error| error.to_string())?;
-    rows.collect::<Result<_, _>>().map_err(|error| error.to_string())
+    rows.collect::<Result<_, _>>()
+        .map_err(|error| error.to_string())
 }
 
 async fn repair_collection_links(app: &AppHandle, proxy: Option<&str>) -> Result<(), String> {
     let keys = unlinked_owned_characters(&open_database(app)?)?;
     for batch in keys.chunks(50) {
         if let Err(error) = refresh_metadata(app, batch, proxy).await {
-            tracing::warn!(error = error.as_str(), "card collection link refresh failed");
+            tracing::warn!(
+                error = error.as_str(),
+                "card collection link refresh failed"
+            );
             break;
         }
     }
@@ -873,6 +891,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn choice_pack_can_draw_from_the_entire_roster_without_duplicates() {
+        let roster: Vec<_> = (1..=30)
+            .map(|entity_id| RosterMeta {
+                entity_id,
+                title: entity_id.to_string(),
+                image_url: None,
+                favourites: 0,
+            })
+            .collect();
+        let mut drawn = std::collections::HashSet::new();
+        for seed in 1..=32 {
+            let picked = pick_choice_characters(roster.clone(), 0, seed).unwrap();
+            assert_eq!(picked.len(), 2);
+            assert_ne!(picked[0].entity_id, picked[1].entity_id);
+            assert!(picked.iter().all(|card| card.kind == CardKind::Character));
+            drawn.extend(picked.into_iter().map(|card| card.entity_id));
+        }
+        assert!(drawn.iter().any(|id| *id > 25));
+        assert!(pick_choice_characters(vec![roster[0].clone(); 2], 0, 1).is_err());
+    }
+
+    #[test]
     fn an_empty_roster_page_is_only_rejected_when_it_promises_more() {
         // AniList returns `nodes: []` with `hasNextPage: false` past the shown
         // window (and even a page-scoped `total`), which is the end of the
@@ -997,13 +1037,15 @@ mod tests {
     fn collection_link_repair_selects_only_owned_unlinked_characters() {
         let connection = rusqlite::Connection::open_in_memory().unwrap();
         crate::app_db::schema::initialize_schema(&connection).unwrap();
-        connection.execute_batch(
-            "INSERT INTO card_meta
+        connection
+            .execute_batch(
+                "INSERT INTO card_meta
                 (kind, entity_id, title, collection_title, collection_manga_id, fetched_at)
              VALUES ('character', 1, 'Unlinked', 'Manga', NULL, 1),
                     ('character', 2, 'Linked', 'Manga', 10, 1),
                     ('character', 3, 'Unowned', 'Manga', NULL, 1);",
-        ).unwrap();
+            )
+            .unwrap();
         connection.execute(
             "INSERT INTO user_cards
                 (user_id, kind, entity_id, rarity, variant, copies, value, first_obtained_at, last_obtained_at)

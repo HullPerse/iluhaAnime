@@ -16,7 +16,7 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
   const claim = mutations.claimPack;
   const started = useRef<string | null>(null);
   const close = () => {
-    mutations.invalidate();
+    if (pack.packKind !== "choice") mutations.invalidate();
     onClose();
   };
 

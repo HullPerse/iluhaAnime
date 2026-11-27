@@ -39,7 +39,7 @@ describe("stream identity", () => {
         separateStream: true,
         player: "Kodik",
         sourceUrl: "//kodikplayer.com/seria/1/hash/720p",
-      }),
+      })
     ).toBe("Kodik:32416");
   });
 
@@ -59,8 +59,8 @@ describe("stream variant kind", () => {
           name: "Yt-mp4",
           language: "Sub",
           player: "AllAnime",
-        }),
-      ),
+        })
+      )
     ).toBe(true);
     expect(
       isSubtitleVariant(
@@ -69,8 +69,8 @@ describe("stream variant kind", () => {
           name: "Subtitle provider",
           language: "Dub",
           player: "AllAnime",
-        }),
-      ),
+        })
+      )
     ).toBe(false);
   });
 
@@ -82,8 +82,8 @@ describe("stream variant kind", () => {
           name: "AniRise",
           language: "Субтитры",
           player: "Kodik",
-        }),
-      ),
+        })
+      )
     ).toBe(true);
     expect(
       isSubtitleVariant(
@@ -91,8 +91,8 @@ describe("stream variant kind", () => {
           id: "2",
           name: "Crunchyroll.Subtitles",
           player: "Kodik",
-        }),
-      ),
+        })
+      )
     ).toBe(true);
   });
 
@@ -104,13 +104,11 @@ describe("stream variant kind", () => {
           name: "AniDUB",
           language: "Озвучка",
           player: "Kodik",
-        }),
-      ),
+        })
+      )
     ).toBe(false);
     expect(
-      isSubtitleVariant(
-        normalizeVariant({ id: "4", name: "Studio Band", player: "Kodik" }),
-      ),
+      isSubtitleVariant(normalizeVariant({ id: "4", name: "Studio Band", player: "Kodik" }))
     ).toBe(false);
   });
 });

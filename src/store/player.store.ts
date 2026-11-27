@@ -31,6 +31,11 @@ import type {
 export const PLAYER_SCHEMA_VERSION = SCHEMA_VERSIONS.player;
 
 export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
+  audioDevice: "auto",
+  audioLanguage: "",
+  subtitleLanguage: "",
+  pauseNextEpisode: true,
+  loupeMode: "native",
   brightness: 100,
   contrast: 100,
   saturation: 100,
@@ -48,6 +53,7 @@ export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
   hdrComputePeak: false,
   targetPrim: "auto",
   targetTrc: "auto",
+  deband: false,
   loudnorm: false,
 };
 
@@ -126,8 +132,11 @@ function readLegacyPlayer(
 function migratePlayerData(persistedState: unknown): PlayerData {
   if (!isRecord(persistedState)) return { ...DEFAULT_PLAYER_DATA };
   const resolved = resolveWithDefaults(persistedState, { ...DEFAULT_PLAYER_DATA });
+  const data: PlayerData = { ...DEFAULT_PLAYER_DATA, ...resolved };
 
-  return { ...DEFAULT_PLAYER_DATA, ...resolved };
+  if (data.settings.loupeMode !== "shader") data.settings.loupeMode = "native";
+
+  return data;
 }
 
 export function createPlayerSignalStore(options: SignalStoreOptions = {}): PlayerSignalStore {

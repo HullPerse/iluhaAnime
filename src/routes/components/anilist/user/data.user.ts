@@ -16,7 +16,12 @@ export function useUserAnilistData(options: { enabled?: boolean; manga?: boolean
 
       if (!bundle) return { user: null, lists: [], favourites: [], people: NO_PEOPLE };
 
-      return { user: bundle.user, lists: bundle.lists, favourites: bundle.favourites.anime, people: bundle.favourites.people };
+      return {
+        user: bundle.user,
+        lists: bundle.lists,
+        favourites: bundle.favourites.anime,
+        people: bundle.favourites.people,
+      };
     },
   });
   const userId = query.data?.user?.id;
@@ -40,9 +45,25 @@ export function useUserAnilistData(options: { enabled?: boolean; manga?: boolean
 
     return {
       ...base,
-      user: base.user ? { ...base.user, anime_count: statistics?.count ?? entries.length, episodes_watched: statistics?.chapters ?? entries.reduce((sum, entry) => sum + (entry.progress ?? 0), 0), mean_score: statistics?.meanScore ?? null } : null,
+      user: base.user
+        ? {
+            ...base.user,
+            anime_count: statistics?.count ?? entries.length,
+            episodes_watched:
+              statistics?.chapters ??
+              entries.reduce((sum, entry) => sum + (entry.progress ?? 0), 0),
+            mean_score: statistics?.meanScore ?? null,
+          }
+        : null,
       lists,
-      favourites: overview.data?.favourites.map((media) => ({ id: media.id, title: { romaji: media.title, english: null }, cover_image: { medium: media.cover_url }, mean_score: media.score, format: media.format })) ?? NO_FAVOURITES,
+      favourites:
+        overview.data?.favourites.map((media) => ({
+          id: media.id,
+          title: { romaji: media.title, english: null },
+          cover_image: { medium: media.cover_url },
+          mean_score: media.score,
+          format: media.format,
+        })) ?? NO_FAVOURITES,
     };
   }, [query.data, options.manga, mangaLists.data, overview.data]);
 

@@ -1,3 +1,4 @@
+import { normalizeLangCode } from "@/lib/core/text/language.utils";
 import type { MpvTrack } from "@/types/player/videoPlayer";
 
 function normalize(value: string | undefined): string {
@@ -39,4 +40,17 @@ export function resolveTrackId(
   }
 
   return id;
+}
+
+export function preferredLanguageTrackId(
+  tracks: MpvTrack[],
+  kind: "audio" | "sub",
+  language: string
+): number | undefined {
+  const wanted = normalizeLangCode(language);
+
+  if (!wanted) return undefined;
+
+  return tracks.find((track) => track.type === kind && normalizeLangCode(track.lang) === wanted)
+    ?.id;
 }

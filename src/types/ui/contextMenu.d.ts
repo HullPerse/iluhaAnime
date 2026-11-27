@@ -29,8 +29,7 @@ interface ContextMenuSubmenu {
   entries: readonly ContextMenuEntry[];
 }
 
-export type ContextMenuEntry =
-  ContextMenuItem | ContextMenuSubmenu | ContextMenuSeparator;
+export type ContextMenuEntry = ContextMenuItem | ContextMenuSubmenu | ContextMenuSeparator;
 
 interface ContextMenuSeparator {
   kind: "separator";

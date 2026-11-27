@@ -1,3 +1,5 @@
+import AudioDevice from "@/routes/components/player/media/audioDevice.player";
+import { PLAYER_LANGUAGE_CODES } from "@/config/player/languages.config";
 import { Button } from "@/components/ui/button.component";
 import { Checkbox } from "@/components/ui/checkbox.component";
 import Select from "@/components/ui/select.component";
@@ -58,6 +60,13 @@ function SettingsPanel({
   onProfile: (profile: PlayerProfileId) => void;
 }) {
   const { t } = useI18n();
+  const languageOptions = [
+    { value: "", label: t("player.media.settings.language.auto") },
+    ...PLAYER_LANGUAGE_CODES.map((value) => ({
+      value,
+      label: t(`player.media.settings.language.${value}`),
+    })),
+  ];
   const fontOptions = PLAYER_FONT_OPTIONS.map((font) => ({ value: font, label: font }));
   const hwdecOptions = [
     { value: "auto-safe", label: t("player.media.settings.hwdec.auto.safe") },
@@ -106,6 +115,18 @@ function SettingsPanel({
   return (
     <div className="flex w-full flex-col gap-2">
       <Section title={t("player.media.settings.screen")}>
+        <Row label={t("player.media.settings.loupe")}>
+          <Select<PlayerSettings["loupeMode"]>
+            className="flex-1"
+            label={t("player.media.settings.loupe")}
+            value={settings.loupeMode}
+            options={[
+              { value: "native", label: t("player.media.settings.loupe.native") },
+              { value: "shader", label: t("player.media.settings.loupe.shader") },
+            ]}
+            onChange={(loupeMode) => onPatchSettings({ loupeMode })}
+          />
+        </Row>
         <Row label={t("player.media.settings.mode")}>
           <Select
             className="flex-1"
@@ -137,6 +158,25 @@ function SettingsPanel({
         )}
       </Section>
       <Section title={t("player.media.settings.playback")}>
+        <AudioDevice
+          value={settings.audioDevice}
+          onChange={(audioDevice) => onPatchSettings({ audioDevice })}
+        />
+        {!streaming &&
+          (["audioLanguage", "subtitleLanguage"] as const).map((key) => (
+            <Row key={key} label={t(`player.media.settings.${key}`)}>
+              <Select
+                label={t(`player.media.settings.${key}`)}
+                value={settings[key]}
+                options={
+                  languageOptions.some((option) => option.value === settings[key])
+                    ? languageOptions
+                    : [...languageOptions, { value: settings[key], label: settings[key] }]
+                }
+                onChange={(value) => onPatchSettings({ [key]: value })}
+              />
+            </Row>
+          ))}
         <Row label={t("player.media.settings.hwdec")}>
           <Select
             className="flex-1"
@@ -161,6 +201,13 @@ function SettingsPanel({
             onChange={(value) => onEofMode(value)}
           />
         </Row>
+        <Row label={t("player.media.settings.pause.next")}>
+          <Checkbox
+            checked={settings.pauseNextEpisode}
+            onChange={(pauseNextEpisode) => onPatchSettings({ pauseNextEpisode })}
+            aria-label={t("player.media.settings.pause.next")}
+          />
+        </Row>
         <Row label={t("player.media.settings.autohide")}>
           <Checkbox
             checked={autoHide}
@@ -180,6 +227,14 @@ function SettingsPanel({
         )}
       </Section>
       <Section title={t("player.media.settings.filters")}>
+        <Row label={t("player.media.settings.deband")}>
+          <Checkbox
+            checked={settings.deband}
+            onChange={(deband) => onPatchSettings({ deband })}
+            aria-label={t("player.media.settings.deband")}
+          />
+        </Row>
+        <p className="text-xs">{t("player.media.settings.deband.help")}</p>
         <PlayerSlider
           label={t("player.media.settings.brightness")}
           min={0}
@@ -218,6 +273,7 @@ function SettingsPanel({
         />
       </Section>
       <Section title={t("player.media.settings.image")}>
+        <p className="text-xs">{t("player.media.settings.hdr.help")}</p>
         <Row label={t("player.media.settings.target.prim")}>
           <Select
             className="flex-1"

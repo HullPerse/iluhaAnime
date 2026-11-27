@@ -42,9 +42,11 @@ export function useI18n() {
           if (status) return translate(status[1], variables);
         }
 
-        if (manga && key === "anilist.route.search.placeholder") return translate("manga.search.query", variables);
+        if (manga && key === "anilist.route.search.placeholder")
+          return translate("manga.search.query", variables);
 
-        if (manga && key === "anilist.header.anime.count") return `${variables?.count ?? 0} манги, ${variables?.episodes ?? 0} гл.`;
+        if (manga && key === "anilist.header.anime.count")
+          return `${variables?.count ?? 0} манги, ${variables?.episodes ?? 0} гл.`;
 
         if (manga && key === "anilist.details.eps.short") return "гл.";
 

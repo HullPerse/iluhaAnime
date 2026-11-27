@@ -117,7 +117,7 @@ pub async fn player_set_property(
     let label = window.label().to_string();
     super::validation::property(&name, &value)?;
     on_player(app, move |app| {
-        core(&app).set_property(&name, &value, &label)
+        super::audio::set_property(&core(&app), &name, &value, &label)
     })
     .await
 }
@@ -388,7 +388,7 @@ pub async fn player_apply_batch(
         let backend = core(&app);
         let results: Vec<Result<(), String>> = properties
             .into_iter()
-            .map(|(name, value)| backend.set_property(&name, &value, &label))
+            .map(|(name, value)| super::audio::set_property(&backend, &name, &value, &label))
             .collect();
 
         let mut failed: Vec<String> = Vec::new();

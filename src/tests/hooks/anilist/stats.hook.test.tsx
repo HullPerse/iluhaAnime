@@ -55,7 +55,7 @@ describe("useAnilistStatistics", () => {
     const { result } = renderHook(() => useAnilistStatistics(7), { wrapper });
 
     await waitFor(() => expect(result.current.statistics?.count).toBe(42));
-    expect(anilistApi.getStatistics).toHaveBeenCalledWith(7);
+    expect(anilistApi.getStatistics).toHaveBeenCalledWith(7, "ANIME");
     expect(result.current.error).toBeNull();
     expect(result.current.updatedAt).toBeGreaterThan(0);
   });

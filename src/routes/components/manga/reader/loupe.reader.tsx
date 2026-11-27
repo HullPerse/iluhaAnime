@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useCell } from "@hullperse/hp_utils/react";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
@@ -16,7 +16,20 @@ function insideImage(image: HTMLImageElement, point: { x: number; y: number }): 
 export function ReaderLoupe({ image }: { image: HTMLImageElement | null }) {
   const size = useCell(settingsAtoms.mangaLoupeSize);
   const zoom = useCell(settingsAtoms.mangaLoupeZoom);
+  const hideCursor = useCell(settingsAtoms.mangaLoupeHideCursor);
   const [point, setPoint] = useState<LoupePoint | null>(null);
+  const active = point !== null;
+
+  useLayoutEffect(() => {
+    if (!image || !active || !hideCursor) return;
+    const previousCursor = image.style.cursor;
+    image.style.cursor = "none";
+
+    return () => {
+      image.style.cursor = previousCursor;
+    };
+  }, [image, active, hideCursor]);
+
   useEffect(() => {
     if (!image) return;
     let last: { x: number; y: number } | null = null;

@@ -1,13 +1,25 @@
 import type { Browser, Page } from "playwright-core";
+import * as z from "zod/mini";
+import { spawn } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
-import { connectCdp, invoke, sleep, waitForReady } from "./cdp";
+import { connectCdp, invoke, isAppUrl, sleep, waitForReady } from "./cdp";
+import { outRoot, stopProcessTree } from "./harness";
+import type { PlayerDiagnostics } from "../../src/types/player/diagnostics";
 
-const RUNS = Math.max(1, Number.parseInt(process.env.BENCH_RUNS ?? "3", 10));
-const TIMEOUT_MS = Number.parseInt(process.env.BENCH_TIMEOUT ?? "45000", 10);
+const RUNS = Number(process.env.BENCH_RUNS ?? "3");
+const TIMEOUT_MS = Number(process.env.BENCH_TIMEOUT ?? "45000");
+
+if (!Number.isInteger(RUNS) || RUNS < 1) throw new Error("BENCH_RUNS must be a positive integer");
+
+if (!Number.isFinite(TIMEOUT_MS) || TIMEOUT_MS <= 0)
+  throw new Error("BENCH_TIMEOUT must be positive");
 const SKIP_STREAM = process.env.BENCH_SKIP_STREAM === "1";
 const SKIP_LOCAL = process.env.BENCH_SKIP_LOCAL === "1";
 const WARM = process.env.BENCH_WARM === "1";
 const STREAM_QUERY = process.env.BENCH_STREAM_QUERY ?? "Frieren";
+const SKIP_TRACKS = process.env.BENCH_SKIP_TRACKS === "1";
 
 async function mainWindow(browser: Browser): Promise<Page> {
   const started = now();
@@ -17,7 +29,7 @@ async function mainWindow(browser: Browser): Promise<Page> {
       for (const page of context.pages()) {
         const url = page.url();
 
-        if (url.includes("localhost:1420") && !url.includes("/player-window")) return page;
+        if (isAppUrl(url) && !url.includes("/player-window")) return page;
       }
     }
 
@@ -36,7 +48,10 @@ function qualityRank(label: string): number {
 function samePath(observed: string | null, expected: string): boolean {
   if (!observed) return false;
   const normalize = (value: string) =>
-    value.replace(/^\\\\\?\\/, "").replaceAll("\\", "/").toLowerCase();
+    value
+      .replace(/^\\\\\?\\/, "")
+      .replaceAll("\\", "/")
+      .toLowerCase();
 
   return normalize(observed) === normalize(expected);
 }
@@ -45,15 +60,56 @@ function bestSource(sources: StreamSource[]): StreamSource | undefined {
   return [...sources].sort((left, right) => qualityRank(right.label) - qualityRank(left.label))[0];
 }
 
-const KAIBA_DIR = "[AniDub]_Kaiba_TV_[ru_jp]_[1280x720_h264_aac]_[eNd]";
-const KAIBA_ROOT = `D:/Anime & Movies/Anime/${KAIBA_DIR}`;
-const LOCAL_PLAYLIST = [
-  `${KAIBA_ROOT}/[AniDub]_Kaiba_TV_[06_of_12]_[ru_jp]_[1280x720_h264_aac]_[eNd].mkv`,
-  `${KAIBA_ROOT}/[AniDub]_Kaiba_TV_[07_of_12]_[ru_jp]_[1280x720_h264_aac]_[eNd].mkv`,
-];
-const BDRIP =
-  "D:/Anime & Movies/Anime/[Moozzi2] Kimetsu no Yaiba - Hashira Geiko-hen [BDRip 1080p x265 FLAC]/[Moozzi2] Kimetsu no Yaiba - Hashira Geiko-hen - 01 [BDRip 1080p x265 FLAC].mkv";
-const REMUX = "D:/Anime & Movies/Movies/Vivarium.2019.1080p.REMUX.mkv";
+interface TimingCorpus {
+  playlist: string[];
+  hevc: string;
+  multiTrack: string;
+}
+
+function readCorpus(): TimingCorpus | null {
+  if (SKIP_LOCAL && !WARM) return null;
+  const file = process.env.BENCH_CORPUS;
+
+  if (!file) {
+    throw new Error(
+      "Set BENCH_CORPUS to a JSON file with playlist (at least two paths), hevc and multiTrack paths"
+    );
+  }
+
+  const value: unknown = JSON.parse(readFileSync(file, "utf-8"));
+
+  if (typeof value !== "object" || value === null) throw new Error("Invalid BENCH_CORPUS object");
+  const row = value as Record<string, unknown>;
+
+  if (
+    !Array.isArray(row.playlist) ||
+    row.playlist.length < 2 ||
+    !row.playlist.every((path: unknown) => typeof path === "string" && path.length > 0) ||
+    typeof row.hevc !== "string" ||
+    typeof row.multiTrack !== "string"
+  )
+    throw new Error(
+      "BENCH_CORPUS requires playlist (at least two paths), hevc and multiTrack paths"
+    );
+  const base = dirname(resolve(file));
+  const corpus = {
+    playlist: (row.playlist as string[]).map((path) => resolve(base, path)),
+    hevc: resolve(base, row.hevc),
+    multiTrack: resolve(base, row.multiTrack),
+  };
+
+  for (const path of [...corpus.playlist, corpus.hevc, corpus.multiTrack]) {
+    if (!existsSync(path) || !statSync(path).isFile())
+      throw new Error(`Corpus file does not exist: ${path}`);
+  }
+
+  return corpus;
+}
+
+const corpus = readCorpus();
+const LOCAL_PLAYLIST = corpus?.playlist ?? [];
+const BDRIP = corpus?.hevc ?? "";
+const REMUX = corpus?.multiTrack ?? "";
 
 const DROPDOWN = 'button[aria-haspopup="listbox"]';
 
@@ -79,6 +135,67 @@ interface Sample {
 
 const samples: Sample[] = [];
 const failures: string[] = [];
+const nativeStartupTraces: Array<{ scenario: string; diagnostics: PlayerDiagnostics }> = [];
+const startupTraces: Array<{
+  scenario: string;
+  timeOrigin: number;
+  resources: Array<{ name: string; startTime: number; responseEnd: number; duration: number }>;
+  paints: Array<{ name: string; startTime: number }>;
+  marks: Array<{ name: string; startTime: number }>;
+  measures: Array<{ name: string; startTime: number; duration: number; detail: unknown }>;
+}> = [];
+const reportPath = resolve(
+  process.env.BENCH_REPORT ?? join(outRoot(), `player-timing-${Date.now()}.json`)
+);
+
+function writeTimingReport(): void {
+  const groups = new Map<string, number[]>();
+
+  for (const sample of samples) {
+    const scenario = sample.scenario
+      .replace(/\(\d+(?:\/\d+)?\)/g, "(run)")
+      .replace(/, \d+\/\d+\)/g, ")");
+    const key = JSON.stringify([scenario, sample.metric]);
+    const values = groups.get(key) ?? [];
+    values.push(sample.ms);
+    groups.set(key, values);
+  }
+
+  const summary = [...groups].map(([key, values]) => ({
+    group: JSON.parse(key) as [string, string],
+    count: values.length,
+    min: Math.min(...values),
+    p50: percentile(values, 0.5),
+    p95: percentile(values, 0.95),
+    max: Math.max(...values),
+  }));
+  mkdirSync(dirname(reportPath), { recursive: true });
+  writeFileSync(
+    reportPath,
+    JSON.stringify(
+      {
+        recordedAt: new Date().toISOString(),
+        profile: process.env.BENCH_PROFILE ?? "unspecified",
+        runs: RUNS,
+        warm: WARM,
+        corpus,
+        limitations: [
+          "Polling samples are upper bounds and include CDP/IPC observation overhead.",
+          "Video dimensions and vo-configured do not prove first-frame presentation.",
+          "Volume availability does not prove frontend configuration is complete.",
+          "Cold player means recreated player resources, not a cold OS file cache.",
+        ],
+        samples,
+        startupTraces,
+        nativeStartupTraces,
+        summary,
+        failures,
+      },
+      null,
+      2
+    )
+  );
+}
 
 function record(scenario: string, metric: string, ms: number): void {
   if (ms < 0) {
@@ -89,6 +206,49 @@ function record(scenario: string, metric: string, ms: number): void {
 
   samples.push({ scenario, metric, ms });
   console.log(`  ${metric.padEnd(38)} ${fmt(ms).padStart(8)} ms`);
+}
+
+async function captureStartupTrace(player: Page, scenario: string): Promise<void> {
+  const trace = await player.evaluate(() => ({
+    timeOrigin: performance.timeOrigin,
+    resources: performance
+      .getEntriesByType("resource")
+      .filter(
+        (entry) =>
+          new URL(entry.name).origin === location.origin && /\.(js|css)(\?|$)/.test(entry.name)
+      )
+      .map((entry) => ({
+        name: new URL(entry.name).pathname,
+        startTime: entry.startTime,
+        responseEnd: (entry as PerformanceResourceTiming).responseEnd,
+        duration: entry.duration,
+      })),
+    paints: performance
+      .getEntriesByType("paint")
+      .map(({ name, startTime }) => ({ name, startTime })),
+    marks: performance
+      .getEntriesByType("mark")
+      .filter((entry) => entry.name.startsWith("startup:") || entry.name.startsWith("player:"))
+      .map(({ name, startTime }) => ({ name, startTime })),
+    measures: performance
+      .getEntriesByType("measure")
+      .filter((entry) => entry.name.startsWith("player:"))
+      .map((entry) => ({
+        name: entry.name,
+        startTime: entry.startTime,
+        duration: entry.duration,
+        detail: (entry as PerformanceMeasure).detail as unknown,
+      })),
+  }));
+  startupTraces.push({ scenario, ...trace });
+
+  for (const entry of trace.measures) record(scenario, `${entry.name} duration`, entry.duration);
+  const diagnostics = await invoke<PlayerDiagnostics>(player, "player_diagnostics");
+  nativeStartupTraces.push({ scenario, diagnostics });
+
+  for (const [milestone, elapsed] of Object.entries(diagnostics.startup)) {
+    if (elapsed !== null) record(scenario, `native preparation: ${milestone}`, elapsed);
+  }
 }
 
 async function timed<T>(run: () => Promise<T>): Promise<{ value: T; ms: number }> {
@@ -254,6 +414,61 @@ interface LocalOpenResult {
   page: Page;
 }
 
+async function armScreenProbe(includeExisting = false) {
+  if (process.env.BENCH_SCREEN_CONTROL !== "1") return null;
+  const appPid = Number(process.env.BENCH_APP_PID);
+
+  if (!Number.isInteger(appPid) || appPid <= 0) throw new Error("BENCH_APP_PID is required");
+  const signal = `${reportPath}.screen-${Date.now()}`;
+  const child = spawn(
+    "powershell",
+    [
+      "-NoProfile",
+      "-File",
+      resolve("scripts/e2e/player-screen.ps1"),
+      "-AppPid",
+      String(appPid),
+      "-Signal",
+      signal,
+      ...(includeExisting ? ["-IncludeExisting"] : []),
+    ],
+    { windowsHide: true, stdio: "ignore" }
+  );
+  const completion = new Promise<number | null>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", resolve);
+  });
+
+  try {
+    const armed = await until(now(), async () => existsSync(`${signal}.armed`), 30_000);
+
+    if (armed < 0) throw new Error("Screen probe did not arm");
+
+    return { signal, child, completion };
+  } catch (error) {
+    stopProcessTree(child);
+    throw error;
+  }
+}
+
+const ScreenProbeSchema = z.object({
+  samples: z.tuple([
+    z.object({ screenMagentaSeen: z.literal(true), observedMs: z.number().check(z.minimum(0)) }),
+  ]),
+});
+
+async function collectScreenProbe(
+  probe: NonNullable<Awaited<ReturnType<typeof armScreenProbe>>>,
+  label: string
+) {
+  if ((await probe.completion) !== 0) throw new Error("Screen control frame was not detected");
+  const result: unknown = JSON.parse(
+    readFileSync(`${probe.signal}.result.json`, "utf-8").replace(/^\uFEFF/, "")
+  );
+  const sample = ScreenProbeSchema.parse(result).samples[0];
+  record(label, "signal receipt to screen control frame (upper bound)", sample.observedMs);
+}
+
 async function openLocalCold(
   browser: Browser,
   main: Page,
@@ -262,39 +477,64 @@ async function openLocalCold(
 ): Promise<LocalOpenResult> {
   await closePlayer(browser);
   await sleep(250);
-  const started = now();
-  const open = await timed(() =>
-    invoke(main, "player_open", { files, resume: null, startIndex: 0, watch: null })
-  );
-  record(label, "IPC player_open", open.ms);
-  const found = await waitForPlayer(browser);
-  record(label, "окно плеера создано", found.ms);
-  const player = found.page;
-  record(
-    label,
-    "UI плеера смонтирован",
-    await until(started, () => mounted(player), 30000, 15)
-  );
-  record(
-    label,
-    "mpv инициализирован",
-    await until(started, async () => (await prop<number>(player, "volume", "double")) !== null)
-  );
-  record(
-    label,
-    "файл принят (mpv path)",
-    await until(started, async () => samePath(await prop<string>(player, "path", "string"), files[0]))
-  );
-  record(label, "демукс: длительность", await until(started, () => hasDuration(player)));
-  record(label, "видео готово (кадр)", await until(started, () => hasVideo(player)));
-  record(
-    label,
-    "первый кадр (vo-configured)",
-    await until(started, async () => (await prop<boolean>(player, "vo-configured", "flag")) === true)
-  );
-  record(label, "дорожки в UI", await until(started, () => tracksInUi(player), 30000, 15));
+  const screen = await armScreenProbe();
 
-  return { page: player };
+  try {
+    const started = now();
+
+    if (screen) writeFileSync(screen.signal, "start");
+    const open = await timed(() =>
+      invoke(main, "player_open", { files, resume: null, startIndex: 0, watch: null })
+    );
+    record(label, "IPC player_open", open.ms);
+    const found = await waitForPlayer(browser);
+    record(label, "window detected after open", now() - started);
+    const player = found.page;
+    record(label, "UI плеера смонтирован", await until(started, () => mounted(player), 30000, 15));
+    record(
+      label,
+      "mpv инициализирован",
+      await until(started, async () => (await prop<number>(player, "volume", "double")) !== null)
+    );
+    record(
+      label,
+      "файл принят (mpv path)",
+      await until(started, async () =>
+        samePath(await prop<string>(player, "path", "string"), files[0])
+      )
+    );
+    record(label, "демукс: длительность", await until(started, () => hasDuration(player)));
+    record(label, "video metadata available", await until(started, () => hasVideo(player)));
+    record(
+      label,
+      "video output configured (not first-frame evidence)",
+      await until(
+        started,
+        async () => (await prop<boolean>(player, "vo-configured", "flag")) === true
+      )
+    );
+    record(label, "дорожки в UI", await until(started, () => tracksInUi(player), 30000, 15));
+
+    record(
+      label,
+      "controls enabled",
+      await until(started, () =>
+        player.evaluate(() => {
+          const controls = document.querySelector<HTMLFieldSetElement>("[data-player-controls]");
+
+          return controls !== null && !controls.disabled;
+        })
+      )
+    );
+    await captureStartupTrace(player, label);
+
+    if (screen) await collectScreenProbe(screen, label);
+    writeTimingReport();
+
+    return { page: player };
+  } finally {
+    if (screen && screen.child.exitCode === null) stopProcessTree(screen.child);
+  }
 }
 
 async function openLocalWarm(
@@ -311,10 +551,12 @@ async function openLocalWarm(
   record(
     label,
     "файл подхвачен (mpv path)",
-    await until(started, async () => samePath(await prop<string>(player, "path", "string"), files[0]))
+    await until(started, async () =>
+      samePath(await prop<string>(player, "path", "string"), files[0])
+    )
   );
   record(label, "демукс: длительность", await until(started, () => hasDuration(player)));
-  record(label, "видео готово (кадр)", await until(started, () => hasVideo(player)));
+  record(label, "video metadata available", await until(started, () => hasVideo(player)));
 }
 
 async function playlistNext(player: Page, nextPath: string, label: string): Promise<void> {
@@ -326,10 +568,12 @@ async function playlistNext(player: Page, nextPath: string, label: string): Prom
   record(
     label,
     "новый файл активен",
-    await until(started, async () => samePath(await prop<string>(player, "path", "string"), nextPath))
+    await until(started, async () =>
+      samePath(await prop<string>(player, "path", "string"), nextPath)
+    )
   );
   record(label, "демукс: длительность", await until(started, () => hasDuration(player)));
-  record(label, "видео готово (кадр)", await until(started, () => hasVideo(player)));
+  record(label, "video metadata available", await until(started, () => hasVideo(player)));
 }
 
 async function trackSwitch(
@@ -344,7 +588,11 @@ async function trackSwitch(
     invoke(player, "player_set_property", { name: property, value: String(id) })
   );
   record(label, `IPC ${property} → ${id}`, call.ms);
-  record(label, "UI показал дорожку", await until(started, () => labelsChanged(player, before), 3000));
+  record(
+    label,
+    "UI показал дорожку",
+    await until(started, () => labelsChanged(player, before), 3000)
+  );
 }
 
 interface AnimeLibAnime {
@@ -403,7 +651,9 @@ async function catalogChain(main: Page, slug: string | undefined, label: string)
     })
   );
   steps.push(["поиск каталога", search.ms]);
-  const hit = slug ? search.value.items.find((item) => item.slugUrl === slug) : search.value.items[0];
+  const hit = slug
+    ? search.value.items.find((item) => item.slugUrl === slug)
+    : search.value.items[0];
 
   if (!hit) throw new Error(`no catalog title matched ${slug ?? "the first page"}`);
 
@@ -494,27 +744,44 @@ function buildStream(
   };
 }
 
-async function openStreamCold(main: Page, browser: Browser, stream: unknown, url: string, label: string) {
+async function openStreamCold(
+  main: Page,
+  browser: Browser,
+  stream: unknown,
+  url: string,
+  label: string
+) {
   await closePlayer(browser);
   await sleep(250);
   const started = now();
   const open = await timed(() => invoke(main, "player_open_stream", { stream }));
   record(label, "IPC player_open_stream", open.ms);
   const found = await waitForPlayer(browser);
-  record(label, "окно плеера создано", found.ms);
+  record(label, "window detected after open", now() - started);
   const player = found.page;
-  record(label, "mpv инициализирован", await until(started, async () => (await prop<number>(player, "volume", "double")) !== null));
+  record(
+    label,
+    "mpv инициализирован",
+    await until(started, async () => (await prop<number>(player, "volume", "double")) !== null)
+  );
   record(
     label,
     "поток принят (mpv path)",
-    await until(started, async () => (await prop<string>(player, "path", "string")) === url, TIMEOUT_MS)
+    await until(
+      started,
+      async () => (await prop<string>(player, "path", "string")) === url,
+      TIMEOUT_MS
+    )
   );
   record(label, "демукс: длительность", await until(started, () => hasDuration(player)));
-  record(label, "видео готово (кадр)", await until(started, () => hasVideo(player)));
+  record(label, "video metadata available", await until(started, () => hasVideo(player)));
   record(
     label,
-    "первый кадр (vo-configured)",
-    await until(started, async () => (await prop<boolean>(player, "vo-configured", "flag")) === true)
+    "video output configured (not first-frame evidence)",
+    await until(
+      started,
+      async () => (await prop<boolean>(player, "vo-configured", "flag")) === true
+    )
   );
 
   return player;
@@ -536,7 +803,7 @@ async function switchStream(
     await until(started, async () => (await prop<string>(player, "path", "string")) === url)
   );
   record(label, "демукс: длительность", await until(started, () => hasDuration(player)));
-  record(label, "видео готово (кадр)", await until(started, () => hasVideo(player)));
+  record(label, "video metadata available", await until(started, () => hasVideo(player)));
 }
 
 async function sleepUntilPageGone(): Promise<void> {
@@ -545,7 +812,7 @@ async function sleepUntilPageGone(): Promise<void> {
 
 async function localRuns(browser: Browser, main: Page): Promise<void> {
   for (let run = 1; run <= RUNS; run++) {
-    const label = `локальный: холодный старт (Kaiba 720p, ${run}/${RUNS})`;
+    const label = `local: cold player (${run}/${RUNS})`;
     console.log(`\n[local] ${label}`);
     let player: Page;
 
@@ -559,14 +826,18 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
     }
 
     try {
-      await playlistNext(player, LOCAL_PLAYLIST[1] ?? "", `локальный: смена файла в очереди (${run})`);
+      await playlistNext(
+        player,
+        LOCAL_PLAYLIST[1] ?? "",
+        `локальный: смена файла в очереди (${run})`
+      );
     } catch (error) {
       failures.push(`playlist-next ${run}: ${String(error)}`);
     }
 
     for (const [file, name] of [
-      [BDRIP, "BDRip HEVC 2.6 ГБ"],
-      [REMUX, "REMUX 29 ГБ"],
+      [BDRIP, "HEVC corpus"],
+      [REMUX, "multi-track corpus"],
     ] as const) {
       try {
         await openLocalWarm(main, player, [file], `локальный: файл ${name} (${run})`);
@@ -575,26 +846,27 @@ async function localRuns(browser: Browser, main: Page): Promise<void> {
       }
     }
 
-    try {
-      const audioIds = await trackIds(player, "aid");
-      const subIds = await trackIds(player, "sid");
+    if (!SKIP_TRACKS)
+      try {
+        const audioIds = await trackIds(player, "aid");
+        const subIds = await trackIds(player, "sid");
 
-      if (audioIds.length < 2) failures.push(`remux run ${run}: fewer than two audio tracks`);
+        if (audioIds.length < 2) failures.push(`remux run ${run}: fewer than two audio tracks`);
 
-      for (const id of audioIds.slice(0, 3)) {
-        await trackSwitch(player, "aid", id, `локальный: аудиодорожка ${id} (${run})`);
+        for (const id of audioIds.slice(0, 3)) {
+          await trackSwitch(player, "aid", id, `локальный: аудиодорожка ${id} (${run})`);
+        }
+
+        for (const id of subIds.slice(0, 2)) {
+          await trackSwitch(player, "sid", id, `локальный: субдорожка ${id} (${run})`);
+        }
+
+        if (subIds.length > 0) {
+          await trackSwitch(player, "sid", 0, `локальный: субтитры выкл (${run})`);
+        }
+      } catch (error) {
+        failures.push(`tracks ${run}: ${String(error)}`);
       }
-
-      for (const id of subIds.slice(0, 2)) {
-        await trackSwitch(player, "sid", id, `локальный: субдорожка ${id} (${run})`);
-      }
-
-      if (subIds.length > 0) {
-        await trackSwitch(player, "sid", 0, `локальный: субтитры выкл (${run})`);
-      }
-    } catch (error) {
-      failures.push(`tracks ${run}: ${String(error)}`);
-    }
 
     await closePlayer(browser);
     await sleepUntilPageGone();
@@ -753,15 +1025,10 @@ async function streamRuns(browser: Browser, main: Page): Promise<void> {
             await switchStream(
               main,
               player,
-              buildStream(
-                { ...chain, episode: next },
-                variant,
-                resolved.value,
-                {
-                  url: source.url,
-                  quality: source.label,
-                }
-              ),
+              buildStream({ ...chain, episode: next }, variant, resolved.value, {
+                url: source.url,
+                quality: source.label,
+              }),
               source.url,
               `стрим: следующий эпизод (${run})`
             );
@@ -785,33 +1052,62 @@ async function warmRuns(browser: Browser, main: Page): Promise<void> {
     await sleep(250);
     const started = now();
 
+    let screen: Awaited<ReturnType<typeof armScreenProbe>> = null;
+
     try {
       const prewarm = await timed(() => invoke(main, "player_prewarm"));
       record(label, "IPC player_prewarm", prewarm.ms);
       const found = await waitForPlayer(browser);
-      record(label, "prewarm: окно создано", found.ms);
+      record(label, "prewarm: window detected", now() - started);
       record(
         label,
         "prewarm: mpv готов",
-        await until(started, async () => (await prop<number>(found.page, "volume", "double")) !== null)
+        await until(
+          started,
+          async () => (await prop<number>(found.page, "volume", "double")) !== null
+        )
       );
+      screen = await armScreenProbe(true);
       const click = now();
+
+      if (screen) writeFileSync(screen.signal, "start");
       const open = await timed(() =>
-        invoke(main, "player_open", { files: [BDRIP], resume: null, startIndex: 0, watch: null })
+        invoke(main, "player_open", {
+          files: LOCAL_PLAYLIST,
+          resume: null,
+          startIndex: 0,
+          watch: null,
+        })
       );
       record(label, "клик: IPC player_open", open.ms);
       record(
         label,
         "клик → файл подхвачен",
         await until(click, async () =>
-          samePath(await prop<string>(found.page, "path", "string"), BDRIP)
+          samePath(await prop<string>(found.page, "path", "string"), LOCAL_PLAYLIST[0])
         )
       );
       record(label, "клик → демукс", await until(click, () => hasDuration(found.page)));
-      record(label, "клик → кадр", await until(click, () => hasVideo(found.page)));
+      record(label, "click to video metadata", await until(click, () => hasVideo(found.page)));
+      record(
+        label,
+        "click to controls enabled",
+        await until(click, () =>
+          found.page.evaluate(() => {
+            const controls = document.querySelector<HTMLFieldSetElement>("[data-player-controls]");
+
+            return controls !== null && !controls.disabled;
+          })
+        )
+      );
+      await captureStartupTrace(found.page, label);
+
+      if (screen) await collectScreenProbe(screen, label);
     } catch (error) {
       failures.push(`${label}: ${String(error)}`);
       console.log(`  FAILED: ${String(error)}`);
+    } finally {
+      if (screen && screen.child.exitCode === null) stopProcessTree(screen.child);
     }
   }
 }
@@ -872,10 +1168,15 @@ async function main(): Promise<void> {
 
     if (!SKIP_STREAM && !WARM) await streamRuns(browser, main);
   } finally {
+    await closePlayer(browser);
     await browser.close();
+    writeTimingReport();
   }
 
   printTable();
+  console.log(`Report: ${reportPath}`);
+
+  if (failures.length > 0) process.exitCode = 1;
 }
 
 await main();

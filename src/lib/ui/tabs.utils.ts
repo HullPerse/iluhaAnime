@@ -43,7 +43,10 @@ export function resolveSecretTabAction(unlocked: boolean, onGameTab: boolean): S
 }
 
 export function reorderMainTabs(from: TabId, to: TabId): void {
-  const ids = orderMainTabs([...TAB_KEYS, { id: "game" as const, key: "app.game" as const }], settingsAtoms.mainTabOrder.get()).map((tab) => tab.id);
+  const ids = orderMainTabs(
+    [...TAB_KEYS, { id: "game" as const, key: "app.game" as const }],
+    settingsAtoms.mainTabOrder.get()
+  ).map((tab) => tab.id);
   const start = ids.indexOf(from);
   const end = ids.indexOf(to);
 

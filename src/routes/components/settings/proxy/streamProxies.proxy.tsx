@@ -38,8 +38,7 @@ export function StreamProxySettings() {
             key={source.id}
             label={source.name}
             value={
-              streamProxyUrls[source.id] ??
-              (source.id === "animelib" ? animelibProxyUrl : null)
+              streamProxyUrls[source.id] ?? (source.id === "animelib" ? animelibProxyUrl : null)
             }
             onChange={(next) => setProxy(source.id, next)}
             test={() => streamApi.testConnection(source.id)}

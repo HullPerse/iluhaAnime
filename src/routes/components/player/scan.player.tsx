@@ -1,34 +1,41 @@
 import ProgressBar from "@/components/shared/progress.component";
+import ImageComponent from "@/components/ui/image.component";
 import { useI18n } from "@/hooks/i18n.hook";
-import type { ScanPlayerProps as Props } from "@/types/player/player";
+import type { ScanType } from "@/types/player/player";
 
-export default function FolderScanProgress({ scanProgress }: Props) {
+export default function FolderScanProgress({ scan }: { scan: ScanType }) {
   const { t } = useI18n();
-
-  if (!scanProgress) return null;
+  const title = t("player.scan.title");
+  const folder = scan.type === "folder";
+  const status = folder
+    ? scan.walked > 0
+      ? t("player.scan.walked", { count: scan.walked })
+      : t("player.scan.counting")
+    : t("player.scan.folders", { current: scan.current, total: scan.total });
 
   return (
-    <section className="windows95-active-border windows95-text flex w-full flex-col items-stretch gap-1 px-1 py-1">
-      <span>
-        {scanProgress.total === 0
-          ? t("player.scan.counting")
-          : t("player.scan.scanning", {
-              current: scanProgress.current,
-              total: scanProgress.total,
-            })}
-      </span>
-      {scanProgress.total > 0 && (
-        <div className="flex flex-row items-center gap-1">
-          <ProgressBar
-            value={scanProgress.current}
-            max={scanProgress.total}
-            className="h-4 flex-1"
-          />
-          <span className="shrink-0 text-xs">
-            {Math.round((scanProgress.current / scanProgress.total) * 100)}%
-          </span>
+    <section className="ui-panel windows95-text flex w-full flex-col gap-1 px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="font-bold">{title}</div>
+          {folder && (
+            <div className="text-hint truncate text-xs" title={scan.path}>
+              {scan.path}
+            </div>
+          )}
         </div>
-      )}
+        <span className="text-hint ml-auto shrink-0 text-xs tabular-nums" role="status">
+          {status}
+        </span>
+      </div>
+      <ProgressBar
+        value={folder ? 0 : scan.current}
+        max={folder ? 0 : scan.total}
+        indeterminate={folder}
+        ariaLabel={title}
+        className="h-3 w-full"
+      />
     </section>
   );
 }

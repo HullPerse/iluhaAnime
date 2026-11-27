@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,16 +28,20 @@ const PANEL_DEFAULTS: PlayerSettings = { ...DEFAULT_PLAYER_SETTINGS };
 const renderPanel = (settings: PlayerSettings = PANEL_DEFAULTS, streaming = false) => {
   const spies = callbacks();
   render(
-    <SettingsPanel
-      settings={settings}
-      hwdec="auto-safe"
-      seekMode="keyframes"
-      eofMode="none"
-      autoHide={false}
-      profile="basic"
-      streaming={streaming}
-      {...spies}
-    />
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <SettingsPanel
+        settings={settings}
+        hwdec="auto-safe"
+        seekMode="keyframes"
+        eofMode="none"
+        autoHide={false}
+        profile="basic"
+        streaming={streaming}
+        {...spies}
+      />
+    </QueryClientProvider>
   );
 
   return spies;
@@ -72,24 +77,41 @@ describe("SettingsPanel selects", () => {
   });
 
   it.each([
-    { control: 2, option: 1, payload: ["d3d11va"], spy: "onHwdec" },
-    { control: 3, option: 1, payload: ["exact"], spy: "onSeekMode" },
-    { control: 4, option: 1, payload: ["pause"], spy: "onEofMode" },
-    { control: 5, option: 1, payload: ["speed"], spy: "onProfile" },
-    { control: 6, option: 1, payload: [{ targetPrim: "bt.709" }], spy: "onPatchSettings" },
-    { control: 7, option: 2, payload: [{ targetTrc: "srgb" }], spy: "onPatchSettings" },
-    { control: 8, option: 1, payload: [{ toneMap: "manual" }], spy: "onPatchSettings" },
-    { control: 9, option: 1, payload: [{ subFontFamily: "Verdana" }], spy: "onPatchSettings" },
+    { control: 3, option: 1, payload: ["d3d11va"], spy: "onHwdec" },
+    { control: 4, option: 1, payload: ["exact"], spy: "onSeekMode" },
+    { control: 5, option: 1, payload: ["pause"], spy: "onEofMode" },
+    { control: 6, option: 1, payload: ["speed"], spy: "onProfile" },
+    { control: 7, option: 1, payload: [{ targetPrim: "bt.709" }], spy: "onPatchSettings" },
+    { control: 8, option: 2, payload: [{ targetTrc: "srgb" }], spy: "onPatchSettings" },
+    { control: 9, option: 1, payload: [{ toneMap: "manual" }], spy: "onPatchSettings" },
+    { control: 10, option: 1, payload: [{ subFontFamily: "Verdana" }], spy: "onPatchSettings" },
   ])("select $control applies its value", async ({ control, option, payload, spy }) => {
     const user = userEvent.setup();
     const spies = renderPanel();
-    const boxes = screen.getAllByRole("combobox");
+    const boxes = screen
+      .getAllByRole("combobox")
+      .filter(
+        (box) =>
+          !["Устройство вывода", "Язык аудио", "Язык субтитров"].includes(
+            box.getAttribute("aria-label") ?? ""
+          )
+      );
     await chooseOption(boxes[control], option, user);
     expect(spies[spy as keyof typeof spies]).toHaveBeenCalledWith(...payload);
   });
 });
 
 describe("SettingsPanel screen modes", () => {
+  it("offers the Windows loupe by default and lets the viewer choose MPV", async () => {
+    const user = userEvent.setup();
+    const spies = renderPanel();
+    const select = screen.getByRole("combobox", { name: "Режим лупы" });
+    expect(select.textContent).toContain("Нативная Windows");
+    await user.click(select);
+    await user.click(await screen.findByRole("option", { name: "Шейдер MPV" }));
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ loupeMode: "shader" });
+  });
+
   it("switches the player mode", async () => {
     const user = userEvent.setup();
     const spies = renderPanel();
@@ -152,12 +174,29 @@ describe("SettingsPanel sliders", () => {
 });
 
 describe("SettingsPanel checkboxes", () => {
+  it("switches debanding immediately", async () => {
+    const user = userEvent.setup();
+    const spies = renderPanel();
+    const checkbox = screen.getByRole("checkbox", { name: "Сгладить цветовые полосы" });
+    expect(checkbox.getAttribute("aria-checked")).toBe("false");
+    await user.click(checkbox);
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ deband: true });
+  });
+  it("pauses the next episode by default and lets the viewer turn it off", async () => {
+    const user = userEvent.setup();
+    const spies = renderPanel();
+    const checkbox = screen.getByRole("checkbox", { name: "Ставить следующий эпизод на паузу" });
+    expect(checkbox.getAttribute("aria-checked")).toBe("true");
+    await user.click(checkbox);
+    expect(spies.onPatchSettings).toHaveBeenCalledWith({ pauseNextEpisode: false });
+  });
+
   it.each([
-    { control: 0, payload: [true], spy: "onAutoHide", manual: false },
-    { control: 1, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: false },
-    { control: 0, payload: [true], spy: "onAutoHide", manual: true },
-    { control: 1, payload: [{ hdrComputePeak: true }], spy: "onPatchSettings", manual: true },
-    { control: 2, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: true },
+    { control: 1, payload: [true], spy: "onAutoHide", manual: false },
+    { control: 3, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: false },
+    { control: 1, payload: [true], spy: "onAutoHide", manual: true },
+    { control: 3, payload: [{ hdrComputePeak: true }], spy: "onPatchSettings", manual: true },
+    { control: 4, payload: [{ loudnorm: true }], spy: "onPatchSettings", manual: true },
   ])("checkbox $control toggles", async ({ control, payload, spy, manual }) => {
     const user = userEvent.setup();
     const spies = renderPanel(
@@ -182,7 +221,7 @@ describe("SettingsPanel colors and reset", () => {
 
   it("resets to defaults", () => {
     const spies = renderPanel({ ...DEFAULT_PLAYER_SETTINGS, brightness: 150 });
-    fireEvent.click(screen.getByRole("button"));
+    fireEvent.click(screen.getByRole("button", { name: "Сбросить" }));
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ ...DEFAULT_PLAYER_SETTINGS });
   });
 });
@@ -199,4 +238,15 @@ describe("SettingsPanel conditional HDR controls", () => {
     fireEvent.keyDown(peak, { key: "ArrowRight" });
     expect(spies.onPatchSettings).toHaveBeenCalledWith({ targetPeak: 1050 });
   });
+});
+
+it("selects a preferred language and restores mpv automatic selection", async () => {
+  const user = userEvent.setup();
+  const spies = renderPanel();
+  await user.click(screen.getByRole("combobox", { name: "Язык аудио" }));
+  await user.click(await screen.findByRole("option", { name: "Японский" }));
+  expect(spies.onPatchSettings).toHaveBeenCalledWith({ audioLanguage: "ja" });
+  await user.click(screen.getByRole("combobox", { name: "Язык субтитров" }));
+  await user.click(await screen.findByRole("option", { name: "Выбор mpv" }));
+  expect(spies.onPatchSettings).toHaveBeenCalledWith({ subtitleLanguage: "" });
 });

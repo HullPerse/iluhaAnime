@@ -112,6 +112,7 @@ pub(crate) struct ManagedTorrentOptions {
     pub force_tracker_interval: Option<Duration>,
     pub peer_connect_timeout: Option<Duration>,
     pub peer_read_write_timeout: Option<Duration>,
+    pub peer_max_request_window: Option<usize>,
     pub allow_overwrite: bool,
     pub prefer_part_files: bool,
     pub root_name: Option<String>,

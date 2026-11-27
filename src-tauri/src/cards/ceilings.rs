@@ -9,6 +9,13 @@ use super::types::CardKind;
 use crate::anilist::client::graphql_request;
 use crate::app_db::cache::{put_app_cache, read_cached_payload};
 
+pub(super) fn can_retry_smaller_query(error: &str) -> bool {
+    error.starts_with("AniList HTTP 400")
+        || error.starts_with("AniList HTTP 413")
+        || error.starts_with("AniList GraphQL error:")
+        || error.starts_with("AniList GraphQL error 400:")
+}
+
 pub const CEILING_TTL_SECONDS: i64 = 7 * 24 * 60 * 60;
 /// AniList rejects a page whose `page * perPage` passes 5000 entries.
 pub const MAX_PAGE_DEPTH_ENTRIES: u32 = 5_000;
@@ -150,7 +157,7 @@ pub async fn fetch_pages(
             }
             Ok(fetched)
         }
-        Err(alias_error) => {
+        Err(alias_error) if can_retry_smaller_query(&alias_error) => {
             tracing::warn!(
                 kind = kind.as_str(),
                 error = alias_error.as_str(),
@@ -162,12 +169,32 @@ pub async fn fetch_pages(
             }
             Ok(fetched)
         }
+        Err(error) => Err(error),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn transport_and_rate_limit_failures_do_not_trigger_smaller_batches() {
+        for error in [
+            "AniList rate limit exceeded",
+            "AniList request failed: timed out",
+            "AniList HTTP 503 Service Unavailable",
+            "AniList HTTP 403",
+            "AniList GraphQL error 429: Too many requests",
+        ] {
+            assert!(!can_retry_smaller_query(error), "{error}");
+        }
+        assert!(can_retry_smaller_query(
+            "AniList HTTP 413 Payload Too Large"
+        ));
+        assert!(can_retry_smaller_query(
+            "AniList GraphQL error 400: Query is too complex"
+        ));
+    }
 
     #[test]
     fn the_cache_key_is_stable_per_kind() {

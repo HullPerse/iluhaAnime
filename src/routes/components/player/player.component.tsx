@@ -28,6 +28,7 @@ import { usePlayerStream, useStreamNext } from "@/hooks/player/stream.hook";
 import { useDropAlert } from "@/hooks/player/chromeState.hook";
 import { usePlayerViewChrome } from "@/hooks/player/viewChrome.hook";
 import { usePlayerMargins } from "@/hooks/player/margins.hook";
+import { usePlayerLoupe } from "@/hooks/player/loupe.hook";
 import { usePlayerOffsets } from "@/hooks/player/offsets.hook";
 import { usePlayerSession } from "@/hooks/player/session.hook";
 import { usePlayerSettingsSync } from "@/hooks/player/settingsSync.hook";
@@ -45,7 +46,12 @@ import {
   shouldShowEmptyPlayer,
   shouldShowLoadingSpinner,
 } from "@/lib/core/ui/loading.utils";
-import { loadQueue, movePlaylistIndex, removePlaylistIndex } from "@/lib/player/playback.utils";
+import {
+  loadQueue,
+  movePlaylistIndex,
+  removePlaylistIndex,
+  setPaused,
+} from "@/lib/player/playback.utils";
 import {
   barClass,
   hideDefaultTracks,
@@ -173,8 +179,20 @@ function PlayerComponent() {
     onVideoMouseUp,
     consumeVideoDrag,
   } = usePlayerViewChrome({ autoHide, menuOpen, closeOverlay });
+  const { videoRef, syncMargins, syncMarginsRef } = usePlayerMargins(immersive);
   const stream = useCell(streamSession);
-  const streamNext = useStreamNext();
+  const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch, retrySession } =
+    usePlayerSession({ videoRef, syncMarginsRef, resumeRef, initialWatchRef });
+  const onEpisodeLoading = useCallback(() => {
+    setFailed(false);
+    setLoadingFile(true);
+  }, [setFailed, setLoadingFile]);
+  const onEpisodeFailure = useCallback(() => {
+    ignore(setPaused(true));
+    setLoadingFile(false);
+    setFailed(true);
+  }, [setFailed, setLoadingFile]);
+  const streamNext = useStreamNext({ onLoading: onEpisodeLoading, onFailure: onEpisodeFailure });
   const playerStream = usePlayerStream();
   const { hasNext, hasPrev } = navigationAvailability({
     stream: stream !== null,
@@ -194,13 +212,10 @@ function PlayerComponent() {
   });
   const title = playerWindowTitle({ path, stream, parseTitlesPlayer, t });
 
-  const { videoRef, syncMargins, syncMarginsRef } = usePlayerMargins(immersive);
   const { capture: screenshot, close: closeScreenshot } = useScreenshot({
     videoElement: () => videoRef.current,
   });
 
-  const { failed, setFailed, loadingFile, setLoadingFile, liveWatch, setLiveWatch, retrySession } =
-    usePlayerSession({ videoRef, syncMarginsRef, resumeRef, initialWatchRef });
   const controlsReady = canControlPlayback(hasFile, fileReady, loadingFile, failed);
   const markFileReady = useCallback(
     (ready: boolean) => {
@@ -256,6 +271,16 @@ function PlayerComponent() {
     setFailed,
     setFileReady: markFileReady,
   });
+  const retryPlayer = useCallback(() => {
+    if (streamNext.failed) {
+      ignore(streamNext.retry());
+
+      return;
+    }
+
+    if (hasFile) retryPlayback();
+    else retrySession();
+  }, [hasFile, retryPlayback, retrySession, streamNext]);
 
   useLivePlaylistSync(liveWatch, { onPlayingFileModified: reloadPlayingFile });
   useStreamTrackPrefs(stream, tracks, {
@@ -491,6 +516,16 @@ function PlayerComponent() {
   const eofPaused = eofReached && (eofMode === "pause" || eofMode === "none");
 
   const cabinet = usePlayerScreen(ready, settings, hasFile);
+  const loupeBlocked = [
+    !controlsReady,
+    !hasShownFrame,
+    panel,
+    menuOpen,
+    jumpOpen,
+    diagnosticsOpen,
+    finished,
+  ].some(Boolean);
+  usePlayerLoupe(videoRef, !loupeBlocked, settings.loupeMode);
 
   const videoWrap = (node: ReactNode): ReactNode =>
     showModernMenu ? (
@@ -505,7 +540,21 @@ function PlayerComponent() {
     <div className={rootClass({ hasFile, failed, cursorHidden })}>
       <Keyboard
         onAction={(action) => {
-          if (controlsReady || ["toggleFullscreen", "toggleAlwaysOnTop", "viewMinimal", "viewCompact", "viewNormal", "exitCinemaMode", "toggleCheatsheet", "toggleDiagnostics", "togglePlaylist", "toggleAutoHide"].includes(action)) {
+          if (
+            controlsReady ||
+            [
+              "toggleFullscreen",
+              "toggleAlwaysOnTop",
+              "viewMinimal",
+              "viewCompact",
+              "viewNormal",
+              "exitCinemaMode",
+              "toggleCheatsheet",
+              "toggleDiagnostics",
+              "togglePlaylist",
+              "toggleAutoHide",
+            ].includes(action)
+          ) {
             onKeyboardAction(action);
           }
         }}
@@ -599,7 +648,7 @@ function PlayerComponent() {
                 hasNext={hasNext}
                 streaming={stream !== null}
                 onRestart={restart}
-                onRetry={hasFile ? retryPlayback : retrySession}
+                onRetry={retryPlayer}
                 onNext={onFileNext}
                 onClose={close}
               />
@@ -625,45 +674,45 @@ function PlayerComponent() {
           data-player-controls
           aria-busy={!controlsReady}
         >
-        <PlayerBottomBar
-          variant={chrome.bottom}
-          playerType={playerType}
-          hasFile={hasFile}
-          paused={paused}
-          duration={duration}
-          chapters={chapters}
-          tracks={tracks}
-          hasPrev={hasPrev}
-          hasNext={hasNext}
-          immersive={immersive}
-          autoHide={autoHide}
-          speed={speed}
-          volume={volume}
-          muted={muted}
-          playlistOpen={playlistOpen}
-          seekTarget={seekTarget ?? streamResume}
-          onPlay={onPlay}
-          onPause={onPause}
-          onPlayPause={onPlayPause}
-          onSeekTo={onSeekTo}
-          onScrub={onScrub}
-          onCommitSeek={onCommitSeek}
-          onFilePrev={onFilePrev}
-          onFileNext={onFileNext}
-          onFrameStep={onFrameStep}
-          onCycleSub={onCycleSub}
-          onSpeed={onSpeed}
-          onVolume={onVolume}
-          onMute={onMute}
-          onToggleAutoHide={() => setAutoHide(!autoHide)}
-          onTogglePlaylist={() => setPlaylistOpen((previous) => !previous)}
-          hideTracks={hideDefaultTracks(playerType, playerContextMenu)}
-          onSelectAudio={onSelectTrack("audio")}
-          onSelectSub={onSelectTrack("sub")}
-          onAddAudio={() => ignore(onAddExternalAudio())}
-          onAddSubtitle={() => ignore(onAddExternalSubtitle())}
-          stream={playerStream}
-        />
+          <PlayerBottomBar
+            variant={chrome.bottom}
+            playerType={playerType}
+            hasFile={hasFile}
+            paused={paused}
+            duration={duration}
+            chapters={chapters}
+            tracks={tracks}
+            hasPrev={hasPrev}
+            hasNext={hasNext}
+            immersive={immersive}
+            autoHide={autoHide}
+            speed={speed}
+            volume={volume}
+            muted={muted}
+            playlistOpen={playlistOpen}
+            seekTarget={seekTarget ?? streamResume}
+            onPlay={onPlay}
+            onPause={onPause}
+            onPlayPause={onPlayPause}
+            onSeekTo={onSeekTo}
+            onScrub={onScrub}
+            onCommitSeek={onCommitSeek}
+            onFilePrev={onFilePrev}
+            onFileNext={onFileNext}
+            onFrameStep={onFrameStep}
+            onCycleSub={onCycleSub}
+            onSpeed={onSpeed}
+            onVolume={onVolume}
+            onMute={onMute}
+            onToggleAutoHide={() => setAutoHide(!autoHide)}
+            onTogglePlaylist={() => setPlaylistOpen((previous) => !previous)}
+            hideTracks={hideDefaultTracks(playerType, playerContextMenu)}
+            onSelectAudio={onSelectTrack("audio")}
+            onSelectSub={onSelectTrack("sub")}
+            onAddAudio={() => ignore(onAddExternalAudio())}
+            onAddSubtitle={() => ignore(onAddExternalSubtitle())}
+            stream={playerStream}
+          />
         </fieldset>
       </div>
 

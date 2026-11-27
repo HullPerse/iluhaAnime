@@ -109,7 +109,12 @@ export function useAnilistSearch() {
       if (request === null) throw new Error("AniList search request is missing");
 
       if (manga) {
-        const params = request.kind === "tag" ? { tags: [request.tag] } : request.kind === "genre" ? { genres: [request.genre] } : {};
+        const params =
+          request.kind === "tag"
+            ? { tags: [request.tag] }
+            : request.kind === "genre"
+              ? { genres: [request.genre] }
+              : {};
 
         return anilistApi.search({ ...params, mediaType: "MANGA" });
       }

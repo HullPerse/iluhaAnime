@@ -1,9 +1,9 @@
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerStream, useStreamNext } from "@/hooks/player/stream.hook";
 import { openStream } from "@/lib/player/playback.utils";
-import { streamSession } from "@/store/player.store";
+import { patchPlayerSettings, streamSession } from "@/store/player.store";
 import type { StreamingEpisode, StreamVariant } from "@/types/player/stream";
 import type { StreamOpen, StreamSource } from "@/types/player/videoPlayer";
 
@@ -69,6 +69,7 @@ const EPISODES: StreamingEpisode[] = [
 ];
 
 beforeEach(() => {
+  patchPlayerSettings({ pauseNextEpisode: true });
   cache.loadPlayers.mockClear();
   cache.loadSources.mockClear();
   cache.prefetchNativeSources.mockClear();
@@ -165,6 +166,64 @@ describe("usePlayerStream", () => {
 });
 
 describe("useStreamNext", () => {
+  it("reports a failed next episode and retries that episode instead of reopening the old one", async () => {
+    cache.loadEpisodes.mockResolvedValue(EPISODES);
+    cache.loadSources.mockResolvedValue([]);
+    cache.loadPlayers.mockResolvedValue([]);
+    streamSession.set(session());
+    const onFailure = vi.fn();
+    const onLoading = vi.fn();
+    const { result } = renderHook(() => useStreamNext({ onFailure, onLoading }));
+    await act(async () => {
+      await result.current.goNext();
+    });
+    expect(onFailure).toHaveBeenCalledOnce();
+    expect(result.current.failed).toBe(true);
+    expect(streamSession.get()?.episodeId).toBe("10");
+    expect(openStream).not.toHaveBeenCalled();
+    cache.loadSources.mockResolvedValue([
+      {
+        variantId: "Animelib:9",
+        url: "https://cdn/recovered.mp4",
+        type: "mp4",
+        quality: "1080",
+        label: "1080p",
+        headers: {},
+        subtitles: [],
+        audioTracks: [],
+      },
+    ]);
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(result.current.failed).toBe(false);
+    expect(onLoading).toHaveBeenCalledTimes(2);
+    expect(streamSession.get()?.episodeId).toBe("11");
+  });
+
+  it("continues the next episode when pause on switch is disabled", async () => {
+    patchPlayerSettings({ pauseNextEpisode: false });
+    cache.loadEpisodes.mockResolvedValue(EPISODES);
+    cache.loadSources.mockResolvedValue([
+      {
+        variantId: "Animelib:9",
+        url: "https://cdn/next.mp4",
+        type: "mp4",
+        quality: "1080",
+        label: "1080p",
+        headers: {},
+        subtitles: [],
+        audioTracks: [],
+      },
+    ]);
+    streamSession.set(session());
+    const { result } = renderHook(() => useStreamNext());
+    await result.current.goNext();
+    expect(openStream).toHaveBeenCalledWith(
+      expect.objectContaining({ paused: false, episodeId: "11" })
+    );
+  });
+
   it("loads the season and reports whether a later episode exists", async () => {
     cache.loadEpisodes.mockResolvedValue(EPISODES);
     streamSession.set({ ...session(), episodeNumber: 3, episodeId: "12" });

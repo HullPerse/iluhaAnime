@@ -241,6 +241,11 @@ export type PlayerBezelVariant = Exclude<PlayerCabinetId, "none">;
 export type CrtCurvature = 0.02 | 0.04 | 0.07;
 
 export interface PlayerSettings {
+  audioDevice: string;
+  audioLanguage: string;
+  subtitleLanguage: string;
+  pauseNextEpisode: boolean;
+  loupeMode: "native" | "shader";
   brightness: number;
   contrast: number;
   saturation: number;
@@ -258,6 +263,7 @@ export interface PlayerSettings {
   hdrComputePeak: boolean;
   targetPrim: "auto" | "bt.709" | "bt.2020" | "dci-p3" | "display-p3";
   targetTrc: "auto" | "bt.1886" | "srgb" | "linear" | "gamma2.2" | "pq" | "hlg";
+  deband: boolean;
   loudnorm: boolean;
 }
 

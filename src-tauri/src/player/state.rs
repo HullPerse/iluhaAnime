@@ -171,12 +171,18 @@ pub struct StreamWrites {
 
 #[derive(Default)]
 pub struct PlayerHost {
+    pub(super) readiness: super::readiness::Readiness,
     pub operation: tokio::sync::Mutex<()>,
     pub window_operation: tokio::sync::Mutex<()>,
     /// 0 = open, 1 = close in flight, 2 = teardown done. Driven only through
     /// the `begin_close` / `finish_close` methods below.
     close_phase: AtomicU8,
+    #[cfg(windows)]
+    pub(crate) smtc: Mutex<Option<super::smtc::Session>>,
+    #[cfg(windows)]
+    pub(crate) smtc_epoch: AtomicU64,
     pub instance_id: AtomicU64,
+    pub(crate) loupe_shader_instance: AtomicU64,
     pub request_serial: AtomicU64,
     pub(crate) property_revision: AtomicU64,
     pending_open: Mutex<Option<PlayerOpenRequest>>,
@@ -530,6 +536,8 @@ fn player_tick(ticker: &AppHandle, ticks: u32) {
         snapshot::note_dirty_tick();
         let next = snapshot::read_snapshot(ticker);
         let emitted = snapshot::smooth_snapshot(ticker, next);
+        #[cfg(windows)]
+        super::smtc::update(ticker, &emitted);
         #[cfg(debug_assertions)]
         snapshot::note_snapshot_emitted();
         let _ = ticker.emit_to(PLAYER_WINDOW_LABEL, EVENT_STATE, &emitted);
@@ -571,6 +579,11 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
                     host.property_revision.fetch_add(1, Ordering::Release);
                 }
                 match name {
+                    "audio-device-list" => {
+                        if let Some(devices) = event.get("data") {
+                            super::audio::reconcile(app, devices);
+                        }
+                    }
                     "track-list" => {
                         if let Some(tracks) = event.get("data") {
                             let _ = app.emit_to(PLAYER_WINDOW_LABEL, EVENT_TRACKS, tracks);
@@ -594,6 +607,8 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
             if let Some(path) = snapshot::string_property(app, "path") {
                 host.activate_file(path);
             }
+            #[cfg(windows)]
+            super::smtc::open(app);
             host.reset_file_state();
             *host
                 .latest
@@ -610,6 +625,10 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
                 .get("reason")
                 .and_then(Value::as_str)
                 .map(str::to_string);
+            #[cfg(windows)]
+            if reason.as_deref() != Some("eof") {
+                super::smtc::close(app);
+            }
             if reason.as_deref() == Some("eof") {
                 watch::save_current(app);
             }
@@ -619,10 +638,17 @@ fn handle_mpv_event(app: &AppHandle, event: Value) {
             emit_typed(app, &name, None, event.get("params").cloned());
         }
         "shutdown" => {
+            #[cfg(windows)]
+            super::smtc::close(app);
             host.set_active(false);
             emit_typed(app, "shutdown", None, None);
         }
-        "idle" | "seek" | "playback-restart" | "error" => emit_typed(app, &name, None, None),
+        "idle" => {
+            #[cfg(windows)]
+            super::smtc::close(app);
+            emit_typed(app, &name, None, None);
+        }
+        "seek" | "playback-restart" | "error" => emit_typed(app, &name, None, None),
         _ => {}
     }
 }

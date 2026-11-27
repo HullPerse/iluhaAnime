@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { listen } from "@tauri-apps/api/event";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,8 +21,12 @@ function wrapperFor(client: QueryClient) {
 }
 
 describe("background pack preparation", () => {
-  beforeEach(() => vi.useFakeTimers());
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.mocked(listen).mockResolvedValue(vi.fn());
+  });
   afterEach(() => {
+    vi.mocked(listen).mockReset();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -66,6 +71,29 @@ describe("background pack preparation", () => {
     });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.cardsCollectionScope() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.cardsCollectionsScope() });
+    unmount();
+  });
+
+  it("reloads cached album pages when the native metadata refresh finishes", async () => {
+    vi.spyOn(cardsApi, "preparePacks").mockResolvedValue({
+      prepared: 0,
+      failed: 0,
+      repaired: 0,
+      unnotified: 0,
+    });
+    const client = makeClient();
+    const key = queryKeys.cardsCollection({}, "");
+    client.setQueryData(key, []);
+    const { unmount } = renderHook(() => usePrepareCardsPacks(true), {
+      wrapper: wrapperFor(client),
+    });
+    const event = "cards-album-metadata-updated";
+    const listener = vi.mocked(listen).mock.calls.find(([name]) => name === event)?.[1];
+    expect(listener).toBeDefined();
+
+    await act(async () => listener?.({ event, id: 1, payload: null }));
+
+    expect(client.getQueryState(key)?.isInvalidated).toBe(true);
     unmount();
   });
 });

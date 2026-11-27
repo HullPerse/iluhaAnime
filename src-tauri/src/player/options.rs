@@ -31,6 +31,7 @@ pub(crate) fn observed_properties() -> Value {
         "cache-speed": "double",
         "demuxer-cache-duration": "double",
         "track-list": "node",
+        "audio-device-list": "node",
         "chapter-list": "node",
     })
 }
@@ -62,6 +63,7 @@ const ALLOWED_INITIAL_OPTIONS: &[&str] = &[
     "contrast",
     "saturation",
     "hue",
+    "deband",
     "sub-font-size",
     "sub-font",
     "sub-color",
@@ -369,10 +371,12 @@ mod tests {
     fn unlisted_initial_options_are_dropped_and_structural_ones_win() {
         let kept = sanitize_initial_options(json!({
             "volume": 40,
+            "deband": true,
             "input-ipc-server": "pipe",
             "script-opts": "x=y",
         }));
         assert_eq!(kept["volume"], 40);
+        assert_eq!(kept["deband"], true);
         assert!(kept.get("input-ipc-server").is_none());
         assert!(kept.get("script-opts").is_none());
 

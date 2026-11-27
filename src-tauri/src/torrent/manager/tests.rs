@@ -1755,6 +1755,35 @@ async fn renaming_a_torrent_moves_its_root_folder_and_paths() {
         Some(new_root.to_string())
     );
 
+    manager.session.stop().await;
+    drop(manager);
+    let restored = TorrentManager::new_test(dir.clone())
+        .await
+        .expect("restore session");
+    let restored_id = restored
+        .session
+        .with_torrents(|torrents| {
+            for (id, torrent) in torrents {
+                if torrent.info_hash().as_string() == key {
+                    return Some(id);
+                }
+            }
+            None
+        })
+        .expect("renamed torrent survives restart");
+    let restored_files = restored
+        .get_running_torrent_files(restored_id)
+        .expect("restored files");
+    assert!(!restored_files.is_empty());
+    assert!(restored_files
+        .iter()
+        .all(|file| file.name.starts_with(new_root)));
+    assert_eq!(
+        restored.torrent_info_hash(restored_id).as_deref(),
+        Some(key.as_str())
+    );
+    restored.session.stop().await;
+    drop(restored);
     let _ = std::fs::remove_dir_all(&dir);
     let _ = std::fs::remove_dir_all(&source_dir);
 }

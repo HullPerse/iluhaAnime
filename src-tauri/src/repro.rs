@@ -59,6 +59,8 @@ pub fn build_readme(meta: &ReproMeta) -> String {
          - meta.json: app version, OS, arch, generation time.\n\
          - frontend.json: sanitized UI snapshot (versions, settings without secrets, counts).\n\
          - storage.json: top-level app-data listing (names, sizes, mtimes, capped).\n\
+         - player.json: preparation milestones and fixed decoder/output identifiers, or null if unavailable.\n\
+         Player times are milliseconds from preparation start, not exclusive stage durations or first-frame times.\n\
          \n\
          Privacy: no media files, no database rows, no tokens, keys, or cookies.\n",
         meta.generated_ms, meta.app_version, meta.os, meta.arch
@@ -147,6 +149,9 @@ pub async fn collect_repro_bundle(
 ) -> Result<String, String> {
     let out_path = validated_out_path(&out_path)?;
     let frontend = validated_frontend_json(&frontend_json)?;
+    let player = crate::player::player_diagnostics(app.clone()).await.ok();
+    let player_json = serde_json::to_vec_pretty(&player)
+        .map_err(|error| format!("serialize player diagnostics: {error}"))?;
     let meta = build_meta();
     let meta_json =
         serde_json::to_string_pretty(&meta).map_err(|e| format!("serialize meta: {e}"))?;
@@ -162,6 +167,7 @@ pub async fn collect_repro_bundle(
     write_entry(&mut zip, "meta.json", meta_json.as_bytes())?;
     write_entry(&mut zip, "frontend.json", frontend.as_bytes())?;
     write_entry(&mut zip, "storage.json", storage_json.as_bytes())?;
+    write_entry(&mut zip, "player.json", &player_json)?;
     write_entry(&mut zip, "README.txt", build_readme(&meta).as_bytes())?;
     zip.finish().map_err(|e| format!("finalize bundle: {e}"))?;
     Ok(out_path)
@@ -186,6 +192,7 @@ mod tests {
         assert!(readme.contains("meta.json"));
         assert!(readme.contains("frontend.json"));
         assert!(readme.contains("storage.json"));
+        assert!(readme.contains("player.json"));
         assert!(readme.contains(&meta.app_version));
     }
 

@@ -50,6 +50,8 @@ const setPropertyCalls = (name: string): unknown[] => {
 beforeEach(() => {
   invokeMock.mockReset();
   invokeMock.mockImplementation((command: unknown) => {
+    if (command === "player_init") return Promise.resolve(17);
+
     if (command === "player_take_pending_open" || command === "player_load_watch") {
       return Promise.resolve(null);
     }

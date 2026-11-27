@@ -123,7 +123,9 @@ function FranchiseGraphSection({
       data
         ? data.nodes.filter(
             (node) =>
-              node.id === data.root_id || node.media_type === data.nodes.find((root) => root.id === data.root_id)?.media_type || node.media_type == null
+              node.id === data.root_id ||
+              node.media_type === data.nodes.find((root) => root.id === data.root_id)?.media_type ||
+              node.media_type == null
           )
         : [],
     [data]

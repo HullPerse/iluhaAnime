@@ -1,7 +1,9 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
-import { withFallback } from "@hullperse/hp_utils/attempt";
+import { attempt, reportBackgroundError, withFallback } from "@hullperse/hp_utils/attempt";
+import { translate } from "@/lib/locale/i18n.utils";
+import { addNotification } from "@/store/notification.store";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { playerAtoms, setAlwaysOnTop } from "@/store/player.store";
 import type { PlayerViewMode } from "@/types/player/videoPlayer";
@@ -25,16 +27,34 @@ export function useWindowControls({
   setCinema,
   closeOverlay,
 }: WindowControlDeps) {
+  const pinPendingRef = useRef(false);
+  const applyAlwaysOnTop = useCallback((value: boolean) => {
+    if (pinPendingRef.current) return;
+    pinPendingRef.current = true;
+    ignore(
+      (async () => {
+        const [, failure] = await attempt(getCurrentWindow().setAlwaysOnTop(value));
+        pinPendingRef.current = false;
+
+        if (failure) {
+          reportBackgroundError("player.window.pin", failure);
+          addNotification(translate("player.media.pin.failed"), "error", failure.message);
+
+          return;
+        }
+
+        setAlwaysOnTop(value);
+      })()
+    );
+  }, []);
   useEffect(() => {
     const win = getCurrentWindow();
     ignore(win.isFullscreen().then(setFullscreen));
   }, [setFullscreen]);
 
   useEffect(() => {
-    ignore(
-      withFallback(getCurrentWindow().setAlwaysOnTop(playerAtoms.alwaysOnTop.get()), undefined)
-    );
-  }, []);
+    applyAlwaysOnTop(playerAtoms.alwaysOnTop.get());
+  }, [applyAlwaysOnTop]);
 
   const toggleFullscreen = useCallback(async () => {
     const win = getCurrentWindow();
@@ -55,11 +75,6 @@ export function useWindowControls({
   const toggleCinema = useCallback(() => {
     setCinema(!cinema);
   }, [cinema, setCinema]);
-
-  const applyAlwaysOnTop = useCallback((value: boolean) => {
-    setAlwaysOnTop(value);
-    ignore(withFallback(getCurrentWindow().setAlwaysOnTop(value), undefined));
-  }, []);
 
   const exitCinemaMode = useCallback(() => {
     if (closeOverlay()) return;

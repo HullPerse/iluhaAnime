@@ -5,8 +5,8 @@ use futures::{stream, StreamExt};
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::ceilings::{batch_page_ceilings, fetch_pages, page_ceiling};
-use super::config::{pick_variant, shop_pack, CHOICE_PACK_KIND};
+use super::ceilings::{batch_page_ceilings, can_retry_smaller_query, fetch_pages, page_ceiling};
+use super::config::{pick_variant, shop_pack, CHOICE_PACK_KIND, CHOICE_PACK_SIZE};
 use super::metadata::{refresh_metadata, studio_collage_missing};
 use super::rarity::{card_value, score_for, tier_for};
 use super::rng::Rng;
@@ -598,13 +598,11 @@ fn planned_needs(pack: &CardPackRow) -> Result<Vec<(CardKind, usize)>, String> {
     pack_needs(&pack.pack_kind, pack.size as usize, &mut plan_rng)
 }
 
-/// The featured card is the completed title itself; the second card is a
-/// character from that same title. Both roll the standard rarity formula.
+/// Builds each choice pack from the completed title's roster only.
 async fn generate_choice_contents(
     app: &AppHandle,
     pack: &CardPackRow,
     proxy: Option<&str>,
-    pools: &mut PoolCache,
 ) -> Result<Vec<GeneratedCard>, String> {
     let media_id = pack
         .media_id
@@ -614,47 +612,19 @@ async fn generate_choice_contents(
         Some(kind @ (CardKind::Anime | CardKind::Manga)) => kind,
         _ => return Err("choice pack has no anime or manga kind".into()),
     };
-    refresh_metadata(app, &[(media_kind, media_id)], proxy).await?;
-    let media = {
-        let connection = open_database(app)?;
-        let meta = get_meta(&connection, media_kind, media_id)?;
-        drop(connection);
-        meta.map(|meta| card_node_from_meta(&meta))
-            .ok_or_else(|| format!("choice pack media metadata missing for {media_id}"))?
-    };
-    let node = crate::cards::collections::roster_choice_character(
-        app,
-        media_id,
-        media.popularity,
-        pack.seed as u64,
-        proxy,
-    )
-    .await?;
-    let mut nodes = vec![media];
-    match node {
-        Some(character) => nodes.push(character),
-        None => {
-            // A title with no roster is rare; keep the pack deliverable with a
-            // random character rather than leaving an unfinished reward.
-            tracing::warn!(
-                media_id,
-                "choice pack title has no roster; falling back to a random card"
-            );
-            let fallback = sample_cards(
-                app,
-                &[(CardKind::Character, 1)],
-                pack.seed as u64 ^ 0xC401_CE11,
-                proxy,
-                pools,
-            )
-            .await?;
-            nodes.extend(fallback);
-        }
-    }
-    if nodes.len() != pack.size as usize {
+    if pack.size != CHOICE_PACK_SIZE as i64 {
         return Err("choice pack size does not match its contents".into());
     }
-    Ok(generate_cards(nodes, pack.seed as u64))
+    refresh_metadata(app, &[(media_kind, media_id)], proxy).await?;
+    let popularity = get_meta(&open_database(app)?, media_kind, media_id)?
+        .and_then(|meta| meta.popularity)
+        .and_then(|value| u32::try_from(value).ok())
+        .unwrap_or_default();
+    let seed = pack.seed as u64;
+    let nodes =
+        super::collections::roster_choice_characters(app, media_id, popularity, seed, proxy)
+            .await?;
+    Ok(generate_cards(nodes, seed))
 }
 
 async fn generate_pack_contents(
@@ -664,7 +634,7 @@ async fn generate_pack_contents(
     pools: &mut PoolCache,
 ) -> Result<Vec<GeneratedCard>, String> {
     if pack.pack_kind == CHOICE_PACK_KIND {
-        return generate_choice_contents(app, pack, proxy, pools).await;
+        return generate_choice_contents(app, pack, proxy).await;
     }
     let needs = planned_needs(pack)?;
     let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools).await?;
@@ -1122,7 +1092,7 @@ async fn prefill_pools(
     packs: &[CardPackRow],
     proxy: Option<&str>,
     pools: &mut PoolCache,
-) {
+) -> Result<(), String> {
     let mut kinds: Vec<CardKind> = Vec::new();
     for pack in packs {
         let Ok(needs) = planned_needs(pack) else {
@@ -1135,14 +1105,15 @@ async fn prefill_pools(
         }
     }
     if kinds.is_empty() {
-        return;
+        return Ok(());
     }
     let ceilings = match batch_page_ceilings(app, &kinds, 25, proxy).await {
         Ok(ceilings) => ceilings,
-        Err(error) => {
+        Err(error) if can_retry_smaller_query(&error) => {
             tracing::warn!(error = error.as_str(), "card ceiling batch failed");
-            return;
+            return Ok(());
         }
+        Err(error) => return Err(error),
     };
     let mut rng =
         Rng::new(packs.first().map_or(1, |pack| pack.seed as u64) ^ 0xC0FF_EE00_1234_5678);
@@ -1164,29 +1135,31 @@ async fn prefill_pools(
     };
     let response = match graphql_request(query, None, proxy).await {
         Ok(response) => response,
-        Err(error) if !missing_max.is_empty() => {
+        Err(error) if !missing_max.is_empty() && can_retry_smaller_query(&error) => {
             tracing::warn!(
                 error = error.as_str(),
                 "combined card page and max ID request failed, retrying pages only"
             );
             match graphql_request(batch_page_query(&entries, 25), None, proxy).await {
                 Ok(response) => response,
-                Err(error) => {
+                Err(error) if can_retry_smaller_query(&error) => {
                     tracing::warn!(
                         error = error.as_str(),
                         "card page batch failed, falling back to per-kind fetches"
                     );
-                    return;
+                    return Ok(());
                 }
+                Err(error) => return Err(error),
             }
         }
-        Err(error) => {
+        Err(error) if can_retry_smaller_query(&error) => {
             tracing::warn!(
                 error = error.as_str(),
                 "card page batch failed, falling back to per-kind fetches"
             );
-            return;
+            return Ok(());
         }
+        Err(error) => return Err(error),
     };
     for kind in missing_max {
         if let Some(id) = parse_max_id(kind, &response) {
@@ -1208,6 +1181,7 @@ async fn prefill_pools(
             pools.insert(kind, merged);
         }
     }
+    Ok(())
 }
 
 async fn prepare_packs_inner(
@@ -1226,6 +1200,8 @@ async fn prepare_packs_inner(
             PREPARE_MAX_ATTEMPTS,
         )?
     };
+    let mut pools = PoolCache::new();
+    prefill_pools(app, &packs, proxy, &mut pools).await?;
     let mut claimed_packs: Vec<CardPackRow> = Vec::new();
     for pack in packs {
         let claimed = {
@@ -1236,8 +1212,6 @@ async fn prepare_packs_inner(
             claimed_packs.push(pack);
         }
     }
-    let mut pools = PoolCache::new();
-    prefill_pools(app, &claimed_packs, proxy, &mut pools).await;
     let mut staged: Vec<(CardPackRow, Vec<GeneratedCard>)> = Vec::new();
     let mut failed = 0;
     for pack in claimed_packs {
@@ -1343,13 +1317,7 @@ async fn prepare_packs_guarded(
     prepare_packs_inner(app, proxy).await
 }
 
-/// Starts background preparation without blocking a grant, purchase or open.
-pub fn spawn_prepare_packs(app: AppHandle) {
-    spawn_prepare_packs_with_proxy(app, None);
-}
-
-/// Same as [`spawn_prepare_packs`], but keeps the user's AniList proxy for
-/// grants that already resolved one.
+/// Starts background preparation using the proxy resolved by its caller.
 pub fn spawn_prepare_packs_with_proxy(app: AppHandle, proxy: Option<String>) {
     tauri::async_runtime::spawn(async move {
         if let Err(error) = prepare_packs_guarded(&app, proxy.as_deref()).await {

@@ -467,7 +467,11 @@ const CATALOG: &[ShaderMeta] = &[
 
 /// Player shaders shipped for live mpv custom shaders. The id is the base file
 /// name used by `glsl-shader-opts`; the second field is the bundled file name.
-pub const PLAYER_SHADERS: &[(&str, &str)] = &[("crt-tv", "crt-tv.glsl"), ("vhs", "vhs.glsl")];
+pub const PLAYER_SHADERS: &[(&str, &str)] = &[
+    ("crt-tv", "crt-tv.glsl"),
+    ("vhs", "vhs.glsl"),
+    ("loupe", "loupe.glsl"),
+];
 
 pub fn player_shader_file(id: &str) -> Option<&'static str> {
     PLAYER_SHADERS

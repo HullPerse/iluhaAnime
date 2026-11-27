@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { cardsApi } from "@/api/cards.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
+import { useTauriEvent } from "@/hooks/tauriEvent.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { addNotification } from "@/store/notification.store";
 import { settingsAtoms } from "@/store/settings.store";
@@ -19,6 +20,13 @@ export function usePrepareCardsPacks(enabled: boolean) {
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
   const started = useRef<boolean>(false);
+  useTauriEvent(
+    "cards-album-metadata-updated",
+    () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionScope() });
+    },
+    { enabled }
+  );
 
   useEffect(() => {
     if (!enabled || !online || started.current) return;

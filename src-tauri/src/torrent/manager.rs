@@ -331,6 +331,7 @@ impl TorrentManager {
                         session_config.peer_read_write_timeout_secs,
                     )),
                     keep_alive_interval: None,
+                    ..Default::default()
                 }),
             }),
             ..Default::default()

@@ -129,6 +129,7 @@ export const queryKeys = {
   cardsCollectionScope: () => ["cards-collection"] as const,
   cardsCardVariants: (kind: string, entityId: number) =>
     ["cards-card-variants", kind, entityId] as const,
+  cardsCardVariantsScope: () => ["cards-card-variants"] as const,
   cardsCardFavorite: (kind: string, entityId: number) =>
     ["cards-card-favorite", kind, entityId] as const,
   cardsGallery: (kind: string, entityId: number, proxy: string) =>
@@ -138,8 +139,10 @@ export const queryKeys = {
   cardsCollectionsScope: () => ["cards-collections"] as const,
   cardsAnimeCollection: (animeId: number, kind: string, proxy: string) =>
     ["cards-anime-collection", animeId, kind, proxy] as const,
+  cardsAnimeCollectionScope: () => ["cards-anime-collection"] as const,
   cardsCollectionRoster: (mediaId: number, kind: string, page: number, proxy: string) =>
     ["cards-collection-roster", mediaId, kind, page, proxy] as const,
+  cardsCollectionRosterScope: () => ["cards-collection-roster"] as const,
   cardsStarterStatus: (proxy: string) => ["cards-starter-status", proxy] as const,
   cardsStarterStatusScope: () => ["cards-starter-status"] as const,
   cardsStats: () => ["cards-stats"] as const,

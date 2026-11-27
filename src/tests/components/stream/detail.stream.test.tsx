@@ -206,12 +206,19 @@ describe("StreamDetail AniList button", () => {
 
   it("does not open a late stream result after the title modal closes", async () => {
     let finish: ((sources: PlayableSource[]) => void) | undefined;
-    api.streamSources.mockImplementationOnce(() => new Promise<PlayableSource[]>(resolve => { finish = resolve; }));
+    api.streamSources.mockImplementationOnce(
+      () =>
+        new Promise<PlayableSource[]>((resolve) => {
+          finish = resolve;
+        })
+    );
     const { unmount } = render(<StreamDetail slug={ANIME.slugUrl} />);
     fireEvent.click(screen.getByText("The Journey's End"));
     await waitFor(() => expect(api.streamSources).toHaveBeenCalledTimes(1));
     unmount();
-    await act(async () => { finish?.(DEFAULT_SOURCES); });
+    await act(async () => {
+      finish?.(DEFAULT_SOURCES);
+    });
     expect(playback.openStream).not.toHaveBeenCalled();
   });
 

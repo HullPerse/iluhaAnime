@@ -30,12 +30,25 @@ export function useCardsMutations() {
     };
   }, []);
 
-  const invalidate = () => {
+  const invalidateOwnership = () => {
     for (const queryKey of [
-      queryKeys.cardsBootstrap(),
-      queryKeys.cardsPacksScope(),
       queryKeys.cardsCollectionScope(),
       queryKeys.cardsCollectionsScope(),
+      queryKeys.cardsAnimeCollectionScope(),
+      queryKeys.cardsCollectionRosterScope(),
+      queryKeys.cardsCardVariantsScope(),
+    ]) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  };
+
+  const invalidate = () => {
+    invalidateOwnership();
+
+    for (const queryKey of [
+      queryKeys.cardsBootstrap(),
+      queryKeys.cardsShellScope(),
+      queryKeys.cardsPacksScope(),
       queryKeys.cardsStats(),
       queryKeys.cardsStarterStatusScope(),
       queryKeys.cardsGiftsScope(),
@@ -85,18 +98,18 @@ export function useCardsMutations() {
     },
   });
 
-  // oxlint-disable-next-line react-doctor/query-mutation-missing-invalidation
   const openPack = useMutation({
     mutationFn: (packId: string) => cardsApi.openPack(packId, anilistProxy()),
-    onSuccess: () => {
+    onSuccess: (opening) => {
       if (!mounted.current) invalidate();
+      else if (opening.value > 0) invalidateOwnership();
     },
   });
 
-  // oxlint-disable-next-line react-doctor/query-mutation-missing-invalidation
   const claimPack = useMutation({
     mutationFn: (vars: { packId: string; slot: number }) =>
       cardsApi.claimPack(vars.packId, vars.slot),
+    onSuccess: invalidate,
   });
 
   const dust = useMutation({
@@ -105,7 +118,7 @@ export function useCardsMutations() {
   });
 
   const buyPack = useMutation({
-    mutationFn: (packKind: string) => cardsApi.buyPack(packKind),
+    mutationFn: (packKind: string) => cardsApi.buyPack(packKind, anilistProxy()),
     onSuccess: invalidate,
   });
 

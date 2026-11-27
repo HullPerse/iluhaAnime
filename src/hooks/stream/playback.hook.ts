@@ -100,11 +100,7 @@ export function useStreamPlayer({
           resume,
           paused: true,
           headers: source.headers,
-          proxyUrl: playbackProxyUrl(
-            source.variantId,
-            getStreamProxyUrl(sourceId),
-            source.url
-          ),
+          proxyUrl: playbackProxyUrl(source.variantId, getStreamProxyUrl(sourceId), source.url),
           quality: source.label,
           variantId: source.variantId,
           sources: toVariantSources(sources),

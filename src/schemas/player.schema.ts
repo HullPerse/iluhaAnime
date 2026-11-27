@@ -1,5 +1,28 @@
 import * as z from "zod/mini";
 
+export const PlayerInstanceIdSchema = z.compile(
+  z.number().check(z.int(), z.positive(), z.maximum(Number.MAX_SAFE_INTEGER))
+);
+
+const PreparationTime = z.nullable(z.number().check(z.minimum(0)));
+const DriverIdentifier = z.nullable(z.string().check(z.maxLength(128), z.regex(/^[\w.:+ ()-]+$/)));
+export const PlayerDiagnosticsSchema = z.compile(
+  z.object({
+    active: z.boolean(),
+    preparation: z.enum(["starting", "ready", "failed", "closed"]),
+    startup: z.object({
+      windowCreatedAtMs: PreparationTime,
+      nativeReadyAtMs: PreparationTime,
+      frontendReadyAtMs: PreparationTime,
+    }),
+    decoder: DriverIdentifier,
+    hwdec: DriverIdentifier,
+    videoOutput: DriverIdentifier,
+    gpuContext: DriverIdentifier,
+    audioOutput: DriverIdentifier,
+  })
+);
+
 export const PlaylistEntryListSchema = z.compile(
   z.array(z.object({ index: z.number(), filename: z.string(), title: z.string() }))
 );
@@ -153,3 +176,7 @@ export const MpvDoubleSchema = z.compile(z.nullable(z.number()));
 export const MpvFlagSchema = z.compile(z.nullable(z.boolean()));
 export const MpvInt64Schema = z.compile(z.nullable(z.number()));
 export const MpvStringSchema = z.compile(z.nullable(z.string()));
+
+export const AudioDeviceListSchema = z.array(
+  z.object({ name: z.string(), description: z.string() })
+);

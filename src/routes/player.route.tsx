@@ -54,6 +54,7 @@ import { DragOverlayItem } from "@/routes/components/player/draggable/overlay.dr
 import { DraggableTorrent } from "@/routes/components/player/draggable/torrent.draggable";
 import FFMPEG from "@/routes/components/player/ffmpeg.player";
 import QueuePanel from "@/routes/components/player/queue.player";
+import FolderScanProgress from "@/routes/components/player/scan.player";
 import { QueueStrip } from "@/routes/components/player/strip.player";
 import PlayerVisibilityModal from "@/routes/components/player/visibility.player";
 
@@ -76,8 +77,8 @@ function PlayerRoute() {
 
   const [folderTrees, setFolderTrees] = useState<FolderNode[]>([]);
   const [search, setSearch] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [scanProgress, setScanProgress] = useState<ScanType>(null);
+  const [scanProgress, setScanProgress] = useState<ScanType | null>(null);
+  const [savedScanProgress, setSavedScanProgress] = useState<ScanType | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const videoExtensions = useCell(settingsAtoms.videoExtensions);
   const watcherDelay = useCell(settingsAtoms.watcherDelay);
@@ -270,14 +271,23 @@ function PlayerRoute() {
   }, []);
 
   useEffect(() => {
-    if (savedFolderPaths.length === 0) return;
+    if (savedFolderPaths.length === 0) {
+      setSavedScanProgress(null);
+
+      return;
+    }
+
     let cancelled = false;
 
     const print = fingerprint(savedFolderPaths, videoExtensions);
 
-    if (print === scannedFingerprint.current) return;
+    if (print === scannedFingerprint.current) {
+      setSavedScanProgress(null);
 
-    setScanProgress({ current: 0, total: savedFolderPaths.length });
+      return;
+    }
+
+    setSavedScanProgress({ type: "library", current: 0, total: savedFolderPaths.length });
 
     (async () => {
       const done = new Set<string>();
@@ -303,7 +313,11 @@ function PlayerRoute() {
 
         if (!savedFolderPaths.includes(event.payload.path)) return;
         done.add(event.payload.path);
-        setScanProgress({ current: done.size, total: savedFolderPaths.length });
+        setSavedScanProgress({
+          type: "library",
+          current: done.size,
+          total: savedFolderPaths.length,
+        });
       })
         .then((unlisten) =>
           runScan().then((outcome) => {
@@ -326,14 +340,14 @@ function PlayerRoute() {
 
         if (settingsAtoms.notifyScanErrors.get())
           showErrorOnce("folders-scan", t("notification.scan.failed"), scanError.message);
-        setScanProgress(null);
+        setSavedScanProgress(null);
 
         return;
       }
 
       const trees = folderTreesFromScan(results ?? []);
       setFolderTrees(trees);
-      setScanProgress(null);
+      setSavedScanProgress(null);
       scannedFingerprint.current = print;
 
       if (cancelled) return;
@@ -400,18 +414,26 @@ function PlayerRoute() {
 
     if (folderTrees.some((f) => f.path === folder)) return;
 
-    setLoading(true);
-    setScanProgress({ current: 0, total: 0 });
-    const unlistenPromise = attempt(
+    setScanProgress({ type: "folder", path: folder, walked: 0 });
+    const [unlisten, listenError] = await attempt(
       listen<{
         path: string;
         current: number;
         total: number;
+        done?: boolean;
       }>("folder-scan-progress", (e) => {
-        if (e.payload.path !== folder) return;
-        setScanProgress({ current: e.payload.current, total: e.payload.total });
+        if (e.payload.path !== folder || e.payload.done || e.payload.total > 0) return;
+        setScanProgress((current) =>
+          current?.type === "folder" &&
+          current.path === folder &&
+          e.payload.current > current.walked
+            ? { ...current, walked: e.payload.current }
+            : current
+        );
       })
     );
+
+    if (listenError) reportBackgroundError("folders.scan.progress", listenError);
     await (async () => {
       const [results, scanError] = await attempt(
         invokeValidated<FolderScanResult[]>(
@@ -445,12 +467,8 @@ function PlayerRoute() {
           );
         setCachedFolderTrees(next.map((t) => ({ path: t.path, tree: t })));
       }
-    })().finally(async () => {
-      const [unlisten, error] = await unlistenPromise;
-      setLoading(false);
+    })().finally(() => {
       setScanProgress(null);
-
-      if (error) reportBackgroundError("folderscan.unlisten", error);
       unlisten?.();
     });
   }, [folderTrees, t, videoExtensions, scanThreads]);
@@ -498,6 +516,8 @@ function PlayerRoute() {
     setPendingDeleteCategory(id);
   }, []);
 
+  const activeScan = scanProgress ?? savedScanProgress;
+
   return (
     <DndContext
       sensors={drag.sensors}
@@ -507,7 +527,7 @@ function PlayerRoute() {
     >
       <div className="flex h-full w-full flex-col gap-1 overflow-y-auto">
         <section className="ui-toolbar ui-panel w-full">
-          <Button onClick={handleOpenFolder}>
+          <Button onClick={handleOpenFolder} disabled={activeScan !== null}>
             <ImageComponent src="/images/w2k_folder_closed.ico" alt="" className="size-4" />
             {t("player.route.add.folder")}
           </Button>{" "}
@@ -525,12 +545,14 @@ function PlayerRoute() {
           </Button>
         </section>
 
+        {activeScan !== null && <FolderScanProgress scan={activeScan} />}
+
         <section className="ui-toolbar ui-panel w-full">
           <FFMPEG status={ffmpegStatus} setStatus={setFfmpegOverride} />
           <span className="text-hint ml-auto text-xs">v9.0</span>
         </section>
 
-        {!loading && folderTrees.length > 0 && (
+        {scanProgress === null && folderTrees.length > 0 && (
           <section className="ui-panel p-1">
             <div className="flex items-center gap-1">
               <Search className="text-hint size-4" />
@@ -549,11 +571,7 @@ function PlayerRoute() {
           </section>
         )}
 
-        <QueuePanel
-          scan={loading ? scanProgress : null}
-          open={queueOpen}
-          onToggle={() => setQueueOpen((value) => !value)}
-        />
+        <QueuePanel open={queueOpen} onToggle={() => setQueueOpen((value) => !value)} />
 
         {categories.length > 0 && (
           <section className="windows95-text flex w-full flex-col gap-2">
@@ -574,7 +592,7 @@ function PlayerRoute() {
           </section>
         )}
 
-        {!loading && displayTrees.length > 0 && (
+        {scanProgress === null && displayTrees.length > 0 && (
           <section className="windows95-text flex w-full flex-col gap-2">
             {displayTrees.map((tree) => (
               <DraggableFolder
@@ -587,7 +605,7 @@ function PlayerRoute() {
           </section>
         )}
 
-        {!loading &&
+        {scanProgress === null &&
           filteredTorrents.map((item) => (
             <DraggableTorrent
               key={item.id}

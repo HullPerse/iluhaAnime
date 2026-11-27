@@ -58,14 +58,14 @@ export default function BrowseAnimeModal({
   const { data = [], isLoading } = useAppQuery("slow", {
     queryKey: [...queryKeys.anilistBrowse(activeTab), manga],
     queryFn: () =>
-      anilistApi.search({ mediaType: manga ? "MANGA" : "ANIME",
+      anilistApi.search({
+        mediaType: manga ? "MANGA" : "ANIME",
         query: null,
         sort: BROWSE_SORT_MAP[activeTab],
         adult: false,
         perPage: BROWSE_PAGE_SIZE,
         maxPages: 1,
       }),
-
   });
 
   useEffect(() => {
@@ -77,7 +77,8 @@ export default function BrowseAnimeModal({
         queryClient.prefetchQuery({
           queryKey: [...queryKeys.anilistBrowse(tab.id), manga],
           queryFn: () =>
-            anilistApi.search({ mediaType: manga ? "MANGA" : "ANIME",
+            anilistApi.search({
+              mediaType: manga ? "MANGA" : "ANIME",
               query: null,
               sort: BROWSE_SORT_MAP[tab.id],
               adult: false,

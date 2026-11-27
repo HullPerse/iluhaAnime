@@ -1,6 +1,144 @@
 {
   "changelog": [
     {
+      "version": "6.0.0",
+      "added": [
+        {
+          "key": "changelog.6_0_0.added.languages",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.added.smtc",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.added.audio",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.added.diagnostics",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.added.deband",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_8.added.player.loupe",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_8.added.manga.loupe_cursor",
+          "scope": "manga"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.6_0_0.changed.startup",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.changed.cache",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.changed.anilist",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.6_0_0.changed.packages",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.6_0_0.changed.tls",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.6_0_0.changed.torrent",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.6_0_0.changed.checks",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_4_8.changed.player.folder_scan",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_8.changed.collection.choice_packs",
+          "scope": "collection"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.6_0_0.fixed.security",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.connect",
+          "scope": "torrents"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.lifecycle",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.maintenance",
+          "scope": "app"
+        },
+        {
+          "key": "changelog.5_4_8.fixed.collection.album_refresh",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_4_8.fixed.collection.gift_counter",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_4_8.fixed.anilist.pack_preparation",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
+      "version": "5.4.8",
+      "added": [
+        {
+          "key": "changelog.5_4_8.added.player.loupe",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_8.added.manga.loupe_cursor",
+          "scope": "manga"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.5_4_8.changed.player.folder_scan",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.5_4_8.changed.collection.choice_packs",
+          "scope": "collection"
+        }
+      ],
+      "fixed": [
+        {
+          "key": "changelog.5_4_8.fixed.collection.album_refresh",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_4_8.fixed.collection.gift_counter",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.5_4_8.fixed.anilist.pack_preparation",
+          "scope": "anilist"
+        }
+      ]
+    },
+    {
       "version": "5.4.7",
       "added": [],
       "changed": [],

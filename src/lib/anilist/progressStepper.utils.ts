@@ -14,26 +14,29 @@ export function patchEntry(
   mediaId: number,
   patch: EntryPatch
 ): void {
-  queryClient.setQueryData((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old: unknown) => {
-    if (!old) return old;
-    const data = old as AnilistRouteData;
-    let touched = false;
-    const lists = data.lists.map((list) => {
-      const index = list.entries.findIndex((item) => item.media.id === mediaId);
+  queryClient.setQueryData(
+    anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData(),
+    (old: unknown) => {
+      if (!old) return old;
+      const data = old as AnilistRouteData;
+      let touched = false;
+      const lists = data.lists.map((list) => {
+        const index = list.entries.findIndex((item) => item.media.id === mediaId);
 
-      if (index === -1) return list;
-      const previous = list.entries[index];
+        if (index === -1) return list;
+        const previous = list.entries[index];
 
-      if (!previous) return list;
-      touched = true;
-      const entries = list.entries.slice();
-      entries[index] = { ...previous, ...patch };
+        if (!previous) return list;
+        touched = true;
+        const entries = list.entries.slice();
+        entries[index] = { ...previous, ...patch };
 
-      return { ...list, entries };
-    });
+        return { ...list, entries };
+      });
 
-    return touched ? { ...data, lists } : data;
-  });
+      return touched ? { ...data, lists } : data;
+    }
+  );
 }
 
 export function readLiveFields(
@@ -41,7 +44,9 @@ export function readLiveFields(
   mediaId: number,
   fallback: LiveEntryFields
 ): LiveEntryFields {
-  const data = queryClient.getQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()));
+  const data = queryClient.getQueryData<AnilistRouteData>(
+    anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()
+  );
 
   if (data) {
     for (const list of data.lists) {

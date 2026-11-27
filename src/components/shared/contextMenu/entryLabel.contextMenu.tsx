@@ -18,10 +18,7 @@ export function EntryLabel({
 }) {
   return (
     <>
-      <span
-        className="flex size-3.5 shrink-0 items-center justify-center"
-        aria-hidden="true"
-      >
+      <span className="flex size-3.5 shrink-0 items-center justify-center" aria-hidden="true">
         {checked === true && <span className="size-1.5 bg-current" />}
       </span>
       {color ? (
@@ -35,9 +32,7 @@ export function EntryLabel({
       ) : null}
       <span className="truncate">{text}</span>
       {hint && <span className="text-hint ml-auto pl-4 text-xs">{hint}</span>}
-      {chevron === true && (
-        <ChevronRight className="ml-auto size-3.5 shrink-0" />
-      )}
+      {chevron === true && <ChevronRight className="ml-auto size-3.5 shrink-0" />}
     </>
   );
 }

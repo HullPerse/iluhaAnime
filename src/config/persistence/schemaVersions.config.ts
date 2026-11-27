@@ -6,7 +6,7 @@ export const SCHEMA_VERSIONS = {
   notifications: 1,
   anilistFriends: 1,
   anilistReleaseObservations: 6,
-  player: 3,
+  player: 4,
   media: 1,
   categories: 1,
   coverCorrections: 3,

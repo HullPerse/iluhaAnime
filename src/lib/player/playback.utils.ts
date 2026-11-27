@@ -8,6 +8,7 @@ import {
   MpvInt64Schema,
   MpvStringSchema,
   PendingOpenSchema,
+  PlayerInstanceIdSchema,
   PlaylistEntryListSchema,
   VideoCardInfoSchema,
   WatchStateSchema,
@@ -122,6 +123,7 @@ export function transformOptions(settings: PlayerSettings): Record<string, unkno
   options.contrast = clamp(Math.round(settings.contrast - 100), -100, 100);
   options.saturation = clamp(Math.round(settings.saturation - 100), -100, 100);
   options.hue = clamp(Math.round(settings.hue), -100, 100);
+  options.deband = settings.deband;
 
   options["sub-font-size"] = Math.round((settings.subFontSize / 18) * 55);
   options["sub-font"] = settings.subFontFamily;
@@ -214,7 +216,7 @@ export function colorOptions(settings: PlayerSettings): Record<string, unknown> 
 }
 
 export function audioOptions(settings: PlayerSettings): Record<string, unknown> {
-  return { af: settings.loudnorm ? "loudnorm" : "" };
+  return { af: settings.loudnorm ? "loudnorm" : "", "audio-device": settings.audioDevice };
 }
 
 export async function applyBatchProperties(properties: Record<string, unknown>): Promise<void> {
@@ -252,12 +254,14 @@ export async function releasePlayerPrewarm(): Promise<boolean> {
   return invokeTyped<boolean>("player_release_prewarm");
 }
 
-export async function takePendingOpen(): Promise<PlayerOpenRequest | null> {
-  return invokeValidated<PlayerOpenRequest | null>("player_take_pending_open", PendingOpenSchema);
+export async function takePendingOpen(instanceId: number): Promise<PlayerOpenRequest | null> {
+  return invokeValidated<PlayerOpenRequest | null>("player_take_pending_open", PendingOpenSchema, {
+    instanceId,
+  });
 }
 
-export async function initPlayer(initialOptions: Record<string, unknown>): Promise<string> {
-  return invokeTyped<string>("player_init", { initialOptions });
+export async function initPlayer(initialOptions: Record<string, unknown>): Promise<number> {
+  return invokeValidated<number>("player_init", PlayerInstanceIdSchema, { initialOptions });
 }
 
 export async function destroyPlayer(): Promise<void> {

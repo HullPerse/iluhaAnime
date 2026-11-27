@@ -79,7 +79,7 @@ describe("settings/find search", () => {
 
   it("requires every token to match", () => {
     const one = searchSettingsFind("прокси");
-    const two = searchSettingsFind("прокси socks5");
+    const two = searchSettingsFind("прокси источников");
     expect(two.length).toBeGreaterThan(0);
     expect(two.length).toBeLessThanOrEqual(one.length);
     expect(searchSettingsFind("прокси несуществующееслово")).toEqual([]);

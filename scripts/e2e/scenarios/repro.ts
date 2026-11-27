@@ -40,7 +40,7 @@ async function zipEntryNames(path: string): Promise<string[]> {
     .filter((line) => line.length > 0);
 }
 
-function readZipEntry(path: string, entry: string): string {
+export function readZipEntry(path: string, entry: string): string {
   return powershell(
     `${openZip()} $zip=[System.IO.Compression.ZipFile]::OpenRead('${path}'); ` +
       `$item=$zip.GetEntry('${entry}'); ` +
@@ -120,7 +120,13 @@ export const repro: Scenario = {
     await step("bundle is well formed", async () => {
       const names = await zipEntryNames(OUT);
 
-      for (const expected of ["meta.json", "frontend.json", "storage.json", "README.txt"]) {
+      for (const expected of [
+        "meta.json",
+        "frontend.json",
+        "storage.json",
+        "player.json",
+        "README.txt",
+      ]) {
         if (!names.includes(expected)) {
           throw new Error(`missing ${expected}; got ${names.join(", ")}`);
         }
@@ -132,6 +138,26 @@ export const repro: Scenario = {
       const readme = readZipEntry(OUT, "README.txt");
 
       if (!readme.includes("Privacy")) throw new Error("README.txt has no privacy note");
+      const player: unknown = JSON.parse(readZipEntry(OUT, "player.json"));
+
+      if (typeof player !== "object" || player === null || !("active" in player)) {
+        throw new Error("Bundle lacks a player diagnostic snapshot");
+      }
+
+      const allowed = [
+        "active",
+        "preparation",
+        "startup",
+        "decoder",
+        "hwdec",
+        "videoOutput",
+        "gpuContext",
+        "audioOutput",
+      ];
+
+      if (Object.keys(player).sort().join(",") !== allowed.sort().join(",")) {
+        throw new Error("Player diagnostic report has an unexpected field");
+      }
     });
 
     await step("storage listing is a summary, not the data", async () => {

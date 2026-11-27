@@ -11,6 +11,12 @@ let reported = false;
 export function markStartup(label: string): void {
   if (typeof performance === "undefined") return;
   marks.push({ label, ms: Math.round(performance.now() * 10) / 10 });
+
+  if (typeof performance.mark === "function") {
+    const name = `startup:${label}`;
+    performance.clearMarks(name);
+    performance.mark(name);
+  }
 }
 
 function startupMarks(): StartupMark[] {

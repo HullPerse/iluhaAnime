@@ -150,6 +150,7 @@ const collection = {
   "collection.gift.receipt.removed": "Подарок убран из списка.",
   "collection.gift.receipt.error": "Не удалось подтвердить получение подарка.",
   "collection.gifts.error": "Не удалось загрузить подарки.",
+  "collection.gifts.empty": "Исходящих подарков пока нет.",
   "collection.gifts.active": "Действующих подарков: {{count}}",
   "collection.gifts.delete": "Удалить",
   "collection.gifts.delete.error": "Не удалось удалить подарок.",

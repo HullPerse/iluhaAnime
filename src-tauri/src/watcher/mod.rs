@@ -286,6 +286,80 @@ mod tests {
     use super::*;
     use std::path::Path;
 
+    #[tokio::test]
+    async fn sidecar_scan_tracks_nested_files_and_deletions() {
+        let root = std::env::temp_dir().join(format!("iluha-u4-sidecar-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("Subs")).unwrap();
+        let video = root.join("episode.mkv");
+        std::fs::write(&video, b"video").unwrap();
+        std::fs::write(root.join("episode.ass"), b"subtitle").unwrap();
+        std::fs::write(root.join("Subs/episode.en.srt"), b"subtitle").unwrap();
+        std::fs::write(root.join("other.ass"), b"unrelated").unwrap();
+        let path = video.to_string_lossy().into_owned();
+        let scan = |nested| {
+            crate::scan_sidecar_tracks(
+                path.clone(),
+                vec![],
+                vec!["ass".into(), "srt".into()],
+                nested,
+            )
+        };
+        assert_eq!(scan(false).await.unwrap().len(), 1);
+        assert_eq!(scan(true).await.unwrap().len(), 2);
+        std::fs::remove_file(root.join("episode.ass")).unwrap();
+        let remaining = scan(true).await.unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].name, "episode.en.srt");
+        std::fs::remove_file(video).unwrap();
+        assert!(scan(true).await.is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn native_watcher_reports_library_changes_and_stops() {
+        use std::sync::mpsc;
+        use std::time::Instant;
+
+        let root = std::env::temp_dir().join(format!("iluha-u4-watch-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let mut watcher = notify::recommended_watcher(move |event| {
+            let _ = tx.send(event);
+        })
+        .unwrap();
+        watcher.watch(&root, RecursiveMode::Recursive).unwrap();
+        let wait_for = |path: &Path, expected: ChangeKind| {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                let event = rx
+                    .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+                    .expect("native event before deadline")
+                    .expect("native watcher error");
+                if classify(event.kind) == Some(expected) && event.paths.iter().any(|p| p == path) {
+                    break;
+                }
+            }
+        };
+        let video = root.join("episode.mkv.part");
+        std::fs::write(&video, b"fixture").unwrap();
+        wait_for(&video, ChangeKind::Created);
+        let completed = root.join("episode.mkv");
+        std::fs::rename(&video, &completed).unwrap();
+        wait_for(&completed, ChangeKind::Modified);
+        let sidecar = root.join("episode.ass");
+        std::fs::write(&sidecar, b"subtitle").unwrap();
+        wait_for(&sidecar, ChangeKind::Created);
+        std::fs::remove_file(&sidecar).unwrap();
+        wait_for(&sidecar, ChangeKind::Removed);
+        watcher.unwatch(&root).unwrap();
+        while rx.try_recv().is_ok() {}
+        std::fs::write(root.join("after-stop.mkv"), b"ignored").unwrap();
+        assert!(rx.recv_timeout(Duration::from_millis(300)).is_err());
+        drop(watcher);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn classify_maps_create_remove_and_modify() {
         use notify::event::{CreateKind, ModifyKind, RemoveKind};

@@ -50,23 +50,28 @@ export const patchListEntry = (
   const clean = Object.fromEntries(
     Object.entries(patch).filter(([, value]) => value !== undefined)
   );
-  queryClient.setQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old) => {
-    if (!old) return old;
+  queryClient.setQueryData<AnilistRouteData>(
+    anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData(),
+    (old) => {
+      if (!old) return old;
 
-    return {
-      ...old,
-      lists: old.lists.map((list) => ({
-        ...list,
-        entries: list.entries.map((entry) =>
-          entry.media.id === mediaId ? { ...entry, ...clean } : entry
-        ),
-      })),
-    };
-  });
+      return {
+        ...old,
+        lists: old.lists.map((list) => ({
+          ...list,
+          entries: list.entries.map((entry) =>
+            entry.media.id === mediaId ? { ...entry, ...clean } : entry
+          ),
+        })),
+      };
+    }
+  );
 };
 
 export const readListStatus = (queryClient: QueryClient, mediaId: number): string | null => {
-  const data = queryClient.getQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()));
+  const data = queryClient.getQueryData<AnilistRouteData>(
+    anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()
+  );
 
   if (!data) return null;
 
@@ -110,30 +115,35 @@ export const insertListEntry = (
     hidden_from_status_lists: draft.hidden_from_status_lists ?? null,
     custom_lists: draft.custom_lists,
   };
-  queryClient.setQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old) => {
-    if (!old) return old;
+  queryClient.setQueryData<AnilistRouteData>(
+    anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData(),
+    (old) => {
+      if (!old) return old;
 
-    if (old.lists.some((list) => list.entries.some((item) => item.media.id === media.id))) {
-      return old;
+      if (old.lists.some((list) => list.entries.some((item) => item.media.id === media.id))) {
+        return old;
+      }
+
+      const target =
+        old.lists.find((list) => list.name === LIST_NAME_BY_STATUS[draft.list_status]) ??
+        old.lists.find((list) =>
+          list.entries.some((item) => item.list_status === draft.list_status)
+        );
+
+      if (!target) {
+        const name = LIST_NAME_BY_STATUS[draft.list_status] ?? draft.list_status;
+
+        return { ...old, lists: [...old.lists, { name, entries: [entry] }] };
+      }
+
+      return {
+        ...old,
+        lists: old.lists.map((list) =>
+          list === target ? { ...list, entries: [entry, ...list.entries] } : list
+        ),
+      };
     }
-
-    const target =
-      old.lists.find((list) => list.name === LIST_NAME_BY_STATUS[draft.list_status]) ??
-      old.lists.find((list) => list.entries.some((item) => item.list_status === draft.list_status));
-
-    if (!target) {
-      const name = LIST_NAME_BY_STATUS[draft.list_status] ?? draft.list_status;
-
-      return { ...old, lists: [...old.lists, { name, entries: [entry] }] };
-    }
-
-    return {
-      ...old,
-      lists: old.lists.map((list) =>
-        list === target ? { ...list, entries: [entry, ...list.entries] } : list
-      ),
-    };
-  });
+  );
 };
 
 export const reconcileSavedEntry = (
@@ -169,17 +179,20 @@ export const reconcileSavedEntry = (
 };
 
 export const removeListEntry = (queryClient: QueryClient, mediaId: number): void => {
-  queryClient.setQueryData<AnilistRouteData>((anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData()), (old) => {
-    if (!old) return old;
+  queryClient.setQueryData<AnilistRouteData>(
+    anilistMangaMode.get() ? [...queryKeys.anilistData(), "MANGA"] : queryKeys.anilistData(),
+    (old) => {
+      if (!old) return old;
 
-    return {
-      ...old,
-      lists: old.lists.map((list) => ({
-        ...list,
-        entries: list.entries.filter((entry) => entry.media.id !== mediaId),
-      })),
-    };
-  });
+      return {
+        ...old,
+        lists: old.lists.map((list) => ({
+          ...list,
+          entries: list.entries.filter((entry) => entry.media.id !== mediaId),
+        })),
+      };
+    }
+  );
 };
 
 export const textOrEmpty = (value: string | null | undefined): string => {

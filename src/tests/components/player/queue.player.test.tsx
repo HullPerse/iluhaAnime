@@ -47,8 +47,8 @@ afterEach(() => {
 });
 
 describe("QueuePanel", () => {
-  it("renders nothing without items or a scan", () => {
-    const { container } = render(<QueuePanel scan={null} open onToggle={() => undefined} />);
+  it("renders nothing without items", () => {
+    const { container } = render(<QueuePanel open onToggle={() => undefined} />);
 
     expect(container.querySelector("section")).toBeNull();
   });
@@ -57,7 +57,7 @@ describe("QueuePanel", () => {
     upscaleItems.set([item("job_1", "a.mkv")]);
     const onToggle = vi.fn();
 
-    render(<QueuePanel scan={null} open onToggle={onToggle} />);
+    render(<QueuePanel open onToggle={onToggle} />);
     fireEvent.click(queueToggle());
 
     expect(onToggle).toHaveBeenCalledTimes(1);
@@ -66,17 +66,11 @@ describe("QueuePanel", () => {
 
   it("keeps the body mounted only while the owner says it is open", () => {
     upscaleItems.set([item("job_1", "a.mkv")]);
-    const { rerender } = render(<QueuePanel scan={null} open onToggle={() => undefined} />);
+    const { rerender } = render(<QueuePanel open onToggle={() => undefined} />);
     expect(screen.getByText("a.mkv")).toBeTruthy();
 
-    rerender(<QueuePanel scan={null} open={false} onToggle={() => undefined} />);
+    rerender(<QueuePanel open={false} onToggle={() => undefined} />);
     expect(queueToggle().getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("a.mkv")).toBeNull();
-  });
-
-  it("still shows the panel while a scan runs with an empty queue", () => {
-    render(<QueuePanel scan={{ current: 1, total: 3 }} open onToggle={() => undefined} />);
-
-    expect(queueToggle()).toBeTruthy();
   });
 });

@@ -106,7 +106,10 @@ export default function StreamRoute() {
         onRefetch={() => results.refetch()}
         onFiltersOpen={() => setFiltersOpen(true)}
       />
-      <StreamSortBar onHistoryOpen={() => setHistoryOpen(true)} onRandom={sourceConfig.supportsRandom ? openRandom : undefined} />
+      <StreamSortBar
+        onHistoryOpen={() => setHistoryOpen(true)}
+        onRandom={sourceConfig.supportsRandom ? openRandom : undefined}
+      />
       {online ? (
         <StreamResults
           data={results.data}

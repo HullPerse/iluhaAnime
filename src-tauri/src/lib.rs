@@ -918,6 +918,9 @@ fn video_ext_list(extensions: Vec<String>) -> Vec<String> {
 }
 
 #[cfg(test)]
+mod http_matrix_tests;
+
+#[cfg(test)]
 mod scan_tests {
     use super::{is_disk_full_error, video_ext_list, walk_video_folder};
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -2221,6 +2224,15 @@ pub fn run() {
             // finish before the first window: both moved off the boot path.
             tauri::async_runtime::spawn_blocking(clean_stale_temp_files);
             startup::mark("temp_cleanup_scheduled");
+            if let Ok(cache) = app.path().app_cache_dir() {
+                tauri::async_runtime::spawn_blocking(move || {
+                    if let Err(error) =
+                        startup::cleanup_legacy_player_cache(&cache.join("player-thumbs"))
+                    {
+                        tracing::warn!("legacy player cache cleanup failed: {error}");
+                    }
+                });
+            }
 
             let app_data = app.path().app_data_dir().unwrap_or_else(|e| {
                 eprintln!("Failed to get app data dir: {e}");
@@ -2323,8 +2335,10 @@ pub fn run() {
             #[cfg(not(debug_assertions))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
-                if let Err(error) = app.deep_link().register(deeplink::SCHEME) {
-                    tracing::warn!("deep-link register failed: {error:#}");
+                if !startup::is_e2e_profile(&app.config().identifier) {
+                    if let Err(error) = app.deep_link().register(deeplink::SCHEME) {
+                        tracing::warn!("deep-link register failed: {error:#}");
+                    }
                 }
             }
             handle.manage(deeplink::PendingLinks(std::sync::Mutex::new(
@@ -2578,6 +2592,7 @@ pub fn run() {
             player::player_release_prewarm,
             player::player_take_pending_open,
             player::player_init,
+            player::player_diagnostics,
             player::player_restart,
             player::player_destroy,
             player::player_close_window,
@@ -2589,6 +2604,8 @@ pub fn run() {
             player::player_set_property,
             player::player_set_readahead,
             player::player_get_property,
+            player::player_loupe,
+            player::player_loupe_bounds,
             player::player_playlist_entries,
             player::player_set_video_margin_ratio,
             player::player_shader_path,

@@ -52,8 +52,7 @@ export function useReaderScrollFade(
     };
 
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-    const mutation =
-      typeof MutationObserver === "undefined" ? null : new MutationObserver(update);
+    const mutation = typeof MutationObserver === "undefined" ? null : new MutationObserver(update);
 
     update();
     resize?.observe(root);

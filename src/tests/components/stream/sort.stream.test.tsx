@@ -40,7 +40,7 @@ describe("StreamSortBar", () => {
     fireEvent.click(
       screen.getByRole("button", {
         name: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435",
-      }),
+      })
     );
     expect(streamFilters.get().sortBy).toBe("name");
     expect(streamFilters.get().sortType).toBe("asc");
@@ -54,43 +54,35 @@ describe("StreamSortBar", () => {
         screen.getByRole("button", {
           name: "\u0414\u0430\u043B\u0435\u0435",
         }) as HTMLButtonElement
-      ).disabled,
+      ).disabled
     ).toBe(true);
     expect(
       (
         screen.getByRole("button", {
           name: "\u041D\u0430\u0437\u0430\u0434",
         }) as HTMLButtonElement
-      ).disabled,
+      ).disabled
     ).toBe(true);
   });
 
   it("starts a picked key in its own direction", () => {
     render(<StreamSortBar onHistoryOpen={noop} />);
 
-    expect(
-      screen
-        .getByRole("button", { name: "Рейтинг" })
-        .getAttribute("aria-current"),
-    ).toBe("true");
+    expect(screen.getByRole("button", { name: "Рейтинг" }).getAttribute("aria-current")).toBe(
+      "true"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Название" }));
     expect(streamFilters.get().sortBy).toBe("name");
     expect(streamFilters.get().sortType).toBe("asc");
-    expect(
-      screen
-        .getByRole("button", { name: "Название" })
-        .getAttribute("aria-current"),
-    ).toBe("true");
+    expect(screen.getByRole("button", { name: "Название" }).getAttribute("aria-current")).toBe(
+      "true"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Популярное" }));
     expect(streamFilters.get().sortBy).toBe("views");
     expect(streamFilters.get().sortType).toBe("desc");
-    expect(
-      screen
-        .getByRole("button", { name: "Рейтинг" })
-        .getAttribute("aria-current"),
-    ).toBe(null);
+    expect(screen.getByRole("button", { name: "Рейтинг" }).getAttribute("aria-current")).toBe(null);
   });
 
   it("flips the direction when the active key is picked again", () => {

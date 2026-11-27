@@ -1,8 +1,9 @@
 # cargo-deny baseline for iluhaAnime (2026-11-01, deny 0.20.2).
 # Policy: vulnerabilities fail the gate; duplicate crate versions only warn
-# (png, reqwest, windows legs are pinned transitively and collapse via
+# (png and windows legs are pinned transitively and collapse via
 # upstream only); unknown registries and git sources fail (lockfile is
 # crates.io only). Licenses run on deny defaults; see DECISIONS.md entry.
+# reqwest left this list in U3: the app, the updater and librqbit now share 0.13.5.
 [advisories]
 db-urls = ["https://github.com/rustsec/advisory-db"]
 ignore = [

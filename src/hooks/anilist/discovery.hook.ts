@@ -47,7 +47,10 @@ async function fetchRandomMedia(
   filters: AniListFilters,
   seen: Set<number>
 ): Promise<AniMedia | null> {
-  const baseArgs = { mediaType: anilistMangaMode.get() ? "MANGA" as const : "ANIME" as const, ...searchFiltersToParams(filters, null, FILTER_RANDOM_PER_PAGE, 1) };
+  const baseArgs = {
+    mediaType: anilistMangaMode.get() ? ("MANGA" as const) : ("ANIME" as const),
+    ...searchFiltersToParams(filters, null, FILTER_RANDOM_PER_PAGE, 1),
+  };
   const [first, firstError] = await attempt(anilistApi.filterPage({ ...baseArgs, page: 1 }));
 
   if (firstError || !first || first.total === 0) return null;

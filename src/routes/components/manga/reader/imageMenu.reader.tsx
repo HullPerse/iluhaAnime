@@ -19,13 +19,7 @@ function release(shot: ScreenshotCapture) {
   });
 }
 
-export function ReaderImageMenu({
-  data,
-  children,
-}: {
-  data: Blob;
-  children: ReactNode;
-}) {
+export function ReaderImageMenu({ data, children }: { data: Blob; children: ReactNode }) {
   const { t } = useI18n();
   const [capture, setCapture] = useState<ScreenshotCapture | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,7 +75,7 @@ export function ReaderImageMenu({
             save({
               defaultPath: "manga-page.png",
               filters: [{ name: "PNG", extensions: ["png"] }],
-            }),
+            })
           );
 
           if (!path || pickerError) {
@@ -100,12 +94,12 @@ export function ReaderImageMenu({
               name: path.slice(split + 1).replace(/\.png$/i, ""),
               format: "png",
               crop: null,
-            }),
+            })
           );
           release(shot);
 
           if (saveError) throw saveError;
-        })(),
+        })()
       );
 
       if (active.current) {

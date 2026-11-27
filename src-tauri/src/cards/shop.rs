@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::config::{shop_pack, CARD_PACK_SIZE};
-use super::packs::spawn_prepare_packs;
+use super::packs::spawn_prepare_packs_with_proxy;
 use super::rng::seed_now;
 use crate::app_db::cards::{
     insert_ledger, insert_pack, spend_wallet, trim_ledger, wallet_balance, CardPackRow,
@@ -23,7 +23,11 @@ pub struct PurchaseResult {
 /// Buys one themed pack. The wallet and the ledger move in the same
 /// transaction as the pack insert.
 #[tauri::command]
-pub fn cards_buy_pack(app: AppHandle, pack_kind: String) -> Result<PurchaseResult, String> {
+pub fn cards_buy_pack(
+    app: AppHandle,
+    pack_kind: String,
+    proxy_url: Option<String>,
+) -> Result<PurchaseResult, String> {
     crate::cards::require_anilist_account(&app)?;
     let entry = shop_pack(pack_kind.trim()).ok_or("unknown shop pack")?;
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
@@ -67,7 +71,8 @@ pub fn cards_buy_pack(app: AppHandle, pack_kind: String) -> Result<PurchaseResul
         .map_err(|error| format!("commit card pack purchase: {error}"))?;
     let wallet = wallet_balance(&connection, LOCAL_USER_ID)?;
     drop(connection);
-    spawn_prepare_packs(app);
+    let proxy = crate::scrapers::clients::resolve_proxy(proxy_url, None);
+    spawn_prepare_packs_with_proxy(app, proxy);
     Ok(PurchaseResult {
         pack,
         price: entry.price,

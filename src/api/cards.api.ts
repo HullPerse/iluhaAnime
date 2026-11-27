@@ -256,8 +256,11 @@ export class CardsApi {
     return assertSchema(await this.cardsClient.cardsDust(input), DustResultSchema);
   }
 
-  async buyPack(packKind: string): Promise<PurchaseResult> {
-    return assertSchema(await this.cardsClient.cardsBuyPack({ packKind }), PurchaseResultSchema);
+  async buyPack(packKind: string, proxyUrl: string | null = null): Promise<PurchaseResult> {
+    return assertSchema(
+      await this.cardsClient.cardsBuyPack({ packKind, proxyUrl }),
+      PurchaseResultSchema
+    );
   }
 
   async starterStatus(proxy: string | null = null): Promise<StarterStatus> {

@@ -148,6 +148,24 @@ pub fn classify_request_error(error: &str) -> &'static str {
     }
 }
 
+pub fn classify_http_error(error: &reqwest::Error) -> &'static str {
+    use std::error::Error;
+
+    let mut chain = String::new();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        use std::fmt::Write;
+        let _ = write!(chain, " {cause}");
+        source = cause.source();
+    }
+    let stage = classify_request_error(&chain);
+    if stage == "request" && (error.is_timeout() || error.is_connect()) {
+        "tcp"
+    } else {
+        stage
+    }
+}
+
 fn target(url: &str) -> Result<(Url, String, u16), String> {
     let parsed = Url::parse(url).map_err(|error| format!("invalid url: {error}"))?;
     if !matches!(parsed.scheme(), "http" | "https") {
@@ -318,7 +336,7 @@ async fn probe_https(
                 remote_address: None,
                 latency_ms: started.elapsed().as_millis() as u64,
                 challenge: false,
-                error_stage: Some(classify_request_error(&message).to_string()),
+                error_stage: Some(classify_http_error(&error).to_string()),
                 error: Some(message),
             }
         }

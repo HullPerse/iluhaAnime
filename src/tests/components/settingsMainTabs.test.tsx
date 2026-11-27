@@ -15,7 +15,9 @@ it("keeps required tabs checked and disabled while optional tabs can be toggled"
   for (const key of ["app.search", "app.torrent", "app.player", "app.settings"] as const) {
     const checkbox = screen.getByRole("checkbox", { name: tr(key) });
     expect(checkbox.getAttribute("aria-checked")).toBe("true");
-    expect(checkbox.hasAttribute("disabled") || checkbox.getAttribute("aria-disabled") === "true").toBe(true);
+    expect(
+      checkbox.hasAttribute("disabled") || checkbox.getAttribute("aria-disabled") === "true"
+    ).toBe(true);
   }
 
   fireEvent.click(screen.getByRole("checkbox", { name: tr("app.anilist") }));

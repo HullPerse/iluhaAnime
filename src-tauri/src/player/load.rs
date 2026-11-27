@@ -5,6 +5,7 @@
 //! module owns that sequence; the window lifecycle only decides when to call it,
 //! and `commands.rs` keeps the per-window command surface.
 
+use crate::command_ctx::CommandTrace;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager, WebviewWindow};
@@ -26,11 +27,13 @@ pub(crate) fn load_queue(
     resume: Option<f64>,
     start_index: Option<usize>,
 ) -> Result<(), String> {
+    let mut trace = CommandTrace::start("player_local_load");
     if files.is_empty() {
         return Err("no file to play".to_string());
     }
     let backend = core(app);
     watch::save_current(app);
+    trace.mark("watch_saved");
     backend.set_property("http-header-fields", &json!(""), window)?;
     backend.set_property("http-proxy", &json!(""), window)?;
     app.state::<PlayerHost>().reset_stream_options();
@@ -68,7 +71,11 @@ pub(crate) fn load_queue(
         }
     }
     tracing::debug!("load_queue: start file {start_file} (index {start})");
-    match backend.command("loadfile", &args, window) {
+    trace.mark("before_loadfile");
+    let result = backend.command("loadfile", &args, window);
+    trace.mark("loadfile_returned");
+    trace.finish(&result);
+    match result {
         Ok(()) => tracing::debug!("load_queue: loadfile ok"),
         Err(error) => {
             tracing::warn!("load_queue: loadfile failed: {error}");

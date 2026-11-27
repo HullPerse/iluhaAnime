@@ -7,6 +7,7 @@ import { computeVideoMargins, marginOptions } from "@/lib/core/player/margins.ut
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 import { translate } from "@/lib/locale/i18n.utils";
+import { measurePlayerStartup } from "@/lib/player/startup.utils";
 import {
   applyBatchProperties,
   applyPlayerProfile,
@@ -24,14 +25,14 @@ import { addNotification } from "@/store/notification.store";
 import type { ScheduledTask } from "@/types/core/shared";
 import type { PlaylistWatch, WatchState } from "@/types/player/videoPlayer";
 
-let sessionStart: Promise<void> | null = null;
+let sessionStart: Promise<number> | null = null;
 let destroyTask: ScheduledTask | null = null;
 
-function startPlayerSession(initialOptions: Record<string, unknown>): Promise<void> {
+function startPlayerSession(initialOptions: Record<string, unknown>): Promise<number> {
   if (sessionStart !== null) return sessionStart;
 
   const started = (async () => {
-    await initPlayer(initialOptions);
+    const instanceId = await measurePlayerStartup("native-init", () => initPlayer(initialOptions));
     const store = getPlayerSnapshot();
     const batchProps: Record<string, unknown> = {
       hwdec: store.hwdec,
@@ -44,12 +45,14 @@ function startPlayerSession(initialOptions: Record<string, unknown>): Promise<vo
     batchProps["keep-open"] = eofProps.keepOpen;
     batchProps["loop-file"] = eofProps.loopFile;
     batchProps["loop-playlist"] = eofProps.loopPlaylist;
-    await applyBatchProperties(batchProps).catch((error: unknown) =>
-      reportBackgroundError("player.init.batch", error)
+    await measurePlayerStartup("settings", () => applyBatchProperties(batchProps)).catch(
+      (error: unknown) => reportBackgroundError("player.init.batch", error)
     );
-    await applyPlayerProfile(store.profile).catch((error: unknown) =>
-      reportBackgroundError("player.init.profile", error)
+    await measurePlayerStartup("profile", () => applyPlayerProfile(store.profile)).catch(
+      (error: unknown) => reportBackgroundError("player.init.profile", error)
     );
+
+    return instanceId;
   })();
 
   sessionStart = started;
@@ -91,7 +94,7 @@ export function usePlayerSession({
         window.innerHeight || 1,
         field ?? undefined
       );
-      await startPlayerSession({
+      const instanceId = await startPlayerSession({
         ...buildInitialOptions({
           volume: store.volume,
           hwdec: store.hwdec,
@@ -102,7 +105,11 @@ export function usePlayerSession({
 
       if (disposed) return;
       syncMarginsRef.current();
-      const request = await takePendingOpen();
+      const request = await measurePlayerStartup(
+        "pending-request",
+        () => takePendingOpen(instanceId),
+        () => !disposed
+      );
 
       if (disposed) return;
 
@@ -116,7 +123,11 @@ export function usePlayerSession({
         resumeRef.current = request.resume;
         setLiveWatch(request.watch ?? null);
         setLoadingFile(true);
-        await loadQueue(request.files, request.resume, request.startIndex, request.requestId);
+        await measurePlayerStartup(
+          "local-load-submit",
+          () => loadQueue(request.files, request.resume, request.startIndex, request.requestId),
+          () => !disposed
+        );
       }
     };
 

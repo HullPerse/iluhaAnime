@@ -14,6 +14,32 @@ use tauri::Manager;
 static START: OnceLock<Instant> = OnceLock::new();
 static MARKS: OnceLock<Mutex<Vec<(&'static str, f64)>>> = OnceLock::new();
 
+/// The harness uses this identifier in both debug and optimized builds.
+pub fn is_e2e_profile(identifier: &str) -> bool {
+    identifier == "iluhaAnime.e2e"
+}
+
+pub fn cleanup_legacy_player_cache(cache_root: &std::path::Path) -> std::io::Result<()> {
+    let root = match std::fs::canonicalize(cache_root) {
+        Ok(root) => root,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    let target = root.join("player-hover");
+    let resolved = match std::fs::canonicalize(&target) {
+        Ok(resolved) => resolved,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    if resolved != target {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "legacy player cache resolves outside its expected directory",
+        ));
+    }
+    std::fs::remove_dir_all(target)
+}
+
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct FrontendMark {
     pub label: String,
@@ -106,6 +132,61 @@ pub fn report_startup(app: tauri::AppHandle, marks: Vec<FrontendMark>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn cache_fixture(label: &str) -> std::path::PathBuf {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "iluha-cache-{}-{label}-{unique}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).expect("cache fixture");
+        root
+    }
+
+    #[test]
+    fn legacy_cleanup_is_repeatable_and_preserves_other_cache_entries() {
+        let root = cache_fixture("legacy");
+        cleanup_legacy_player_cache(&root.join("absent")).unwrap();
+        cleanup_legacy_player_cache(&root).unwrap();
+        std::fs::create_dir_all(root.join("player-hover/nested")).unwrap();
+        std::fs::write(root.join("player-hover/nested/frame.jpg"), b"old frame").unwrap();
+        std::fs::write(root.join("current.jpg"), b"keep").unwrap();
+        cleanup_legacy_player_cache(&root).unwrap();
+        cleanup_legacy_player_cache(&root).unwrap();
+        assert!(!root.join("player-hover").exists());
+        assert_eq!(std::fs::read(root.join("current.jpg")).unwrap(), b"keep");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn legacy_cleanup_reports_a_locked_file_and_can_retry_on_the_next_start() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let root = cache_fixture("locked");
+        std::fs::create_dir(root.join("player-hover")).unwrap();
+        let path = root.join("player-hover/frame.jpg");
+        let held = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .share_mode(0)
+            .open(path)
+            .unwrap();
+        assert!(cleanup_legacy_player_cache(&root).is_err());
+        drop(held);
+        cleanup_legacy_player_cache(&root).unwrap();
+        assert!(!root.join("player-hover").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn only_the_exact_harness_identifier_is_an_e2e_profile() {
+        assert!(is_e2e_profile("iluhaAnime.e2e"));
+        assert!(!is_e2e_profile("iluhaAnime"));
+        assert!(!is_e2e_profile("iluhaAnime.e2e-other"));
+    }
 
     #[test]
     fn marks_are_recorded_in_call_order() {

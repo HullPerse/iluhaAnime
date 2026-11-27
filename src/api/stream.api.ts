@@ -101,7 +101,11 @@ export class StreamApi {
       page: number;
       lastPage?: number;
       total?: number;
-    }>(this.command("search", source), { input: { query, page: page ?? 1, ...filterArgs } }, source);
+    }>(
+      this.command("search", source),
+      { input: { query, page: page ?? 1, ...filterArgs } },
+      source
+    );
 
     return {
       items: raw.items.map(normalizeAnime),

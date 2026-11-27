@@ -306,6 +306,7 @@ describe("CardsApi", () => {
       variant: "foil",
     });
     await api.buyPack("character");
+    await api.buyPack("character", "http://127.0.0.1:7890");
     await api.grantStarter(7, null);
     await api.createGift({ kind: "character", entityId: 45627 });
     await api.claimGift({
@@ -339,6 +340,10 @@ describe("CardsApi", () => {
         },
       },
       { command: "cards_buy_pack", args: { packKind: "character" } },
+      {
+        command: "cards_buy_pack",
+        args: { packKind: "character", proxyUrl: "http://127.0.0.1:7890" },
+      },
       { command: "cards_grant_starter", args: { userId: 7 } },
       {
         command: "cards_create_gift",

@@ -44,14 +44,21 @@ interface PlayerMeasurement {
 const TRACK_SCAN_LIMIT = 32;
 
 function normalizePath(value: string | null): string {
-  return (value ?? "").replace(/^\\\\\?\\/, "").replaceAll("\\", "/").toLowerCase();
+  return (value ?? "")
+    .replace(/^\\\\\?\\/, "")
+    .replaceAll("\\", "/")
+    .toLowerCase();
 }
 
 function samePath(value: string | null, expected: string): boolean {
   return normalizePath(value) === normalizePath(expected);
 }
 
-async function prop<T>(page: Page, name: string, format: "double" | "flag" | "int64" | "string"): Promise<T | null> {
+async function prop<T>(
+  page: Page,
+  name: string,
+  format: "double" | "flag" | "int64" | "string"
+): Promise<T | null> {
   try {
     return await invoke<T | null>(page, "player_get_property", { name, format });
   } catch {
@@ -440,13 +447,16 @@ export const playerMedia: Scenario = {
         await startPlayback(opened.page);
         const before = await timePos(opened.page);
 
-        await invoke(opened.page, "player_restart", { initialOptions: { volume: 55 } });
+        const instanceId = await invoke<number>(opened.page, "player_restart", {
+          initialOptions: { volume: 55 },
+        });
         await waitFor(
           () => prop<number>(opened.page, "volume", "double"),
           (value) => Math.abs(value - 55) < 0.5,
           "volume after restart",
           60_000
         );
+        await invoke(opened.page, "player_take_pending_open", { instanceId });
         const idlePath = await prop<string>(opened.page, "path", "string");
 
         if (idlePath !== null && idlePath !== "") {
@@ -516,7 +526,10 @@ export const playerMedia: Scenario = {
       });
     } finally {
       await closePlayer(browser).catch(() => undefined);
-      writeFileSync(join(outDir, "player-media.json"), JSON.stringify({ measurements, samples }, null, 2));
+      writeFileSync(
+        join(outDir, "player-media.json"),
+        JSON.stringify({ measurements, samples }, null, 2)
+      );
       writeFileSync(join(outDir, "player-media.md"), report(measurements, samples));
       await clickTabByAnyOf(page, TAB.search).catch(() => undefined);
     }

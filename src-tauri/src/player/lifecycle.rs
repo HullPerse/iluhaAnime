@@ -8,8 +8,7 @@
 
 use serde_json::{json, Value};
 use tauri::{
-    AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
-    WindowEvent,
+    AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 use tauri_plugin_libmpv::{MpvConfig, MpvExt};
 
@@ -21,6 +20,7 @@ use super::state::{PlayerHost, PlayerOpenRequest, PlaylistWatch, StreamOpen};
 use super::watch;
 use super::{PLAYER_ROUTE, PLAYER_WINDOW_LABEL};
 use crate::app_db;
+use crate::command_ctx::CommandTrace;
 use crate::{WINDOW_CHROME_KEY, WINDOW_CHROME_NAMESPACE};
 
 fn clear_player_presence(app: &AppHandle) {
@@ -31,7 +31,20 @@ fn clear_player_presence(app: &AppHandle) {
 
 fn install_close_handler(window: &WebviewWindow) {
     let app = window.app_handle().clone();
+    let generation = app.state::<PlayerHost>().readiness.generation();
     window.on_window_event(move |event| {
+        if app.state::<PlayerHost>().readiness.generation() != generation {
+            return;
+        }
+        #[cfg(windows)]
+        if matches!(
+            event,
+            WindowEvent::Focused(false)
+                | WindowEvent::CloseRequested { .. }
+                | WindowEvent::Destroyed
+        ) {
+            super::loupe::native::clear();
+        }
         if let WindowEvent::CloseRequested { api, .. } = event {
             let host = app.state::<PlayerHost>();
             if host.close_is_finished() {
@@ -50,9 +63,10 @@ fn install_close_handler(window: &WebviewWindow) {
                 });
             }
         }
-        if matches!(event, WindowEvent::Destroyed)
-            && app.get_webview_window(PLAYER_WINDOW_LABEL).is_none()
-        {
+        if matches!(event, WindowEvent::Destroyed) {
+            app.state::<PlayerHost>()
+                .readiness
+                .close_generation(generation);
             clear_player_presence(&app);
             let id = app
                 .state::<PlayerHost>()
@@ -84,13 +98,16 @@ fn cached_player_decorations(app: &AppHandle) -> bool {
         .unwrap_or(true)
 }
 
-/// Drops the legacy hover-frame/sprite cache. The spritemap pipeline was
-/// removed, so frames already on disk would otherwise sit there forever.
-fn drop_legacy_hover_cache(app: &AppHandle) {
-    let dir = crate::video::thumbnail_cache_dir(app).join("player-hover");
-    if dir.is_dir() {
-        let _ = std::fs::remove_dir_all(&dir);
+async fn discard_orphaned_instance(app: &AppHandle) -> Result<(), String> {
+    let host = app.state::<PlayerHost>();
+    let _operation = host.operation.lock().await;
+    if host.is_active()
+        || host.instance_id.load(std::sync::atomic::Ordering::Acquire) != 0
+        || app.mpv().instance_id(PLAYER_WINDOW_LABEL).is_some()
+    {
+        destroy_instance(app.clone(), PLAYER_WINDOW_LABEL.into()).await?;
     }
+    Ok(())
 }
 
 #[tauri::command]
@@ -102,11 +119,12 @@ pub async fn player_open(
     watch: Option<PlaylistWatch>,
     initial_watch: Option<watch::WatchState>,
 ) -> Result<(), String> {
+    let mut trace = CommandTrace::start("player_open_window");
     let window_owner = app.clone();
     let window_host = window_owner.state::<PlayerHost>();
     let _window_operation = window_host.window_operation.lock().await;
+    trace.mark("window_lock");
     window_host.reset_close();
-    drop_legacy_hover_cache(&app);
     if files.is_empty() || files.iter().any(std::string::String::is_empty) {
         return Err("player_open received an empty file path".to_string());
     }
@@ -134,7 +152,7 @@ pub async fn player_open(
             let _ = window.set_focus();
         }
     };
-    if host.is_active() {
+    if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
         host.set_pending_open(Some(request.clone()));
         raise(&app);
         app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
@@ -146,15 +164,10 @@ pub async fn player_open(
         return Ok(());
     }
 
-    if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
-        host.set_pending_open(Some(request.clone()));
-        raise(&app);
-        app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
-            .map_err(|error| error.to_string())?;
-        return Ok(());
-    }
-
+    discard_orphaned_instance(&app).await?;
     app.state::<PlayerHost>().set_pending_open(Some(request));
+    let generation = window_host.readiness.start();
+    trace.mark("before_window_build");
 
     let window = match WebviewWindowBuilder::new(
         &app,
@@ -169,12 +182,18 @@ pub async fn player_open(
     .center()
     .build()
     {
-        Ok(window) => window,
+        Ok(window) => {
+            trace.mark("window_built");
+            trace.finish(&Ok::<(), String>(()));
+            window
+        }
         Err(error) => {
+            window_host.readiness.fail(generation);
             app.state::<PlayerHost>().set_pending_open(None);
             return Err(format!("create player window: {error}"));
         }
     };
+    window_host.readiness.window_created(generation);
     install_close_handler(&window);
     let _ = window.set_focus();
     Ok(())
@@ -198,7 +217,6 @@ pub async fn player_open_stream(
     let window_host = window_owner.state::<PlayerHost>();
     let _window_operation = window_host.window_operation.lock().await;
     window_host.reset_close();
-    drop_legacy_hover_cache(&app);
 
     let request = PlayerOpenRequest {
         request_id: window_host
@@ -241,7 +259,9 @@ pub async fn player_open_stream(
         .await;
     }
 
+    discard_orphaned_instance(&app).await?;
     app.state::<PlayerHost>().set_pending_open(Some(request));
+    let generation = window_host.readiness.start();
 
     let window = match WebviewWindowBuilder::new(
         &app,
@@ -258,23 +278,37 @@ pub async fn player_open_stream(
     {
         Ok(window) => window,
         Err(error) => {
+            window_host.readiness.fail(generation);
             app.state::<PlayerHost>().set_pending_open(None);
             return Err(format!("create player window: {error}"));
         }
     };
+    window_host.readiness.window_created(generation);
     install_close_handler(&window);
     let _ = window.set_focus();
     Ok(())
 }
 
 #[tauri::command]
-pub fn player_take_pending_open(host: State<'_, PlayerHost>) -> Option<PlayerOpenRequest> {
+pub async fn player_take_pending_open(
+    app: AppHandle,
+    window: WebviewWindow,
+    instance_id: u64,
+) -> Result<Option<PlayerOpenRequest>, String> {
+    let host = app.state::<PlayerHost>();
+    let _operation = host.operation.lock().await;
+    if window.label() != PLAYER_WINDOW_LABEL
+        || host.instance_id.load(std::sync::atomic::Ordering::Acquire) != instance_id
+        || !host.readiness.complete(instance_id)
+    {
+        return Err("player preparation belongs to an obsolete instance".into());
+    }
     let request = host.take_pending_open();
     tracing::debug!(
         "player_take_pending_open: {:?}",
         request.as_ref().map(|request| request.files.len())
     );
-    request
+    Ok(request)
 }
 
 #[tauri::command]
@@ -282,17 +316,43 @@ pub async fn player_init(
     app: AppHandle,
     window: WebviewWindow,
     initial_options: Value,
-) -> Result<String, String> {
+) -> Result<u64, String> {
+    let mut trace = CommandTrace::start("player_init");
     let host = app.state::<PlayerHost>();
     let _operation = host.operation.lock().await;
-    initialize_player(app.clone(), window, initial_options).await
+    #[cfg(windows)]
+    {
+        let current = app
+            .get_webview_window(window.label())
+            .ok_or("player window was closed")?;
+        if window.hwnd().map_err(|error| error.to_string())?
+            != current.hwnd().map_err(|error| error.to_string())?
+        {
+            return Err("player initialization belongs to a closed window".into());
+        }
+    }
+    let generation = if window.label() == PLAYER_WINDOW_LABEL {
+        host.readiness.prepare_instance()
+    } else {
+        host.readiness.generation()
+    };
+    trace.mark("operation_lock");
+    let player_window = window.label() == PLAYER_WINDOW_LABEL;
+    let result = initialize_player(app.clone(), window, initial_options, generation).await;
+    if player_window && result.is_err() {
+        host.readiness.fail(generation);
+    }
+    trace.mark("initialized");
+    trace.finish(&result);
+    result
 }
 
 async fn initialize_player(
     app: AppHandle,
     window: WebviewWindow,
     initial_options: Value,
-) -> Result<String, String> {
+    generation: u64,
+) -> Result<u64, String> {
     let label = window.label().to_string();
     let config: MpvConfig = serde_json::from_value(json!({
         "initialOptions": with_structural_options(sanitize_initial_options(initial_options)),
@@ -323,15 +383,27 @@ async fn initialize_player(
         Err(error) => return Err(format!("player init task failed: {error}")),
     }
 
+    if label == PLAYER_WINDOW_LABEL && app.get_webview_window(&label).is_none() {
+        destroy_instance(app.clone(), label).await?;
+        return Err("player window was closed during initialization".into());
+    }
+
+    let instance_id = app
+        .mpv()
+        .instance_id(&label)
+        .filter(|id| *id != 0)
+        .ok_or("player instance was disposed during initialization")?;
     if label == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
-        host.instance_id.store(
-            app.mpv().instance_id(&label).unwrap_or(0),
-            std::sync::atomic::Ordering::Release,
-        );
+        host.instance_id
+            .store(instance_id, std::sync::atomic::Ordering::Release);
         // A fresh instance has none of the previous stream's options.
         host.reset_stream_options();
         host.set_active(true);
+        if !host.readiness.initialized(generation, instance_id) {
+            destroy_instance(app.clone(), label).await?;
+            return Err("player window was closed during initialization".into());
+        }
         // A stream opened before mpv was ready is waiting in the pending
         // request. Load it now and keep the request, so the window can still
         // take it and restore the session identity.
@@ -346,7 +418,7 @@ async fn initialize_player(
             }
         }
     }
-    Ok(label)
+    Ok(instance_id)
 }
 
 #[tauri::command]
@@ -378,7 +450,7 @@ pub async fn player_restart(
     app: AppHandle,
     window: WebviewWindow,
     initial_options: Value,
-) -> Result<String, String> {
+) -> Result<u64, String> {
     let host = app.state::<PlayerHost>();
     let _operation = host.operation.lock().await;
     let label = window.label().to_string();
@@ -386,12 +458,20 @@ pub async fn player_restart(
     if let Err(error) = destroy_instance(app.clone(), label).await {
         tracing::debug!("player_restart: previous instance was already gone: {error}");
     }
-    initialize_player(app.clone(), window, initial_options).await
+    let generation = host.readiness.restart();
+    let result = initialize_player(app.clone(), window, initial_options, generation).await;
+    if result.is_err() {
+        host.readiness.fail(generation);
+    }
+    result
 }
 
 async fn destroy_instance(app: AppHandle, label: String) -> Result<(), String> {
+    #[cfg(windows)]
+    super::smtc::close(&app);
     if label == PLAYER_WINDOW_LABEL {
         let host = app.state::<PlayerHost>();
+        host.readiness.close();
         host.instance_id
             .store(0, std::sync::atomic::Ordering::Release);
         host.set_active(false);
@@ -431,14 +511,18 @@ pub async fn player_close_window(app: AppHandle, window: WebviewWindow) -> Resul
 
 /// Build the hidden player window ahead of the click that needs it.
 ///
-/// The app warms it once at startup, but the window is gone after the user
-/// closes the player, and the next stream would then pay for a cold `WebView` and
-/// a cold mpv. The catalog calls this when a title modal opens, so that window
-/// is back before the episode click arrives. Calling it again while the window
-/// exists is a no-op.
+/// Completes after the window's options-bearing frontend initialization, not
+/// just window creation. Concurrent callers wait for the same preparation.
 #[tauri::command]
 pub async fn player_prewarm(app: AppHandle) -> Result<(), String> {
-    prewarm_player(app).await
+    let generation = prewarm_player(app.clone()).await?;
+    let host = app.state::<PlayerHost>();
+    tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        host.readiness.wait(generation),
+    )
+    .await
+    .map_err(|_| "player preparation timed out".to_string())?
 }
 
 /// Whether the hidden player window may be destroyed to give its memory back.
@@ -485,16 +569,18 @@ pub async fn player_release_prewarm(app: AppHandle) -> Result<bool, String> {
     Ok(true)
 }
 
-pub(crate) async fn prewarm_player(app: AppHandle) -> Result<(), String> {
+pub(crate) async fn prewarm_player(app: AppHandle) -> Result<u64, String> {
     let window_owner = app.clone();
     let host = window_owner.state::<PlayerHost>();
     let _window_operation = host.window_operation.lock().await;
     let label = PLAYER_WINDOW_LABEL.to_string();
 
     if app.get_webview_window(&label).is_some() {
-        return Ok(());
+        return Ok(host.readiness.generation());
     }
+    discard_orphaned_instance(&app).await?;
     host.reset_close();
+    let generation = host.readiness.start();
 
     let window = match WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(PLAYER_ROUTE.into()))
         .title("iluhaAnime")
@@ -508,9 +594,13 @@ pub(crate) async fn prewarm_player(app: AppHandle) -> Result<(), String> {
         .build()
     {
         Ok(window) => window,
-        Err(error) => return Err(format!("prewarm create window: {error}")),
+        Err(error) => {
+            host.readiness.fail(generation);
+            return Err(format!("prewarm create window: {error}"));
+        }
     };
 
+    host.readiness.window_created(generation);
     install_close_handler(&window);
 
     // The window's own `player_init` creates mpv with the stored volume,
@@ -519,8 +609,8 @@ pub(crate) async fn prewarm_player(app: AppHandle) -> Result<(), String> {
     // the empty one played at mpv's default 100% while the UI showed the
     // stored value. The hidden window still loads the player route, so mpv is
     // warmed by the frontend init that carries the real options.
-    tracing::info!("player prewarm complete");
-    Ok(())
+    tracing::debug!("player prewarm window created");
+    Ok(generation)
 }
 
 #[cfg(test)]

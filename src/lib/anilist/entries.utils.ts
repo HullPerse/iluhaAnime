@@ -102,7 +102,13 @@ function matchesLocalFilters(entry: AniListEntry, filters: AniListFilters): bool
 
   if (!inRange(entryYear(entry), filters.year)) return false;
 
-  if (!inRange(media.media_type === "MANGA" ? (media.chapters ?? null) : media.episodes, filters.episodes)) return false;
+  if (
+    !inRange(
+      media.media_type === "MANGA" ? (media.chapters ?? null) : media.episodes,
+      filters.episodes
+    )
+  )
+    return false;
 
   if (!inRange(media.score, filters.score)) return false;
 

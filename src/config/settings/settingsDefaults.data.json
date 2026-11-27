@@ -168,6 +168,7 @@
     "mangaReaderGap": 16,
     "mangaLoupeSize": 240,
     "mangaLoupeZoom": 2,
+    "mangaLoupeHideCursor": true,
     "mangaAutoSpeed": 1,
     "mangaAutoInterval": 10,
     "mangaAutoPause": 3,

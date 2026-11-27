@@ -1,7 +1,15 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cdpPort, connectCdp, createConsoleCollector, mainPage, waitForReady } from "./cdp";
+import {
+  cdpPort,
+  connectCdp,
+  createConsoleCollector,
+  mainPage,
+  waitForReady,
+  invoke,
+  E2E_IDENTIFIER,
+} from "./cdp";
 import {
   createStepRunner,
   ensureCdpFree,
@@ -9,6 +17,7 @@ import {
   killE2eProcesses,
   stopProcessTree,
   launchTauri,
+  launchOptimizedTauri,
   outRoot,
   stopVite,
   summarizeIpcMetrics,
@@ -104,13 +113,15 @@ async function main(): Promise<number> {
   console.log(`[e2e] scenarios: ${scenarios.map((scenario) => scenario.name).join(", ")}`);
   console.log(`[e2e] report: ${outDir}`);
 
-  const vite = await ensureVite();
+  const optimized = process.argv.includes("--optimized");
+  console.log(`[e2e] profile: ${optimized ? "release-isolated" : "dev-isolated"}`);
+  const vite = optimized ? null : await ensureVite();
   warnAboutForeignApp();
   console.log(`[e2e] cdp port: ${cdpPort()}`);
   await ensureCdpFree();
   wipeData();
 
-  const child = launchTauri();
+  const child = optimized ? launchOptimizedTauri() : launchTauri();
   const collector = createConsoleCollector();
   const appLog: ChildLog = { text: "" };
   pipe(child, appLog);
@@ -131,9 +142,18 @@ async function main(): Promise<number> {
   let browser;
 
   try {
-    console.log("[e2e] launching app (first run builds the e2e target dir)");
+    console.log(
+      optimized
+        ? "[e2e] connecting to the isolated optimized app"
+        : "[e2e] launching app (first run builds the e2e target dir)"
+    );
     browser = await connectCdp(undefined, () => child.exitCode);
     const page = await mainPage(browser);
+
+    if ((await invoke<string>(page, "plugin:app|identifier")) !== E2E_IDENTIFIER) {
+      throw new Error("Refusing a non-E2E app identifier");
+    }
+
     collector.attach(page);
     await waitForReady(page);
     await page.reload();

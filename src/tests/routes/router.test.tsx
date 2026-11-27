@@ -143,14 +143,14 @@ describe("router", () => {
   });
 
   it("redirects a settings-disabled tab to the first enabled tab", async () => {
-    patchSettings({ torrentTabEnabled: false });
+    patchSettings({ anilistTabEnabled: false });
 
-    renderAt("/torrent");
+    renderAt("/anilist");
 
     await waitFor(() => {
       expect(screen.getByTestId("route-search")).toBeTruthy();
     });
-    expect(screen.queryByTestId("route-torrent")).toBeNull();
+    expect(screen.queryByTestId("route-anilist")).toBeNull();
   });
 
   it("renders the game surface once the secret tab is unlocked", async () => {

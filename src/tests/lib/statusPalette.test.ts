@@ -9,7 +9,13 @@ describe("status presentation", () => {
     expect(getStatusColor("WATCHING")).toBe(getStatusColor("CURRENT"));
   });
   it("matches manga defaults to AniList without changing custom colors", () => {
-    for (const [color, status] of [["highlight", "CURRENT"], ["success", "COMPLETED"], ["text", "PLANNING"], ["warning", "PAUSED"], ["destructive", "DROPPED"]] as const) {
+    for (const [color, status] of [
+      ["highlight", "CURRENT"],
+      ["success", "COMPLETED"],
+      ["text", "PLANNING"],
+      ["warning", "PAUSED"],
+      ["destructive", "DROPPED"],
+    ] as const) {
       expect(mangaStatusColor(color)).toBe(getStatusColor(status));
     }
 

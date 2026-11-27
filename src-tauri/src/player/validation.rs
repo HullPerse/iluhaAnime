@@ -62,6 +62,15 @@ pub fn command(name: &str, args: &[Value]) -> Result<(), String> {
 }
 
 pub fn property(name: &str, value: &Value) -> Result<(), String> {
+    if name == "deband" {
+        return if value.is_boolean() { Ok(()) } else { Err("invalid deband flag".into()) };
+    }
+    if name == "audio-device" {
+        return match value.as_str() {
+            Some(device) if !device.is_empty() && device.len() <= 1024 && !device.chars().any(char::is_control) => Ok(()),
+            _ => Err("invalid audio device".into()),
+        };
+    }
     if ![
         "hwdec",
         "volume",
@@ -115,6 +124,15 @@ pub fn property(name: &str, value: &Value) -> Result<(), String> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn debanding_accepts_only_boolean_values() {
+        assert!(property("deband", &json!(true)).is_ok());
+        assert!(property("deband", &json!(false)).is_ok());
+        assert!(property("deband", &json!("yes")).is_err());
+        assert!(property("deband", &json!(1)).is_err());
+        assert!(property("deband", &json!(null)).is_err());
+    }
 
     #[test]
     fn execution_and_unrelated_option_changes_are_rejected() {

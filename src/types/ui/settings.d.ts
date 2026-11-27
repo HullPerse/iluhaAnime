@@ -153,6 +153,7 @@ export interface SettingsStore {
   mangaReaderGap: number;
   mangaLoupeSize: number;
   mangaLoupeZoom: number;
+  mangaLoupeHideCursor: boolean;
   mangaAutoSpeed: number;
   mangaAutoInterval: number;
   mangaAutoPause: number;

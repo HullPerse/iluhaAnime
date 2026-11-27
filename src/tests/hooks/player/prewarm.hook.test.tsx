@@ -1,4 +1,5 @@
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePlayerPrewarm } from "@/hooks/player/prewarm.hook";
@@ -31,6 +32,41 @@ function renderAt(tab: TabId, enabled: boolean) {
 }
 
 describe("usePlayerPrewarm", () => {
+  it("keeps preparation through StrictMode effect replay and releases on real unmount", async () => {
+    const view = renderHook(() => usePlayerPrewarm("player", true), { wrapper: StrictMode });
+    await waitFor(() => expect(player.prewarmPlayer).toHaveBeenCalledTimes(2));
+    expect(player.releasePlayerPrewarm).not.toHaveBeenCalled();
+    view.unmount();
+    await waitFor(() => expect(player.releasePlayerPrewarm).toHaveBeenCalledTimes(1));
+  });
+  it("releases an idle window after initialization fails", async () => {
+    player.prewarmPlayer.mockRejectedValueOnce(new Error("initialization failed"));
+    renderAt("player", true);
+    await waitFor(() => expect(player.releasePlayerPrewarm).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not release a new preparation when an obsolete request fails", async () => {
+    let failOld: (error: Error) => void = () => undefined;
+    player.prewarmPlayer.mockImplementationOnce(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          failOld = reject;
+        })
+    );
+    const view = renderAt("player", true);
+    view.rerender({ activeTab: "anilist", prewarm: true });
+    view.rerender({ activeTab: "player", prewarm: true });
+    failOld(new Error("canceled old preparation"));
+    await waitFor(() => expect(player.prewarmPlayer).toHaveBeenCalledTimes(2));
+    expect(player.releasePlayerPrewarm).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases an owned prewarm on unmount", async () => {
+    const view = renderAt("player", true);
+    await waitFor(() => expect(player.prewarmPlayer).toHaveBeenCalledTimes(1));
+    view.unmount();
+    await waitFor(() => expect(player.releasePlayerPrewarm).toHaveBeenCalledTimes(1));
+  });
   it("does not warm the player on an unrelated tab", () => {
     renderAt("search", true);
 

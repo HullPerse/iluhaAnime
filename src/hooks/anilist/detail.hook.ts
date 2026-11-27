@@ -49,16 +49,16 @@ export function useAnilistDetail(lists: AniListCollection[]) {
     setDetailFromFilters(false);
   }, []);
   useEffect(() => {
+    setSelectedAnime(null);
+    setAnimeHistory([]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [manga]);
+  useEffect(() => {
     if (!target) return;
     showDetail({ animeId: target.id, listEntry: entryLookup.get(target.id) }, false);
     consumeDeepLink();
   }, [target, entryLookup, showDetail]);
 
-  useEffect(() => {
-    setSelectedAnime(null);
-    setAnimeHistory([]);
-  // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [manga]);
   useEffect(() => {
     if (!tracked) return;
     showDetail({ animeId: tracked.id, listEntry: entryLookup.get(tracked.id) }, false);

@@ -32,18 +32,26 @@ function isEnabled(id: TabId, s: TabSettings): boolean {
 
 const GAME_TAB_KEY: { id: TabId; key: TranslationKey } = { id: "game", key: "app.game" };
 
-export function orderMainTabs<T extends { id: TabId }>(tabs: readonly T[], order: readonly TabId[] = []): T[] {
+export function orderMainTabs<T extends { id: TabId }>(
+  tabs: readonly T[],
+  order: readonly TabId[] = []
+): T[] {
   const ids = [...new Set([...order, ...tabs.map((tab) => tab.id)])];
 
-  return ids.flatMap((id) => { const tab = tabs.find((item) => item.id === id);
+  return ids.flatMap((id) => {
+    const tab = tabs.find((item) => item.id === id);
 
- return tab ? [tab] : []; });
+    return tab ? [tab] : [];
+  });
 }
 
 export function visibleTabs(settings: TabSettings) {
   const tabs = TAB_KEYS.filter((tab) => isEnabled(tab.id, settings));
 
-  return orderMainTabs(settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs, settings.mainTabOrder);
+  return orderMainTabs(
+    settings.gameTabUnlocked ? [...tabs, GAME_TAB_KEY] : tabs,
+    settings.mainTabOrder
+  );
 }
 
 export const SETTINGS_TAB_KEYS: readonly { id: SettingsTab; key: TranslationKey }[] = [

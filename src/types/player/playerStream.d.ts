@@ -1,6 +1,8 @@
 import type { StreamOpen } from "@/types/player/videoPlayer";
 import type { StreamVariant, StreamingEpisode } from "@/types/player/stream";
 
+export type EpisodeResolver = (current: StreamOpen, refresh: boolean) => Promise<StreamOpen | null>;
+
 export interface PlayerStream {
   session: StreamOpen | null;
   variants: StreamVariant[];
@@ -13,6 +15,8 @@ export interface PlayerStream {
 }
 
 export interface PlayerStreamNext {
+  failed: boolean;
+  retry: () => Promise<void>;
   hasNext: boolean;
   episodes: StreamingEpisode[];
   episodesLoading: boolean;

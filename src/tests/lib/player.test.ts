@@ -430,8 +430,9 @@ describe("player/playback options", () => {
   it("toggles the loudnorm audio filter and clears it when off", () => {
     expect(audioOptions(settings({ loudnorm: true }))).toEqual({
       af: "loudnorm",
+      "audio-device": "auto",
     });
-    expect(audioOptions(settings({ loudnorm: false }))).toEqual({ af: "" });
+    expect(audioOptions(settings({ loudnorm: false }))).toEqual({ af: "", "audio-device": "auto" });
   });
 
   it("maps UI percents onto mpv -100..100 scales", () => {
@@ -442,6 +443,11 @@ describe("player/playback options", () => {
     expect(options["contrast"]).toBe(-50);
     expect(options["saturation"]).toBe(100);
     expect(options["hue"]).toBe(-50);
+  });
+
+  it("sets and clears debanding through the regular settings pipeline", () => {
+    expect(transformOptions(settings({ deband: true })).deband).toBe(true);
+    expect(transformOptions(settings({ deband: false })).deband).toBe(false);
   });
 
   it("clamps percents and hue to mpv ranges", () => {

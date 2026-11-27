@@ -53,7 +53,7 @@ impl<'a> CommandCtx<'a> {
 const SLOW_COMMAND_MS: u128 = 200;
 
 /// Lightweight phase trace for commands where the round trip is user-visible.
-/// Only slow commands emit a log line, so an idle app stays quiet.
+/// Fast commands emit only at debug level; slow commands remain visible at info.
 pub struct CommandTrace {
     command: &'static str,
     started: Instant,
@@ -76,6 +76,13 @@ impl CommandTrace {
     pub fn finish<T>(self, result: &Result<T, String>) {
         let elapsed_ms = self.started.elapsed().as_millis();
         if elapsed_ms < SLOW_COMMAND_MS {
+            tracing::debug!(
+                command = self.command,
+                elapsed_ms,
+                ok = result.is_ok(),
+                marks = ?self.marks,
+                "Tauri command timing"
+            );
             return;
         }
         tracing::info!(

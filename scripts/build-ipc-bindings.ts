@@ -126,7 +126,7 @@ interface CardsMarkSeenArgs {
   at?: number;
 }
 
-interface CardsBuyPackArgs {
+interface CardsBuyPackArgs extends CardsProxyArgs {
   packKind: string;
 }
 
@@ -324,7 +324,7 @@ export function createCardsClient(
         variant: args.variant,
       }),
     cardsBuyPack: (args) =>
-      call<PurchaseResult>("cards_buy_pack", { packKind: args.packKind }),
+      call<PurchaseResult>("cards_buy_pack", { packKind: args.packKind, ...proxy(args.proxyUrl) }),
     cardsStarterStatus: (args) =>
       call<StarterStatus>("cards_starter_status", proxy(args.proxyUrl)),
     cardsGrantStarter: (args) =>

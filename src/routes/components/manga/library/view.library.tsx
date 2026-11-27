@@ -14,7 +14,12 @@ import { MangaSearchField } from "@/routes/components/manga/searchField.manga";
 import { MangaState } from "@/routes/components/manga/state.manga";
 import MangaStatuses from "@/routes/components/manga/status/view.status";
 import { compareItems } from "@/lib/manga/library.utils";
-import { mangaDetail, librarySort, mangaLibraryFilter, mangaLibraryStatus } from "@/store/manga.store";
+import {
+  mangaDetail,
+  librarySort,
+  mangaLibraryFilter,
+  mangaLibraryStatus,
+} from "@/store/manga.store";
 import { patchSettings, settingsAtoms } from "@/store/settings.store";
 import { LibrarySort } from "@/routes/components/manga/library/sort.library";
 import { LibraryEntry } from "@/routes/components/manga/library/entry.library";

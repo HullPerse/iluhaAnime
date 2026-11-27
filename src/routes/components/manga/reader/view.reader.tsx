@@ -377,7 +377,7 @@ export default function MangaReader({
       ref={attachReader}
       tabIndex={-1}
       aria-label={t("manga.reader.title")}
-      className="fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none overflow-clip border-0 p-0 backdrop:bg-black"
+      className="fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none overflow-clip border-0 p-0 select-none backdrop:bg-black"
       style={readerColors(background, customBackground)}
       data-hotkeys-disabled
       data-vim-layer

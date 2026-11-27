@@ -22,9 +22,7 @@ it("scrolls to the bottom first, then waits before turning pages and at the chap
 
   const endClock = { elapsed: 0, boundary: 0 };
   expect(advanceAutoClock(endClock, { ...options, end: true, bottom: true })).toBe("wait");
-  expect(advanceAutoClock(endClock, { ...options, end: true, bottom: true, dt: 600 })).toBe(
-    "next"
-  );
+  expect(advanceAutoClock(endClock, { ...options, end: true, bottom: true, dt: 600 })).toBe("next");
   expect(
     advanceAutoClock(
       { elapsed: 0, boundary: 0 },

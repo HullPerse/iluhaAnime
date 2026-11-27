@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTrackId, trackIdentity } from "@/lib/player/trackIdentity.utils";
+import {
+  preferredLanguageTrackId,
+  resolveTrackId,
+  trackIdentity,
+} from "@/lib/player/trackIdentity.utils";
 import type { MpvTrack } from "@/types/player/videoPlayer";
 
 describe("track identity", () => {
@@ -28,5 +32,22 @@ describe("track identity", () => {
     ];
     expect(resolveTrackId(tracks, "audio", 1, "audio:rus")).toBe(2);
     expect(resolveTrackId(tracks, "audio", 1, "audio:missing")).toBe(1);
+  });
+});
+
+describe("local language defaults", () => {
+  const tracks: MpvTrack[] = [
+    { id: 1, type: "audio", lang: "eng" },
+    { id: 8, type: "audio", lang: "JPN" },
+    { id: 4, type: "sub", lang: "rus", external: true },
+    { id: 9, type: "sub", title: "ja" },
+  ];
+  it("matches language aliases and sidecars without matching titles", () => {
+    expect(preferredLanguageTrackId(tracks, "audio", " ja ")).toBe(8);
+    expect(preferredLanguageTrackId(tracks, "sub", "ru")).toBe(4);
+    expect(preferredLanguageTrackId(tracks, "sub", "ja")).toBeUndefined();
+  });
+  it.each(["", "und", "de"])("leaves mpv selection for %s", (language) => {
+    expect(preferredLanguageTrackId(tracks, "audio", language)).toBeUndefined();
   });
 });

@@ -1,5 +1,4 @@
 @layer base {
-
   html:not([data-radius="frame"], [data-radius="all"]),
   html:not([data-radius="frame"], [data-radius="all"]) * {
     border-radius: 0 !important;
@@ -36,7 +35,8 @@
 
   input::file-selector-button {
     border: 2px solid;
-    border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow) var(--color-win-highlight);
+    border-color: var(--color-win-highlight) var(--color-win-shadow) var(--color-win-shadow)
+      var(--color-win-highlight);
   }
 
   label {

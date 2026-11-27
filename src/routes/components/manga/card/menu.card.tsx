@@ -43,18 +43,16 @@ export function MangaCardMenu({
     queryFn: () => getMangaHistory(true),
   });
   const item = library.data?.items.find(
-    (copy) => copy.source === source && copy.mangaId === hit.id,
+    (copy) => copy.source === source && copy.mangaId === hit.id
   );
-  const last = history.data?.find(
-    (row) => row.source === source && row.mangaId === hit.id,
-  );
+  const last = history.data?.find((row) => row.source === source && row.mangaId === hit.id);
   const change = useMutation({
     scope: { id: `manga-library:${source}:${hit.id}` },
     mutationFn: (action: LibraryChange) =>
       applyLibraryChange(
         action,
         { source, hit, unread: item?.unread ?? hit.chapters ?? 0 },
-        item?.id,
+        item?.id
       ),
     onSuccess: () => client.invalidateQueries({ queryKey: mangaLibraryKey }),
     onError: () => showError(t("common.error"), t("manga.library.failed")),
@@ -119,9 +117,7 @@ export function MangaCardMenu({
     {
       kind: "item",
       id: "favourite",
-      label: item?.favourite
-        ? "manga.menu.unfavourite"
-        : "manga.menu.favourite",
+      label: item?.favourite ? "manga.menu.unfavourite" : "manga.menu.favourite",
       icon: item?.favourite ? FavouriteStar : Star,
       disabled: disabled || !item,
       onSelect: () => {

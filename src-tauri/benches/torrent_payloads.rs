@@ -5,8 +5,11 @@ use std::hint::black_box;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-// Torrent payload path bench (torrent/manager.rs), timing the watcher ignore
-// set and the hidden-attribute pass.
+// Torrent payload path bench: actual watcher-ignore helpers plus synthetic
+// legacy stat/read_dir comparisons. The latter are models, not end-to-end
+// timings of manager/lifecycle.rs::reconcile_torrent_files, which also caches
+// known .part twins and skips completed files. Do not use the legacy model's
+// budget as proof of a current production regression.
 //
 // Budget (AMD Ryzen 7 5800X, Windows 11, rustc 1.98.0, bench profile, 2026-10-22):
 //   ignore paths                 median <= 5 ms
@@ -14,8 +17,8 @@ use std::time::{Duration, Instant};
 //   hidden pass stat             median <= 20 ms
 //
 // The watcher ignore set is rebuilt every tick (1 s) while a torrent
-// downloads, and the hidden-attribute pass runs every tenth tick. Both walk
-// the payload list of the torrent, so the numbers have to stay far below the
+// downloads. Synthetic visibility models walk unfinished final names;
+// their observations are kept separate from the actual manager path and the
 // tick budget. Each scenario runs five times and prints the median; the
 // FNV-1a checksum of the produced paths proves the runner did the work and
 // the optimizer did not delete it.

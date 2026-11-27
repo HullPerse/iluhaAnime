@@ -2242,4 +2242,48 @@ mod tests {
             .expect("read user version");
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
     }
+
+    #[test]
+    fn file_backed_database_keeps_rows_and_version_across_a_reopen() {
+        let path = std::env::temp_dir().join(format!(
+            "iluha-schema-reopen-test-{}.sqlite3",
+            std::process::id()
+        ));
+        let remove_files = || {
+            let _ = std::fs::remove_file(&path);
+            let _ = std::fs::remove_file(path.with_extension("sqlite3-wal"));
+            let _ = std::fs::remove_file(path.with_extension("sqlite3-shm"));
+        };
+        remove_files();
+
+        {
+            let connection = Connection::open(&path).expect("open temp database");
+            initialize_schema(&connection).expect("initial schema");
+            connection
+                .execute(
+                    "INSERT INTO cache_entries (namespace, cache_key, payload, updated_at)
+                     VALUES ('u4', 'reopen', 'kept', 1)",
+                    [],
+                )
+                .expect("insert cache row");
+        }
+
+        let connection = Connection::open(&path).expect("reopen temp database");
+        initialize_schema(&connection).expect("schema on reopen");
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("read version");
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
+        let payload: String = connection
+            .query_row(
+                "SELECT payload FROM cache_entries
+                 WHERE namespace = 'u4' AND cache_key = 'reopen'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read cache row");
+        assert_eq!(payload, "kept");
+        drop(connection);
+        remove_files();
+    }
 }

@@ -33,6 +33,38 @@ afterEach(() => {
 });
 
 describe("stream session cache", () => {
+  it("waits for an older request and then refreshes instead of reusing its stale result", async () => {
+    let finish!: (value: unknown[]) => void;
+    api.streamSources.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const old = loadSources("refresh-inflight", "Animelib:1");
+    const fresh = [{ url: "https://cdn/refreshed" }];
+    api.streamSources.mockResolvedValueOnce(fresh);
+    const refresh = loadSources("refresh-inflight", "Animelib:1", "animelib", true);
+    finish([{ url: "https://cdn/old" }]);
+    await old;
+    expect(await refresh).toBe(fresh);
+    expect(await loadSources("refresh-inflight", "Animelib:1")).toBe(fresh);
+    expect(api.streamSources).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes a failed source before its TTL and caches the replacement", async () => {
+    api.streamSources.mockResolvedValueOnce([{ url: "https://cdn/expired" }]);
+    await loadSources("refresh-episode", "Animelib:1");
+    const fresh = [{ url: "https://cdn/fresh" }];
+    api.streamSources.mockResolvedValueOnce(fresh);
+    expect(await loadSources("refresh-episode", "Animelib:1", "animelib", true)).toBe(fresh);
+    expect(api.streamSources).toHaveBeenLastCalledWith(
+      { episodeId: "refresh-episode", variantId: "Animelib:1", refresh: true },
+      "animelib"
+    );
+    expect(await loadSources("refresh-episode", "Animelib:1")).toBe(fresh);
+    expect(api.streamSources).toHaveBeenCalledTimes(2);
+  });
   it("shares one request between concurrent callers", async () => {
     const rows = [variant("Animelib", "1", "Team")];
     api.players.mockResolvedValue(rows);

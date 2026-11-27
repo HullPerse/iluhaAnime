@@ -136,7 +136,8 @@ function AniListActionControls({
 
       const startedAt = performance.now();
       const [saved, error] = await attempt(
-        anilistApi.saveEntry({ mediaType: anime.media_type ?? undefined,
+        anilistApi.saveEntry({
+          mediaType: anime.media_type ?? undefined,
           mediaId: anime.id,
           status: values.list_status,
           progress: values.progress,

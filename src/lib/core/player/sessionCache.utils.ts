@@ -19,18 +19,26 @@ function createTimedLoader<V>() {
   const cache = createLruCache<string, TimedEntry<V>>(CAPACITY);
   const inflight = new Map<string, Promise<V>>();
 
-  return (key: string, load: () => Promise<V>): Promise<V> => {
+  return (key: string, load: () => Promise<V>, refresh = false): Promise<V> => {
+    const refreshKey = `refresh:${key}`;
+    const refreshing = inflight.get(refreshKey);
+
+    if (refreshing) return refreshing;
     const hit = cache.get(key);
 
-    if (hit && Date.now() - hit.at < TTL_MS) return Promise.resolve(hit.value);
+    if (!refresh && hit && Date.now() - hit.at < TTL_MS) return Promise.resolve(hit.value);
 
-    return inflightFetch(inflight, key, () =>
-      load().then((value) => {
-        cache.set(key, { value, at: Date.now() });
+    const pending = inflight.get(key);
 
-        return value;
-      })
-    );
+    if (refresh) cache.delete(key);
+
+    return inflightFetch(inflight, refresh ? refreshKey : key, async () => {
+      if (refresh && pending) await attempt(pending);
+      const value = await load();
+      cache.set(key, { value, at: Date.now() });
+
+      return value;
+    });
   };
 }
 
@@ -57,10 +65,17 @@ export function loadPlayers(
 export function loadSources(
   episodeId: string,
   variantId: string,
-  source: StreamSourceId = DEFAULT_STREAM_SOURCE
+  source: StreamSourceId = DEFAULT_STREAM_SOURCE,
+  refresh = false
 ): Promise<StreamSource[]> {
-  return sourceLoader(`sources:${source}:${episodeId}:${variantId}`, () =>
-    streamApi.streamSources({ episodeId, variantId }, source)
+  return sourceLoader(
+    `sources:${source}:${episodeId}:${variantId}`,
+    () =>
+      streamApi.streamSources(
+        { episodeId, variantId, ...(refresh ? { refresh: true } : {}) },
+        source
+      ),
+    refresh
   );
 }
 

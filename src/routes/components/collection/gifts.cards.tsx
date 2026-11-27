@@ -49,6 +49,9 @@ export default function GiftsCards() {
           {t("collection.gifts.delete.error")}
         </p>
       )}
+      {items.length === 0 && (
+        <p className="windows95-text text-hint m-0">{t("collection.gifts.empty")}</p>
+      )}
 
       <div className="cards-gifts-list" {...tilt}>
         {items.map((gift) => (

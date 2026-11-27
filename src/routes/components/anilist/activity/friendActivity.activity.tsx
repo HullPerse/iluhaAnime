@@ -15,7 +15,6 @@ export function FriendActivityFeed({ friendId }: { friendId: number }) {
   const { data, isLoading } = useAppQuery("slow", {
     queryKey: [...queryKeys.activity([friendId]), manga],
     queryFn: () => anilistApi.getActivity([friendId], manga ? "MANGA" : "ANIME"),
-
   });
 
   if (isLoading) return <SmallLoader size={3} />;

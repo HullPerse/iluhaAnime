@@ -17,27 +17,17 @@ import {
   upscaleItems,
   upscalePaused,
 } from "@/store/upscale.store";
-import type { ScanType } from "@/types/player/player";
 
 import { QueueItemDepth } from "@/routes/components/player/depth.player";
-import FolderScanProgress from "@/routes/components/player/scan.player";
 
-export default function QueuePanel({
-  scan,
-  open,
-  onToggle,
-}: {
-  scan: ScanType;
-  open: boolean;
-  onToggle: () => void;
-}) {
+export default function QueuePanel({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const items = useCell(upscaleItems);
   const paused = useCell(upscalePaused);
   const { t } = useI18n();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const toggleTitle = useKeybindTitle(t("keybind.player.toggle.queue"), "player.toggle.queue");
 
-  if (items.length === 0 && !scan) {
+  if (items.length === 0) {
     return null;
   }
 
@@ -125,11 +115,6 @@ export default function QueuePanel({
           {paused && (
             <div className="windows95-text text-highlight mb-1 text-xs">
               {t("player.queue.paused")}
-            </div>
-          )}
-          {scan && (
-            <div className="mb-1">
-              <FolderScanProgress scanProgress={scan} />
             </div>
           )}
           <div data-no-wheel className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">

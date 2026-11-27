@@ -1,6 +1,6 @@
-# Vendored librqbit 9.0.1
+# Vendored librqbit 9.1.0
 
-Copy of crates.io `librqbit` 9.0.1 with six patched areas:
+Copy of crates.io `librqbit` 9.1.0 with local patches:
 
 - `src/storage/filesystem/fs.rs`: payload files are written as `<name>.part` and
   renamed to the final name when they finish. `prefer_part_files` parks a fresh
@@ -36,3 +36,20 @@ patches listed above, then run
 cargo check --manifest-path src-tauri/Cargo.toml --locked --all-targets
 cargo test --manifest-path src-tauri/Cargo.toml --lib
 ```
+
+U6 (2026-11-27): rebased on crates.io 9.1.0. Upstream now also evaluates
+sparse marking outside tracing; retain the local explanatory comment and
+Windows lpBytesReturned correction. All .part/root_name patches remain.
+Additional pre-existing patches discovered during the rebase:
+- src/stream_connect.rs: HTTP CONNECT proxy transport, percent-decoded proxy
+  credentials, and HTTP connection statistics. Preserve SOCKS5/SOCKS5H support.
+- src/session.rs: pass the local ProxyConfig to the connector.
+- src/torrent_state/live/peers/stats/mod.rs: HTTP transport uses the aggregate
+  proxy statistics bucket.
+The librqbit-utp 0.7.0 ringbuf >=0.5.2 safety patch remains separately vendored.
+
+Pre-F audit (2026-11-27): HTTP CONNECT response parsing lives in
+`src/stream_connect/http_connect.rs`. It consumes only the response header,
+preserves coalesced tunnel bytes and enforces the 16 KiB limit before accepting
+the terminator. The app integration test `tests/http_connect.rs` includes this
+same parser source and checks loopback responses, truncation and refusal.

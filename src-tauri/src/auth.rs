@@ -18,19 +18,22 @@ use crate::scrapers::{
 
 const KEYRING_SERVICE: &str = "iluhaAnime";
 
-// Debug builds isolate the credential store per app identifier, so a dev or
-// e2e build (identifier `iluhaAnime.e2e`, its own app-data dir) never reads or
-// writes the token of the installed app. Release builds keep the single
-// `iluhaAnime` service for real users, so nothing changes for them.
+// Development and E2E builds isolate credentials per identifier. An optimized
+// E2E build must use the same isolated service as the debug harness.
 static KEYRING_SERVICE_OVERRIDE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 
-#[cfg(debug_assertions)]
 pub fn init_keyring_service(app_handle: &tauri::AppHandle) {
-    let _ = KEYRING_SERVICE_OVERRIDE.set(format!("iluhaAnime.{}", app_handle.config().identifier));
+    let service = keyring_service_for(&app_handle.config().identifier, cfg!(debug_assertions));
+    let _ = KEYRING_SERVICE_OVERRIDE.set(service);
 }
 
-#[cfg(not(debug_assertions))]
-pub fn init_keyring_service(_app_handle: &tauri::AppHandle) {}
+fn keyring_service_for(identifier: &str, debug: bool) -> String {
+    if debug || crate::startup::is_e2e_profile(identifier) {
+        format!("iluhaAnime.{identifier}")
+    } else {
+        KEYRING_SERVICE.to_string()
+    }
+}
 
 fn current_keyring_service() -> String {
     KEYRING_SERVICE_OVERRIDE
@@ -1646,6 +1649,23 @@ pub async fn nekobt_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn optimized_e2e_credentials_never_use_the_production_service() {
+        assert_eq!(
+            keyring_service_for("iluhaAnime.e2e", false),
+            "iluhaAnime.iluhaAnime.e2e"
+        );
+        assert_eq!(
+            keyring_service_for("iluhaAnime.e2e", true),
+            "iluhaAnime.iluhaAnime.e2e"
+        );
+        assert_eq!(keyring_service_for("iluhaAnime", false), "iluhaAnime");
+        assert_eq!(
+            keyring_service_for("iluhaAnime", true),
+            "iluhaAnime.iluhaAnime"
+        );
+    }
 
     #[test]
     fn parses_cookie_header_format() {

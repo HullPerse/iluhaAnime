@@ -90,24 +90,42 @@ describe("anilist/graph", () => {
     });
 
     it("keeps manga sequels for a manga root and excludes anime adaptations", () => {
-      const filtered = filterGraph({
-        root_id: 1,
-        nodes: [makeNode({ id: 1, media_type: "MANGA" }), makeNode({ id: 2, media_type: "MANGA" }), makeNode({ id: 3, media_type: "ANIME" })],
-        edges: [{ source: 1, target: 2, relation_type: "SEQUEL" }, { source: 1, target: 3, relation_type: "ADAPTATION" }],
-      }, new Set<RelationFilter>(["SEQUEL", "OTHER"]));
+      const filtered = filterGraph(
+        {
+          root_id: 1,
+          nodes: [
+            makeNode({ id: 1, media_type: "MANGA" }),
+            makeNode({ id: 2, media_type: "MANGA" }),
+            makeNode({ id: 3, media_type: "ANIME" }),
+          ],
+          edges: [
+            { source: 1, target: 2, relation_type: "SEQUEL" },
+            { source: 1, target: 3, relation_type: "ADAPTATION" },
+          ],
+        },
+        new Set<RelationFilter>(["SEQUEL", "OTHER"])
+      );
       expect([...filtered.nodeMap.keys()]).toEqual([1, 2]);
       expect(filtered.edges).toEqual([{ source: 1, target: 2, relation_type: "SEQUEL" }]);
     });
 
     it("shows anime adaptations only in manga graph mode", () => {
-      const graph: FranchiseGraph = { root_id: 1, nodes: [makeNode({ id: 1, media_type: "MANGA" }), makeNode({ id: 2, media_type: "ANIME" })], edges: [{ source: 1, target: 2, relation_type: "ADAPTATION" }] };
+      const graph: FranchiseGraph = {
+        root_id: 1,
+        nodes: [makeNode({ id: 1, media_type: "MANGA" }), makeNode({ id: 2, media_type: "ANIME" })],
+        edges: [{ source: 1, target: 2, relation_type: "ADAPTATION" }],
+      };
       expect(filterGraph(graph, new Set(), true).edges).toEqual(graph.edges);
       expect([...filterGraph(graph, new Set(), true).nodeMap.keys()]).toEqual([1, 2]);
       expect([...filterGraph(graph, new Set()).nodeMap.keys()]).toEqual([1]);
     });
 
     it("shows source manga in an anime graph but excludes it from the list", () => {
-      const graph: FranchiseGraph = { root_id: 1, nodes: [makeNode({ id: 1, media_type: "ANIME" }), makeNode({ id: 2, media_type: "MANGA" })], edges: [{ source: 1, target: 2, relation_type: "ADAPTATION" }] };
+      const graph: FranchiseGraph = {
+        root_id: 1,
+        nodes: [makeNode({ id: 1, media_type: "ANIME" }), makeNode({ id: 2, media_type: "MANGA" })],
+        edges: [{ source: 1, target: 2, relation_type: "ADAPTATION" }],
+      };
       expect(filterGraph(graph, new Set(), true).edges).toEqual(graph.edges);
       expect([...filterGraph(graph, new Set(), true).nodeMap.keys()]).toEqual([1, 2]);
       expect([...filterGraph(graph, new Set()).nodeMap.keys()]).toEqual([1]);

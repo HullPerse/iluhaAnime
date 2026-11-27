@@ -15,10 +15,30 @@ it("does not spend AllAnime episode requests on speculative prefetch", async () 
 });
 
 it("does not resolve an obsolete remembered variant in parallel with the selected one", async () => {
-  vi.spyOn(streamApi, "prefsGet").mockResolvedValue({sourceId:"allanime",mediaId:"allanime:request-audit",variantId:"AllAnime:sub:removed",quality:"720p",audioLang:"",subLang:"",subEnabled:true});
-  vi.spyOn(streamApi, "players").mockResolvedValue([{id:"dub:Yt-mp4",name:"Dub",player:"AllAnime",sourceUrl:"",separateStream:true}]);
+  vi.spyOn(streamApi, "prefsGet").mockResolvedValue({
+    sourceId: "allanime",
+    mediaId: "allanime:request-audit",
+    variantId: "AllAnime:sub:removed",
+    quality: "720p",
+    audioLang: "",
+    subLang: "",
+    subEnabled: true,
+  });
+  vi.spyOn(streamApi, "players").mockResolvedValue([
+    { id: "dub:Yt-mp4", name: "Dub", player: "AllAnime", sourceUrl: "", separateStream: true },
+  ]);
   const sources = vi.spyOn(streamApi, "streamSources").mockResolvedValue([]);
-  await resolvePlayable("allanime","allanime:request-audit","allanime:request-audit|1","audit-key",true,"720p");
+  await resolvePlayable(
+    "allanime",
+    "allanime:request-audit",
+    "allanime:request-audit|1",
+    "audit-key",
+    true,
+    "720p"
+  );
   expect(sources).toHaveBeenCalledTimes(1);
-  expect(sources).toHaveBeenCalledWith({episodeId:"allanime:request-audit|1",variantId:"AllAnime:dub:Yt-mp4"},"allanime");
+  expect(sources).toHaveBeenCalledWith(
+    { episodeId: "allanime:request-audit|1", variantId: "AllAnime:dub:Yt-mp4" },
+    "allanime"
+  );
 });

@@ -45,7 +45,10 @@ export default function MangaStatusRow({
         disabled={dragDisabled}
         aria-label={dragLabel}
         title={dragLabel}
-        className={cn("flex shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-50", plain ? "text-hint h-4 w-4" : "size-6")}
+        className={cn(
+          "flex shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing disabled:cursor-default disabled:opacity-50",
+          plain ? "text-hint h-4 w-4" : "size-6"
+        )}
         {...attributes}
         {...listeners}
       >

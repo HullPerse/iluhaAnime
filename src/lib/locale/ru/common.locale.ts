@@ -216,7 +216,8 @@ const common = {
   "stream.account.logout.message":
     "Токен будет удалён из системного хранилища. Каталог продолжит работать без аккаунта.",
   "stream.popular": "Популярное на AnimeLib",
-  "stream.error.captcha": "AllAnime требует проверку CAPTCHA на стороне сайта. Воспроизведение временно недоступно; попробуйте позже или выберите другой источник.",
+  "stream.error.captcha":
+    "AllAnime требует проверку CAPTCHA на стороне сайта. Воспроизведение временно недоступно; попробуйте позже или выберите другой источник.",
   "stream.searchPlaceholder": "Поиск в AnimeLib...",
   "stream.searchPlaceholder.allanime": "Поиск в AllAnime...",
   "stream.search": "Поиск",

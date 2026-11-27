@@ -1,5 +1,6 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 
@@ -310,6 +311,70 @@ export function launchTauri(): ChildProcess {
       WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${cdpPort()}`,
     },
     stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+/** Build with production optimization/assets, but retain the harness identity. */
+export async function buildOptimizedTauri(): Promise<void> {
+  const config = JSON.stringify({ identifier: E2E_IDENTIFIER });
+  const child = spawn(
+    "bunx",
+    ["tauri", "build", "--no-bundle", "--config", config, "--", "--locked"],
+    {
+      cwd: repoRoot(),
+      env: { ...process.env, CARGO_TARGET_DIR: e2eTargetDir() },
+      stdio: "inherit",
+      windowsHide: true,
+    }
+  );
+
+  await new Promise<void>((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`isolated optimized build failed (${code})`));
+    });
+  });
+  const executable = join(e2eTargetDir(), "release", "iluhaAnime.exe");
+  writeFileSync(
+    `${executable}.e2e.json`,
+    JSON.stringify({
+      identifier: E2E_IDENTIFIER,
+      sha256: createHash("sha256").update(readFileSync(executable)).digest("hex"),
+    })
+  );
+}
+
+/** Only launch the executable built above; never fall back to an installed app. */
+export function launchOptimizedTauri(): ChildProcess {
+  const executable = join(e2eTargetDir(), "release", "iluhaAnime.exe");
+
+  if (!existsSync(executable) || !existsSync(`${executable}.e2e.json`)) {
+    throw new Error("Build the isolated optimized application before launching it");
+  }
+
+  const stamp: unknown = JSON.parse(readFileSync(`${executable}.e2e.json`, "utf-8"));
+  const hash = createHash("sha256").update(readFileSync(executable)).digest("hex");
+
+  if (
+    typeof stamp !== "object" ||
+    stamp === null ||
+    !("identifier" in stamp) ||
+    stamp.identifier !== E2E_IDENTIFIER ||
+    !("sha256" in stamp) ||
+    stamp.sha256 !== hash
+  )
+    throw new Error("Optimized executable does not match the isolated E2E build stamp");
+
+  return spawn(executable, [], {
+    cwd: repoRoot(),
+    env: {
+      ...process.env,
+      RUST_LOG: process.env.RUST_LOG ?? "iluhaanime=debug,tauri=warn",
+      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${cdpPort()}`,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
   });
 }
 

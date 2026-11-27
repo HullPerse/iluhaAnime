@@ -32,9 +32,27 @@ export function useFriendAnilistData(friend: AniFriend | null, manga = false) {
       const bundle = await anilistApi.getFriendBundle(id as number);
 
       if (!manga) return bundle;
-      const [lists, overview] = await Promise.all([anilistApi.getLists(id as number, false, "MANGA"), anilistApi.getMangaOverview(id as number)]);
+      const [lists, overview] = await Promise.all([
+        anilistApi.getLists(id as number, false, "MANGA"),
+        anilistApi.getMangaOverview(id as number),
+      ]);
 
-      return { profile: { ...bundle.profile, anime_count: overview.statistics.count, episodes_watched: overview.statistics.chapters, mean_score: overview.statistics.meanScore }, lists, favourites: overview.favourites.map((media) => ({ id: media.id, title: { romaji: media.title, english: null }, cover_image: { medium: media.cover_url }, mean_score: media.score, format: media.format })) };
+      return {
+        profile: {
+          ...bundle.profile,
+          anime_count: overview.statistics.count,
+          episodes_watched: overview.statistics.chapters,
+          mean_score: overview.statistics.meanScore,
+        },
+        lists,
+        favourites: overview.favourites.map((media) => ({
+          id: media.id,
+          title: { romaji: media.title, english: null },
+          cover_image: { medium: media.cover_url },
+          mean_score: media.score,
+          format: media.format,
+        })),
+      };
     },
   });
 

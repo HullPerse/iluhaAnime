@@ -103,11 +103,11 @@ async function findPage(
 }
 
 export async function mainPage(browser: Browser, timeoutMs?: number): Promise<Page> {
-  return findPage(browser, (url) => url.includes(MAIN_URL), timeoutMs);
+  return findPage(browser, (url) => isAppUrl(url) && !url.includes("/player-window"), timeoutMs);
 }
 
 export async function findPlayerPage(browser: Browser, timeoutMs = 40_000): Promise<Page> {
-  return findPage(browser, (url) => url.includes(PLAYER_URL), timeoutMs);
+  return findPage(browser, (url) => isAppUrl(url) && url.includes("/player-window"), timeoutMs);
 }
 
 export async function invokeRetryOnBusy<T>(
@@ -213,5 +213,18 @@ export const TAB = {
   torrent: ["Torrent", "Торрент"],
 } as const;
 
-const MAIN_URL = "localhost:1420";
-const PLAYER_URL = "localhost:1420/player-window";
+export function isAppUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+
+    return (
+      ((url.protocol === "http:" || url.protocol === "https:") &&
+        (url.hostname === "tauri.localhost" ||
+          ((url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+            url.port === "1420"))) ||
+      (url.protocol === "tauri:" && url.hostname === "localhost")
+    );
+  } catch {
+    return false;
+  }
+}

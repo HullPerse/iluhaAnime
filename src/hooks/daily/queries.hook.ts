@@ -11,6 +11,7 @@ import type {
   DailyBootstrap,
   DailyFramesView,
   DailyHistoryItem,
+  DailyHistoryMode,
   DailyMode,
   DailyOpGuessView,
   DailyOpView,
@@ -58,7 +59,7 @@ export function useDailySearchIndex() {
   });
 }
 
-export function useDailyGameHistory(day: string, mode: DailyMode, enabled: boolean) {
+export function useDailyGameHistory(day: string, mode: DailyHistoryMode, enabled: boolean) {
   return useAppQuery<DailyHistoryItem[]>("slow", {
     queryKey: queryKeys.dailyHistoryFor(day, mode),
     queryFn: () => dailyApi.history(day, mode),

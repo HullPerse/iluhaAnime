@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { characterGuessChoices } from "@/lib/daily/characterSearch.utils";
 import { localGuessSuggestions } from "@/lib/daily/localSearch.utils";
 import { matchingAlias, rankSuggestions, titleMatchRank } from "@/lib/daily/search.utils";
 import type { AniMedia } from "@/types/anilist/anilist";
+import type { CharacterIndexEntry } from "@/types/api/characters";
 import type { DailySearchEntry } from "@/types/api/daily";
 
 function media(title: string, titles: string[] = [], extra: Partial<AniMedia> = {}): AniMedia {
@@ -71,6 +73,32 @@ describe("localGuessSuggestions", () => {
 
   it("requires at least two normalized characters", () => {
     expect(localGuessSuggestions(entries, "s", 6)).toEqual([]);
+  });
+});
+
+describe("characterGuessChoices", () => {
+  const entries: CharacterIndexEntry[] = [
+    { id: 1, name: "Naruto Uzumaki", aliases: ["Наруто", "Uzumaki Naruto"] },
+    { id: 2, name: "Sasuke Uchiha", aliases: ["Саске"] },
+  ];
+
+  it("fills the canonical character name and shows the matched alias", () => {
+    expect(characterGuessChoices(entries, "нарут")).toEqual([
+      { id: 1, name: "Naruto Uzumaki", alias: "Наруто" },
+    ]);
+    expect(characterGuessChoices(entries, "саске")).toEqual([
+      { id: 2, name: "Sasuke Uchiha", alias: "Саске" },
+    ]);
+  });
+
+  it("prefers the canonical title match over an alias match", () => {
+    expect(characterGuessChoices(entries, "naruto")).toEqual([
+      { id: 1, name: "Naruto Uzumaki", alias: null },
+    ]);
+  });
+
+  it("requires at least two normalized characters", () => {
+    expect(characterGuessChoices(entries, "н")).toEqual([]);
   });
 });
 

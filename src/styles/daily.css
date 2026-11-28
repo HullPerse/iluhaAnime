@@ -49,6 +49,14 @@
   gap: 0.3rem;
 }
 
+.daily-character-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  right: 0;
+  left: 0;
+}
+
 .daily-character-answer[data-correct="true"] {
   color: var(--color-success);
 }
@@ -68,24 +76,39 @@
   margin-top: 1rem;
 }
 
-.daily-character-result-art {
+.daily-character-result-grid {
+  display: grid;
+  aspect-ratio: 2 / 3;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  overflow: hidden;
+  background: #05070d;
+}
+
+.daily-character-result-portrait,
+.daily-character-result-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  background: var(--color-field);
+}
+
+.daily-character-result-tally {
   display: flex;
   align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.35rem;
+  color: var(--color-title-text);
   background: var(--color-primary);
 }
 
-.daily-character-result-art svg {
-  width: 100%;
+.daily-character-result-tally svg {
+  width: 75%;
   height: auto;
-}
-
-.daily-character-result-score {
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.daily-character-history th:nth-child(2) {
-  width: 9rem;
 }
 
 .daily-character-portrait {
@@ -1316,6 +1339,10 @@ button.daily-pip:not(:disabled):hover {
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.daily-history-empty {
+  color: var(--color-hint);
 }
 
 .daily-history-pips {

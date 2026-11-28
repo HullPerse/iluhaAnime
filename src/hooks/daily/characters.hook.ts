@@ -1,8 +1,21 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { playCharacters } from "@/api/characters.api";
+import { charactersSearchIndex, playCharacters } from "@/api/characters.api";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
-import type { SubmittedAnswers, CharactersView } from "@/types/api/characters";
+import type {
+  CharactersSearchIndex,
+  CharactersView,
+  SubmittedAnswers,
+} from "@/types/api/characters";
+
+/** One tier-free list shared by every typed field in the characters game. */
+export function useCharactersSearchIndex() {
+  return useAppQuery<CharactersSearchIndex>("static", {
+    queryKey: queryKeys.dailyCharactersSearchIndex(),
+    queryFn: charactersSearchIndex,
+    retry: false,
+  });
+}
 
 /** SQLite owns round progress and the single reward transaction. */
 export function useCharacters(day: string, enabled: boolean) {
@@ -22,6 +35,7 @@ export function useCharacters(day: string, enabled: boolean) {
         previous?.finished && !data.finished ? previous : data
       );
       client.invalidateQueries({ queryKey: queryKeys.dailyGame(day) });
+      client.invalidateQueries({ queryKey: queryKeys.dailyHistory() });
 
       if (data.rewardPackId) {
         client.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });

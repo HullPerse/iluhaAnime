@@ -11,8 +11,8 @@ use super::pool::{self, DailySearchEntry};
 use super::seed::validate_day;
 use super::store;
 use super::types::{
-    DailyBootstrap, DailyFramesView, DailyGuessView, DailyHistoryItem, DailyMode, DailyOpGuessView,
-    DailyOpView,
+    DailyBootstrap, DailyFramesView, DailyGuessView, DailyHistoryItem, DailyHistoryMode, DailyMode,
+    DailyOpGuessView, DailyOpView,
 };
 
 #[tauri::command]
@@ -343,7 +343,7 @@ pub fn daily_game_history(
         validate_day(day)?;
     }
     let mode = match mode.as_deref() {
-        Some(mode) => Some(DailyMode::parse(mode)?),
+        Some(mode) => Some(DailyHistoryMode::parse(mode)?),
         None => None,
     };
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;

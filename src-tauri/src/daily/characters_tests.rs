@@ -21,6 +21,24 @@ fn answers(db: &Connection) -> Vec<SubmittedAnswers> {
 }
 
 #[test]
+fn search_index_covers_every_character_and_distinct_anime_without_tiers() {
+    let index = search_index().unwrap();
+    let pool = pool().unwrap();
+    assert_eq!(index.characters.len(), pool.entries.len());
+    let character_ids: std::collections::HashSet<_> =
+        index.characters.iter().map(|entry| entry.id).collect();
+    assert_eq!(character_ids.len(), index.characters.len());
+    let expected_anime: std::collections::HashSet<_> = pool
+        .entries
+        .iter()
+        .map(|character| character.anime_id)
+        .collect();
+    let anime_ids: std::collections::HashSet<_> =
+        index.anime.iter().map(|entry| entry.id).collect();
+    assert_eq!(anime_ids, expected_anime);
+}
+
+#[test]
 fn anime_only_pool_is_unique_complete_and_has_expected_tiers() {
     let pool = pool().unwrap();
     assert!(pool.entries.len() >= 500);
@@ -182,13 +200,16 @@ fn malformed_or_oversized_sheets_are_rejected_before_writing() {
 }
 
 #[test]
-fn history_tracks_completed_sheets_and_reset_clears_saved_drafts() {
+fn finished_sheets_are_shared_with_the_history_and_reset_clears_drafts() {
     let db = db();
     play(&db, DAY, Some(answers(&db)), true).unwrap();
-    let next = play(&db, "2026-11-29", None, false).unwrap();
-    assert_eq!(next.history.len(), 1);
-    assert_eq!(next.history[0].correct, 10);
+    assert_eq!(
+        finished_scores(&db, 20).unwrap(),
+        vec![(DAY.to_string(), 10, true)]
+    );
+    assert!(!play(&db, "2026-11-29", None, false).unwrap().finished);
     crate::daily::store::reset(&db).unwrap();
+    assert!(finished_scores(&db, 20).unwrap().is_empty());
     assert!(!play(&db, DAY, None, false).unwrap().finished);
 }
 

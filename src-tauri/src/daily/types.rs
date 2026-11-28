@@ -39,6 +39,45 @@ impl DailyMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+pub enum DailyHistoryMode {
+    Frames,
+    Op,
+    Audio,
+    Characters,
+}
+
+impl DailyHistoryMode {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Frames => "frames",
+            Self::Op => "op",
+            Self::Audio => "audio",
+            Self::Characters => "characters",
+        }
+    }
+
+    pub fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "frames" => Ok(Self::Frames),
+            "op" => Ok(Self::Op),
+            "audio" => Ok(Self::Audio),
+            "characters" => Ok(Self::Characters),
+            other => Err(format!("unknown daily mode: {other}")),
+        }
+    }
+
+    pub const fn max_attempts(self) -> u32 {
+        match self {
+            Self::Frames => DailyMode::Frames.max_attempts(),
+            Self::Op => DailyMode::Op.max_attempts(),
+            Self::Audio => DailyMode::Audio.max_attempts(),
+            Self::Characters => 10,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum DailyTier {
     Easy,
     Medium,
@@ -122,7 +161,7 @@ pub struct DailyBootstrap {
 #[serde(rename_all = "camelCase")]
 pub struct DailyHistoryItem {
     pub day: String,
-    pub mode: DailyMode,
+    pub mode: DailyHistoryMode,
     pub won: bool,
     pub attempts: u32,
     pub max_attempts: u32,

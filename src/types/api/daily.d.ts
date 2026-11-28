@@ -1,4 +1,5 @@
 export type DailyMode = "frames" | "op" | "audio";
+export type DailyHistoryMode = DailyMode | "characters";
 export type DailyGameState = "pending" | "ready" | "failed";
 
 export interface DailyAnswer {
@@ -96,7 +97,7 @@ export interface DailyOpGuessView {
 
 export interface DailyHistoryItem {
   day: string;
-  mode: DailyMode;
+  mode: DailyHistoryMode;
   won: boolean;
   attempts: number;
   maxAttempts: number;

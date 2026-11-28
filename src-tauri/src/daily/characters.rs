@@ -1,4 +1,4 @@
-use super::character_pool::{roster, Character};
+use super::character_pool::{pool, roster, Character};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -49,14 +49,9 @@ pub struct CharactersView {
     correct: usize,
     finished: bool,
     reward_pack_id: Option<String>,
-    history: Vec<CharacterHistory>,
 }
 
-#[derive(Serialize)]
-pub struct CharacterHistory {
-    day: String,
-    correct: usize,
-}
+const PASS_SCORE: usize = 6;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AnimeAnswer {
@@ -65,8 +60,88 @@ pub struct AnimeAnswer {
     pub aliases: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct IndexEntry {
+    pub id: i64,
+    pub name: String,
+    pub aliases: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct CharactersSearchIndex {
+    pub characters: Vec<IndexEntry>,
+    pub anime: Vec<IndexEntry>,
+}
+
+/// Tier-free names and accepted anime titles for the typed guess fields. The
+/// daily roster stays in the database, so this list cannot be narrowed by day.
+pub fn search_index() -> Result<CharactersSearchIndex, String> {
+    let pool = pool()?;
+    let mut characters: Vec<IndexEntry> = pool
+        .entries
+        .iter()
+        .map(|character| IndexEntry {
+            id: character.id,
+            name: character.name.clone(),
+            aliases: character.aliases.clone(),
+        })
+        .collect();
+    let mut anime = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for character in &pool.entries {
+        let Some(answer) = character
+            .anime_answers
+            .iter()
+            .find(|answer| answer.id == character.anime_id)
+        else {
+            continue;
+        };
+        if seen.insert(answer.id) {
+            anime.push(IndexEntry {
+                id: answer.id,
+                name: answer.name.clone(),
+                aliases: answer.aliases.clone(),
+            });
+        }
+    }
+    characters.sort_by_key(|entry| entry.name.to_lowercase());
+    anime.sort_by_key(|entry| entry.name.to_lowercase());
+    Ok(CharactersSearchIndex { characters, anime })
+}
+
+#[tauri::command]
+pub fn daily_characters_search_index() -> Result<CharactersSearchIndex, String> {
+    search_index()
+}
+
 pub fn ensure_table(db: &Connection) -> Result<(), String> {
     db.execute_batch("CREATE TABLE IF NOT EXISTS daily_characters (day TEXT PRIMARY KEY, roster TEXT NOT NULL, progress TEXT NOT NULL, reward_pack_id TEXT, finished INTEGER NOT NULL DEFAULT 0)").map_err(|e| e.to_string())
+}
+
+/// Completed sheets for the shared daily journal, newest first.
+pub(super) fn finished_scores(
+    db: &Connection,
+    limit: u32,
+) -> Result<Vec<(String, usize, bool)>, String> {
+    ensure_table(db)?;
+    let mut statement = db
+        .prepare(
+            "SELECT day,progress FROM daily_characters WHERE finished=1 ORDER BY day DESC LIMIT ?1",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = statement
+        .query_map([i64::from(limit)], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut scores = Vec::new();
+    for row in rows {
+        let (day, payload) = row.map_err(|e| e.to_string())?;
+        let progress: Progress = serde_json::from_str(&payload).map_err(|e| e.to_string())?;
+        let correct = progress.correct();
+        scores.push((day, correct, correct >= PASS_SCORE));
+    }
+    Ok(scores)
 }
 
 fn load(db: &Connection, day: &str) -> Result<(Vec<Character>, Progress, Option<String>), String> {
@@ -141,7 +216,6 @@ fn view(
         correct: progress.correct(),
         finished: progress.checked,
         reward_pack_id: reward,
-        history: Vec::new(),
     }
 }
 
@@ -178,7 +252,7 @@ fn play(
                 .collect();
         }
         let tx = db.unchecked_transaction().map_err(|e| e.to_string())?;
-        if reward.is_none() && progress.correct() >= 6 {
+        if reward.is_none() && progress.correct() >= PASS_SCORE {
             let id = format!("daily-{day}-characters");
             insert_pack(
                 &tx,
@@ -213,22 +287,7 @@ fn play(
         .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
     }
-    let mut result = view(day, &roster, &progress, reward);
-    let mut statement=db.prepare("SELECT day,progress FROM daily_characters WHERE finished=1 AND day!=?1 ORDER BY day DESC LIMIT 20").map_err(|e|e.to_string())?;
-    let rows = statement
-        .query_map([day], |r| {
-            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-        })
-        .map_err(|e| e.to_string())?;
-    for row in rows {
-        let (day, payload) = row.map_err(|e| e.to_string())?;
-        let progress: Progress = serde_json::from_str(&payload).map_err(|e| e.to_string())?;
-        result.history.push(CharacterHistory {
-            day,
-            correct: progress.correct(),
-        });
-    }
-    Ok(result)
+    Ok(view(day, &roster, &progress, reward))
 }
 
 #[tauri::command]

@@ -13,7 +13,7 @@ use crate::cards::types::{CardKind, CardPackContentsState};
 use super::pool::{self, Candidate, PoolEntry};
 use super::types::{
     DailyAnswer, DailyBootstrap, DailyFrameView, DailyFramesView, DailyGameState, DailyHintView,
-    DailyHistoryItem, DailyMode, DailyModeView, DailyOpView, DailyResultView,
+    DailyHistoryItem, DailyHistoryMode, DailyMode, DailyModeView, DailyOpView, DailyResultView,
 };
 
 fn db_error(context: &str, error: rusqlite::Error) -> String {
@@ -751,7 +751,7 @@ pub fn finish_guess(
 pub fn history(
     connection: &Connection,
     limit: u32,
-    exclude: Option<(&str, DailyMode)>,
+    exclude: Option<(&str, DailyHistoryMode)>,
 ) -> Result<Vec<DailyHistoryItem>, String> {
     let (exclude_day, exclude_mode) = match exclude {
         Some((day, mode)) => (Some(day), Some(mode.as_str())),
@@ -789,7 +789,7 @@ pub fn history(
     for row in rows {
         let (day, mode, won, attempts, played_at, media_id, title) =
             row.map_err(|error| db_error("read daily history", error))?;
-        let mode = DailyMode::parse(&mode)?;
+        let mode = DailyHistoryMode::parse(&mode)?;
         items.push(DailyHistoryItem {
             day,
             mode,
@@ -801,6 +801,30 @@ pub fn history(
             played_at,
         });
     }
+    for (day, correct, won) in super::characters::finished_scores(connection, limit)? {
+        if exclude.is_some_and(|(excluded_day, excluded_mode)| {
+            excluded_mode == DailyHistoryMode::Characters && excluded_day == day
+        }) {
+            continue;
+        }
+        items.push(DailyHistoryItem {
+            day,
+            mode: DailyHistoryMode::Characters,
+            won,
+            attempts: correct as u32,
+            max_attempts: DailyHistoryMode::Characters.max_attempts(),
+            media_id: None,
+            title: String::new(),
+            played_at: 0,
+        });
+    }
+    items.sort_by(|left, right| {
+        right
+            .day
+            .cmp(&left.day)
+            .then_with(|| left.mode.as_str().cmp(right.mode.as_str()))
+    });
+    items.truncate(limit as usize);
     Ok(items)
 }
 
@@ -1426,21 +1450,63 @@ mod tests {
         let items = history(&connection, 20, None).expect("history");
         assert_eq!(items.len(), 2);
         assert_eq!(items[0].day, "2026-11-14");
-        assert_eq!(items[0].mode, DailyMode::Op);
+        assert_eq!(items[0].mode, DailyHistoryMode::Op);
         assert!(items[0].won);
         assert_eq!(items[0].attempts, 2);
-        assert_eq!(items[0].max_attempts, DailyMode::Op.max_attempts());
+        assert_eq!(items[0].max_attempts, DailyHistoryMode::Op.max_attempts());
         assert_eq!(items[0].title, today.entry.title);
         assert_eq!(items[1].day, "2026-11-13");
         assert!(!items[1].won);
         assert_eq!(items[1].title, yesterday.entry.title);
         assert_eq!(history(&connection, 1, None).expect("limited").len(), 1);
 
-        let without_current = history(&connection, 20, Some(("2026-11-14", DailyMode::Op)))
+        let without_current = history(&connection, 20, Some(("2026-11-14", DailyHistoryMode::Op)))
             .expect("history without the current result");
         assert_eq!(without_current.len(), 1);
         assert_eq!(without_current[0].day, "2026-11-13");
-        assert_eq!(without_current[0].mode, DailyMode::Frames);
+        assert_eq!(without_current[0].mode, DailyHistoryMode::Frames);
+    }
+
+    #[test]
+    fn history_includes_finished_character_sheets_and_can_exclude_them() {
+        let connection = memory_db();
+        super::super::characters::ensure_table(&connection).expect("characters table");
+        connection
+            .execute(
+                "INSERT INTO daily_characters(day, roster, progress, reward_pack_id, finished)
+                 VALUES (?1, '[]', ?2, NULL, 1)",
+                params![
+                    "2026-11-12",
+                    serde_json::json!({
+                        "answers": [],
+                        "checked": true,
+                        "correct": [
+                            [true, true],
+                            [true, true],
+                            [true, true],
+                            [true, false],
+                            [false, false]
+                        ]
+                    })
+                    .to_string()
+                ],
+            )
+            .expect("character sheet");
+
+        let items = history(&connection, 20, None).expect("history");
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].mode, DailyHistoryMode::Characters);
+        assert!(items[0].won);
+        assert_eq!(items[0].attempts, 7);
+        assert_eq!(items[0].max_attempts, 10);
+
+        let excluded = history(
+            &connection,
+            20,
+            Some(("2026-11-12", DailyHistoryMode::Characters)),
+        )
+        .expect("history without the current characters sheet");
+        assert!(excluded.is_empty());
     }
 
     #[test]

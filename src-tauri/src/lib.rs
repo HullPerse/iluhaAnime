@@ -2435,6 +2435,7 @@ pub fn run() {
             daily::commands::daily_game_bootstrap,
             daily::characters::daily_characters_play,
             daily::characters::daily_characters_portrait,
+            daily::characters::daily_characters_search_index,
             daily::commands::daily_game_search_index,
             daily::commands::daily_game_prepare,
             daily::commands::daily_game_prepare_op,

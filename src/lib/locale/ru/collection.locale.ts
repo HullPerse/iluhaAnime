@@ -20,6 +20,8 @@ const collection = {
   "collection.game.characters.animeInput": "Название аниме",
   "collection.game.characters.guessError":
     "Не удалось отправить ответ. Повтори попытку или открой режим заново.",
+  "collection.game.characters.suggestionsError":
+    "Не удалось загрузить подсказки. Имена можно ввести вручную.",
   "collection.game.characters.imageError": "Не удалось загрузить портрет. Повтори загрузку.",
   "collection.game.characters.perfect": "Идеально! 10 из 10.",
   "collection.tabs.packs": "Паки",
@@ -59,7 +61,7 @@ const collection = {
   "collection.game.history": "Прошлые результаты",
   "collection.game.history.date": "Дата",
   "collection.game.history.mode": "Режим",
-  "collection.game.history.anime": "Аниме",
+  "collection.game.history.answer": "Ответ",
   "collection.game.history.attempts": "Попытки",
   "collection.game.history.result": "Итог",
   "collection.game.history.error": "Не удалось загрузить результаты.",

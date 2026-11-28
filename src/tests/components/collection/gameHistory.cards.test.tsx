@@ -16,6 +16,16 @@ vi.mock("@/hooks/daily/queries.hook", () => ({
         title: "Shingeki no Kyojin",
         playedAt: 1_760_000_000,
       },
+      {
+        day: "2026-11-12",
+        mode: "characters",
+        won: true,
+        attempts: 7,
+        maxAttempts: 10,
+        mediaId: null,
+        title: "",
+        playedAt: 0,
+      },
     ],
     isPending: false,
     isError: false,
@@ -55,6 +65,8 @@ describe("daily result history", () => {
     expect(within(table).getByText("13.11")).toBeTruthy();
     expect(within(table).getByText("Кадры")).toBeTruthy();
     expect(within(table).getByText("Shingeki no Kyojin")).toBeTruthy();
-    expect(within(table).getByText("Победа")).toBeTruthy();
+    expect(within(table).getByText("Персонажи")).toBeTruthy();
+    expect(within(table).getByText("Угадано: 7 / 10")).toBeTruthy();
+    expect(within(table).getAllByText("Победа")).toHaveLength(2);
   });
 });

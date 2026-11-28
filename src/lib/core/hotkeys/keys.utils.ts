@@ -120,6 +120,7 @@ export const queryKeys = {
   dailyAnswer: (id: number) => ["daily-answer", id] as const,
   dailySearch: (query: string, proxy: string) => ["daily-search", query, proxy] as const,
   dailySearchIndex: () => ["daily-search-index"] as const,
+  dailyCharactersSearchIndex: () => ["daily-characters-search-index"] as const,
   dailyHistory: () => ["daily-history"] as const,
   dailyHistoryFor: (day: string, mode: string) => ["daily-history", day, mode] as const,
   cardsPacks: (proxy: string) => ["cards-packs", proxy] as const,

@@ -3,6 +3,7 @@ import type { AniMedia } from "@/types/anilist/anilist";
 export type CommandName =
   | "daily_characters_play"
   | "daily_characters_portrait"
+  | "daily_characters_search_index"
   | "add_torrent_tracker"
   | "anilist_avatar"
   | "anilist_login"

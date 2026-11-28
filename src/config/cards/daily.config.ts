@@ -1,12 +1,13 @@
-import type { DailyMode } from "@/types/api/daily";
+import type { DailyHistoryMode } from "@/types/api/daily";
 import type { TranslationKey } from "@/types/core/i18n";
 
 export const MAX_DAILY_FRAMES = 6;
 
-export const DAILY_MODE_LABEL_KEYS: Record<DailyMode, TranslationKey> = {
+export const DAILY_MODE_LABEL_KEYS: Record<DailyHistoryMode, TranslationKey> = {
   frames: "collection.game.mode.frames",
   op: "collection.game.mode.op",
   audio: "collection.game.mode.audio",
+  characters: "collection.game.mode.characters",
 };
 
 export const DAILY_HINT_KEYS: Record<string, TranslationKey> = {

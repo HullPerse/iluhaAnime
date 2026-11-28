@@ -1,3 +1,5 @@
+import changelog610 from "@/lib/locale/changelog/v6_1_0.ru";
+import changelog601 from "@/lib/locale/changelog/v6_0_1.ru";
 import changelog600 from "@/lib/locale/changelog/v6_0_0.ru";
 import changelog320 from "@/lib/locale/changelog/v3_2_0.ru";
 import changelog400 from "@/lib/locale/changelog/v4_0_0.ru";
@@ -34,6 +36,8 @@ import changelog547 from "@/lib/locale/changelog/v5_4_7.ru";
 import changelog548 from "@/lib/locale/changelog/v5_4_8.ru";
 
 export const ruChangelog = {
+  ...changelog610,
+  ...changelog601,
   ...changelog600,
   ...changelog548,
   ...changelog547,

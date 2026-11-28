@@ -1,18 +1,26 @@
 import { Button } from "@/components/ui/button.component";
-import { Input } from "@/components/ui/input.component";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { characterPortrait } from "@/api/characters.api";
 import { useI18n } from "@/hooks/i18n.hook";
 import { ignore } from "@/lib/core/shared/promise.utils";
 import { effectiveProxyUrl } from "@/lib/core/system/proxy.utils";
 import { settingsAtoms } from "@/store/settings.store";
-import type { CharacterRound as Round, SubmittedAnswers } from "@/types/api/characters";
+import CharacterGuessField from "@/routes/components/collection/characterGuessField.cards";
+import type {
+  CharacterIndexEntry,
+  CharacterRound as Round,
+  CharactersSearchIndex,
+  SubmittedAnswers,
+} from "@/types/api/characters";
 
-/** Both text fields stay editable until the single sheet submission. */
+const NO_ENTRIES: CharacterIndexEntry[] = [];
+
+/** Both dropdown fields stay editable until the single sheet submission. */
 export default function CharacterRound({
   day,
   index,
   round,
+  suggestions,
   value,
   checked,
   disabled,
@@ -22,6 +30,7 @@ export default function CharacterRound({
   day: string;
   index: number;
   round: Round;
+  suggestions: CharactersSearchIndex | undefined;
   value: SubmittedAnswers;
   checked: boolean;
   disabled: boolean;
@@ -59,35 +68,23 @@ export default function CharacterRound({
           key={kind}
           data-correct={checked ? round[kind].solved : undefined}
         >
-          <label className="sr-only" htmlFor={`character-${index}-${kind}`}>
-            {t(
-              kind === "character"
-                ? "collection.game.characters.input"
-                : "collection.game.characters.animeInput"
-            )}
-          </label>
-          <Input
+          <CharacterGuessField
             id={`character-${index}-${kind}`}
-            placeholder={t(
+            label={t(
               kind === "character"
                 ? "collection.game.characters.input"
                 : "collection.game.characters.animeInput"
             )}
             value={checked ? round[kind].submitted : value[kind]}
-            readOnly={checked}
-            aria-invalid={checked && !round[kind].solved}
-            aria-description={
-              checked
-                ? t(
-                    round[kind].solved
-                      ? "collection.game.characters.correct"
-                      : "collection.game.characters.wrong"
-                  )
-                : undefined
+            entries={
+              kind === "character"
+                ? (suggestions?.characters ?? NO_ENTRIES)
+                : (suggestions?.anime ?? NO_ENTRIES)
             }
+            checked={checked}
+            solved={round[kind].solved}
             disabled={disabled}
-            maxLength={160}
-            onChange={(e) => onChange(kind, e.target.value)}
+            onValueChange={(next) => onChange(kind, next)}
             onBlur={onBlur}
           />
           {checked && (

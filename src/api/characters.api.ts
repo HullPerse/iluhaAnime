@@ -1,8 +1,20 @@
 import { tauriTransport } from "@/api/transport.api";
 import { assertSchema } from "@/lib/core/system/invoke.utils";
-import { CharactersViewSchema } from "@/schemas/characters.schema";
-import type { CharactersView, SubmittedAnswers } from "@/types/api/characters";
+import { CharactersSearchIndexSchema, CharactersViewSchema } from "@/schemas/characters.schema";
+import type {
+  CharactersSearchIndex,
+  CharactersView,
+  SubmittedAnswers,
+} from "@/types/api/characters";
 import * as z from "zod/mini";
+
+/** Tier-free character and anime names for the typed guess fields. */
+export async function charactersSearchIndex(): Promise<CharactersSearchIndex> {
+  return assertSchema(
+    await tauriTransport.call("daily_characters_search_index"),
+    CharactersSearchIndexSchema
+  );
+}
 
 /** Save a draft or atomically check the whole sheet once. */
 export async function playCharacters(

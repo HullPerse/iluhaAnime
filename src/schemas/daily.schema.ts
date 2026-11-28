@@ -1,6 +1,7 @@
 import * as z from "zod/mini";
 
 const DailyModeSchema = z.enum(["frames", "op", "audio"]);
+const DailyHistoryModeSchema = z.enum(["frames", "op", "audio", "characters"]);
 const DailyGameStateSchema = z.enum(["pending", "ready", "failed"]);
 
 const DailyAnswerSchema = z.object({
@@ -103,7 +104,7 @@ export const DailyHistorySchema = z.compile(
   z.array(
     z.object({
       day: z.string(),
-      mode: DailyModeSchema,
+      mode: DailyHistoryModeSchema,
       won: z.boolean(),
       attempts: z.number(),
       maxAttempts: z.number(),

@@ -1,6 +1,41 @@
 {
   "changelog": [
     {
+      "version": "6.1.0",
+      "added": [
+        {
+          "key": "changelog.6_1_0.added.game.characters_search",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.6_1_0.added.game.characters_reward",
+          "scope": "game"
+        }
+      ],
+      "changed": [
+        {
+          "key": "changelog.6_1_0.changed.game.characters_result",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.6_1_0.changed.game.characters_history",
+          "scope": "game"
+        }
+      ],
+      "fixed": []
+    },
+    {
+      "version": "6.0.1",
+      "added": [],
+      "changed": [],
+      "fixed": [
+        {
+          "key": "changelog.6_0_1.fixed.fatal_title",
+          "scope": "app"
+        }
+      ]
+    },
+    {
       "version": "6.0.0",
       "added": [
         {

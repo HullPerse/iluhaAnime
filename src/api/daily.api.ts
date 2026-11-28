@@ -14,6 +14,7 @@ import type {
   DailyFramesView,
   DailyGuessView,
   DailyHistoryItem,
+  DailyHistoryMode,
   DailyMode,
   DailyOpGuessView,
   DailyOpView,
@@ -114,7 +115,7 @@ export class DailyApi {
     return assertSchema(await this.dailyClient.skip({ day, mode, proxyUrl }), DailyGuessViewSchema);
   }
 
-  async history(day: string, mode: string, limit = 20): Promise<DailyHistoryItem[]> {
+  async history(day: string, mode: DailyHistoryMode, limit = 20): Promise<DailyHistoryItem[]> {
     return assertSchema(await this.dailyClient.history({ day, mode, limit }), DailyHistorySchema);
   }
 

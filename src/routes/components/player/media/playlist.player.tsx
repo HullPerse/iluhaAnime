@@ -42,7 +42,7 @@ export default function PlaylistBody({
     count: entries.length,
     getScrollElement: () => scrollRef.current,
     getItemKey: (index) => playlistCardKey(entries, index),
-    estimateSize: () => 56,
+    estimateSize: () => 80,
     overscan: 8,
     enabled: entries.length > PLAYLIST_VIRTUALIZE_AFTER,
   });

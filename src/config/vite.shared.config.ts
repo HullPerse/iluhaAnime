@@ -111,7 +111,7 @@ export const DEV_SERVER = {
   port: 1420,
   strictPort: true,
   watch: {
-    ignored: ["**/src-tauri/**"],
+    ignored: ["**/src-tauri/**", "**/.docs/**", "**/.guesser-preview.html"],
   },
 };
 

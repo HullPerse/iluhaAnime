@@ -20,6 +20,8 @@ import type { DailyClipProgress, DailyFramesView, DailyMode, DailyOpView } from 
 import type { TranslationKey } from "@/types/core/i18n";
 
 import AudioModeArt from "@/routes/components/collection/audioModeArt.cards";
+import CharactersMode from "@/routes/components/collection/charactersMode.cards";
+import GameCharacters from "@/routes/components/collection/gameCharacters.cards";
 import FramesModeArt from "@/routes/components/collection/framesModeArt.cards";
 import GameAudio from "@/routes/components/collection/gameAudio.cards";
 import GameFrames from "@/routes/components/collection/gameFrames.cards";
@@ -74,6 +76,7 @@ export default function GameCards() {
   const [frames, setFrames] = useState<DailyFramesView | null>(null);
   const [op, setOp] = useState<DailyOpView | null>(null);
   const [audio, setAudio] = useState<DailyOpView | null>(null);
+  const [charactersDay, setCharactersDay] = useState<string | null>(null);
   const dayRef = useRef<string>(day);
 
   useEffect(() => {
@@ -104,6 +107,17 @@ export default function GameCards() {
     warmedOp.current = true;
     warmOp();
   }, [day, game.data, warmOp]);
+
+  useEffect(() => {
+    const data = game.data;
+
+    if (warmedAudio.current || data === undefined || data.day !== day) return;
+    const view = data.modes.find((mode) => mode.mode === "audio");
+
+    if (!view || view.result !== null) return;
+    warmedAudio.current = true;
+    warmAudio();
+  }, [day, game.data, warmAudio]);
 
   if (game.isPending) {
     return (
@@ -147,6 +161,13 @@ export default function GameCards() {
       </div>
     );
   }
+
+  if (charactersDay === day)
+    return (
+      <div className="daily-game">
+        <GameCharacters key={day} day={day} onClose={() => setCharactersDay(null)} />
+      </div>
+    );
 
   if (op !== null && op.day === day) {
     return (
@@ -225,7 +246,6 @@ export default function GameCards() {
   return (
     <div className="daily-game">
       <header className="daily-game-head">
-        <h2 className="daily-game-title">{t("collection.game.title")}</h2>
         <div className="daily-game-meta">
           <span>{t("collection.game.date", { date: formatDailyDate(day) })}</span>
           <span>{t("collection.game.streak", { count: data.streak })}</span>
@@ -243,6 +263,7 @@ export default function GameCards() {
             progress={starts[meta.mode].progress}
           />
         ))}
+        <CharactersMode key={day} day={day} onStart={() => setCharactersDay(day)} />
       </div>
       {prepareError !== null && (
         <p className="daily-form-error" role="alert">

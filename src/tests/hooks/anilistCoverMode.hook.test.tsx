@@ -23,6 +23,20 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   invokeMock.mockReset();
   invokeMock.mockResolvedValue(undefined);
+  vi.spyOn(anilistApi, "getLists").mockResolvedValue([]);
+  vi.spyOn(anilistApi, "getMangaOverview").mockResolvedValue({
+    favourites: [],
+    statistics: {
+      count: 0,
+      chapters: 0,
+      volumes: 0,
+      meanScore: 0,
+      genres: [],
+      formats: [],
+      statuses: [],
+      years: [],
+    },
+  });
   patchSettings({ torrentCoverMode: "off", torrentCoverModeManual: false });
   vi.spyOn(anilistApi, "getBootstrap").mockResolvedValue({
     user: { id: 7 } as never,
@@ -38,6 +52,15 @@ afterEach(() => {
 });
 
 describe("useAnilistCoverModeSync", () => {
+  it("warms manga lists and overview on startup without opening manga", async () => {
+    renderHook(() => useAnilistCoverModeSync(), { wrapper });
+
+    await waitFor(() => {
+      expect(anilistApi.getLists).toHaveBeenCalledWith(7, false, "MANGA");
+      expect(anilistApi.getMangaOverview).toHaveBeenCalledWith(7);
+    });
+  });
+
   it("applies automatic full covers on startup with a saved session", async () => {
     renderHook(() => useAnilistCoverModeSync(), { wrapper });
 

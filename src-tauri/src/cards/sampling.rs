@@ -55,10 +55,10 @@ fn selection_for(kind: CardKind) -> &'static str {
         CardKind::Anime | CardKind::Manga => {
             "id title { romaji english } favourites popularity coverImage { large }"
         }
-        CardKind::Character => {
-            "id name { full } favourites image { large } \
-             media(sort: [POPULARITY_DESC], perPage: 1, type: ANIME) { nodes { popularity } }"
-        }
+        // Character popularity comes from the metadata pass, which already
+        // fetches the primary anime. Keeping it out of sampling avoids up to
+        // 200 nested media connections in one random-id request.
+        CardKind::Character => "id name { full } favourites image { large }",
         CardKind::Staff => "id name { full } favourites image { large }",
         CardKind::Studio => "id name favourites",
     }
@@ -229,7 +229,9 @@ fn parse_node(kind: CardKind, node: &Value) -> Option<CardNode> {
     let entity_id = node["id"].as_i64().filter(|id| *id > 0)?;
     let favourites = number(&node["favourites"]);
     let popularity = match kind {
-        CardKind::Character => number(&node["media"]["nodes"][0]["popularity"]),
+        // The anime popularity bonus is restored from `card_meta` before the
+        // pack is frozen; sampling only needs the character's own favourites.
+        CardKind::Character => 0,
         _ => number(&node["popularity"]),
     };
     Some(CardNode {
@@ -432,8 +434,8 @@ mod tests {
             .contains("media(sort: POPULARITY_DESC, type: MANGA)"));
         let characters = page_query(CardKind::Character, &[1], 25);
         let source = characters["query"].as_str().unwrap();
-        assert!(source.contains("media(sort: [POPULARITY_DESC], perPage: 1, type: ANIME)"));
-        assert_eq!(source.matches("type: ANIME").count(), 1);
+        assert!(!source.contains("media("));
+        assert_eq!(source.matches("type: ANIME").count(), 0);
     }
 
     #[test]
@@ -461,20 +463,20 @@ mod tests {
     }
 
     #[test]
-    fn a_character_score_uses_the_primary_anime_popularity() {
+    fn character_sampling_leaves_the_anime_bonus_to_metadata() {
         let fixture = json!({
             "pageInfo": { "total": 1, "lastPage": 1, "hasNextPage": false },
             "characters": [{
                 "id": 88414,
                 "name": { "full": "Uta" },
                 "favourites": 2_041,
-                "image": { "large": "https://img/uta.jpg" },
-                "media": { "nodes": [{ "popularity": 754_505 }] }
+                "image": { "large": "https://img/uta.jpg" }
             }],
         });
         let page = parse_page(CardKind::Character, 1, &fixture).unwrap();
-        assert_eq!(page.nodes[0].popularity, 754_505);
-        assert!((page.nodes[0].score - 7.85).abs() < 0.01);
+        assert_eq!(page.nodes[0].popularity, 0);
+        let expected = score_for(CardKind::Character, 2_041, 0);
+        assert!((page.nodes[0].score - expected).abs() < 1e-9);
     }
 
     #[test]

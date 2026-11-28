@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 
 import { isAllAnimeImage, isSourceImage } from "@/lib/graphics/images.utils";
+import { effectiveProxyUrl } from "@/lib/core/system/proxy.utils";
 import { assetUrl } from "@/lib/graphics/image.utils";
 import { invokeTyped } from "@/lib/core/system/invoke.utils";
 import { createLruCache } from "@hullperse/hp_utils/lruCache";
@@ -353,10 +354,15 @@ function fetchStreamCover(remoteUrl: string): Promise<string | null> {
 
   if (cached) return Promise.resolve(cached);
   const fromSource = isSourceImage(remoteUrl);
+  const downloadUrl = remoteUrl.replace(/^https:\/\/cover\.mangalib\.me\//u, "https://cover.imglib.info/");
   const request = fromSource
     ? {
-        url: remoteUrl,
+        url: downloadUrl,
         referer: isAllAnimeImage(remoteUrl) ? ALLANIME_REFERER : STREAM_COVER_REFERER,
+        proxyUrl: effectiveProxyUrl(
+          settingsAtoms.animelibProxyUrl.get(),
+          settingsAtoms.anilistProxyUrl.get()
+        ) ?? undefined,
       }
     : { url: remoteUrl, proxyUrl: settingsAtoms.anilistProxyUrl.get() ?? undefined };
 

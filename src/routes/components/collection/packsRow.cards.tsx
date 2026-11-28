@@ -24,6 +24,7 @@ export default function PacksRowCards({
   const newSince = useCell(cardsAtoms.packsNewSince);
   const created = formatCardRelativeDate(pack.createdAt, locale);
   const exactCreated = formatCardDate(pack.createdAt, locale);
+  const daily = pack.source === "daily";
 
   return (
     <article className="windows95-border bg-field relative flex h-full min-w-0 flex-col gap-1 p-2">
@@ -40,16 +41,17 @@ export default function PacksRowCards({
           {t(packLabelKey(pack.packKind))}
         </h3>
         <span className="windows95-text text-hint shrink-0 text-xs">
-          {t(
-            pack.id.startsWith("daily-")
-              ? "collection.source.daily"
-              : cardSourceLabelKey(pack.source)
-          )}
+          {t(daily ? "collection.source.daily" : cardSourceLabelKey(pack.source))}
         </span>
       </div>
       <span className="windows95-text text-hint">
         {t("collection.packs.size", { size: pack.size })}
       </span>
+      {daily && (
+        <span className="windows95-text text-hint text-xs">
+          {t("collection.source.dailyHint")}
+        </span>
+      )}
       {created !== "" && (
         <time
           dateTime={new Date(pack.createdAt * 1000).toISOString()}

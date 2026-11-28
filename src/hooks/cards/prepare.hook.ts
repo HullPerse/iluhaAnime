@@ -11,9 +11,13 @@ import { settingsAtoms } from "@/store/settings.store";
 import { reportBackgroundError } from "@hullperse/hp_utils/attempt";
 import { scheduleTask } from "@hullperse/hp_utils/shared";
 
+const AUTO_PREPARE_LIMIT = 10;
+
 /**
- * One background preparation pass per app session. The backend keeps the
- * pending/ready/failed state, so a crash only means the next launch retries.
+ * One automatic preparation run per app session, and only for a small backlog;
+ * larger queues wait for the explicit button. The backend drains the queue in
+ * bounded passes and keeps the pending/ready/failed state, so a crash only means
+ * the next launch retries.
  */
 export function usePrepareCardsPacks(enabled: boolean) {
   const { t } = useI18n();
@@ -23,7 +27,32 @@ export function usePrepareCardsPacks(enabled: boolean) {
   useTauriEvent(
     "cards-album-metadata-updated",
     () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cardsCollectionScope() });
+      for (const queryKey of [
+        queryKeys.cardsCollectionScope(),
+        queryKeys.cardsCollectionsScope(),
+        queryKeys.cardsAnimeCollectionScope(),
+        queryKeys.cardsCollectionRosterScope(),
+        queryKeys.cardsCardVariantsScope(),
+      ]) {
+        queryClient.invalidateQueries({ queryKey });
+      }
+    },
+    { enabled }
+  );
+  useTauriEvent(
+    "cards-packs-progress",
+    () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
+
+      for (const queryKey of [
+        queryKeys.cardsCollectionScope(),
+        queryKeys.cardsCollectionsScope(),
+        queryKeys.cardsAnimeCollectionScope(),
+        queryKeys.cardsCollectionRosterScope(),
+        queryKeys.cardsCardVariantsScope(),
+      ]) {
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
     { enabled }
   );
@@ -71,7 +100,30 @@ export function usePrepareCardsPacks(enabled: boolean) {
         });
     };
 
-    prepare();
+    const prepareSmallQueue = async () => {
+      try {
+        const packs = await cardsApi.packs();
+
+        if (cancelled) return;
+
+        const queued = packs.filter(
+          (pack) => pack.openedAt === null && pack.contentsState === "pending"
+        );
+
+        if (queued.length === 0 || queued.length > AUTO_PREPARE_LIMIT) {
+          completed = true;
+
+          return;
+        }
+
+        prepare();
+      } catch (error) {
+        reportBackgroundError("cards.prepare-packs.queue", error);
+        completed = true;
+      }
+    };
+
+    prepareSmallQueue();
 
     return () => {
       cancelled = true;

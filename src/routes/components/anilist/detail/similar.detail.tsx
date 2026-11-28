@@ -41,6 +41,7 @@ export function SimilarSection({
     queryKey: queryKeys.animeFranchiseRefresh(animeId, 0),
     queryFn: () => anilistApi.getAnimeFranchise(animeId, "all"),
     retry: 1,
+    enabled: expanded,
   });
   const items = useMemo(() => {
     const recs = recsQuery.data ?? [];
@@ -62,7 +63,7 @@ export function SimilarSection({
     [items]
   );
 
-  if (recsQuery.isLoading || franchiseQuery.isLoading) return null;
+  if (recsQuery.isLoading) return null;
 
   if (recsQuery.isError || items.length === 0) return null;
 

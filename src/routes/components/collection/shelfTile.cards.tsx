@@ -42,18 +42,16 @@ export default function ShelfTile({
           </span>
         </span>
         <span className="cards-shelf-foot">
-          {known && (
-            <span
-              className="cards-shelf-progress"
-              role="progressbar"
-              aria-valuenow={item.owned}
-              aria-valuemin={0}
-              aria-valuemax={total ?? 0}
-              aria-valuetext={progressLabel}
-            >
-              <span className="cards-shelf-progress-fill" style={{ width: `${percent}%` }} />
-            </span>
-          )}
+          <span
+            className="cards-shelf-progress"
+            role="progressbar"
+            aria-valuenow={known ? item.owned : undefined}
+            aria-valuemin={0}
+            aria-valuemax={known ? total : undefined}
+            aria-valuetext={progressLabel}
+          >
+            <span className="cards-shelf-progress-fill" style={{ width: `${percent}%` }} />
+          </span>
           <span className="cards-shelf-meta">
             <span className="windows95-text">{progressLabel}</span>
             {known && (

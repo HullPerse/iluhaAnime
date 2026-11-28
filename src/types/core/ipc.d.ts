@@ -1,6 +1,8 @@
 import type { AniMedia } from "@/types/anilist/anilist";
 
 export type CommandName =
+  | "daily_characters_play"
+  | "daily_characters_portrait"
   | "add_torrent_tracker"
   | "anilist_avatar"
   | "anilist_login"

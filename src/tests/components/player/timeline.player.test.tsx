@@ -34,6 +34,20 @@ const renderTimeline = (duration = 1400, chapters = [{ time: 0, title: "Opening"
   return { ...result, bar, ...callbacks };
 };
 
+it("keeps the time field width when duration loads and remaining time is toggled", () => {
+  const props = { chapters: [], seekTarget: null, onScrub: vi.fn(), onCommitSeek: vi.fn() };
+  const { getByRole, rerender } = render(<Timeline duration={0} {...props} />);
+  const time = getByRole("button", { pressed: false });
+  const initialWidth = time.style.width;
+  expect(initialWidth).not.toBe("");
+  rerender(<Timeline duration={7325} {...props} />);
+  expect(time.textContent).toContain("2:02:05");
+  expect(time.style.width).toBe(initialWidth);
+  fireEvent.click(time);
+  expect(time.getAttribute("aria-pressed")).toBe("true");
+  expect(time.style.width).toBe(initialWidth);
+});
+
 describe("Timeline hover tooltip", () => {
   it("shows time with no thumbnail image", () => {
     const { bar, container } = renderTimeline();

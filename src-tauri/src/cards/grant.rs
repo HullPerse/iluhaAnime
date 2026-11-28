@@ -13,7 +13,6 @@ use super::packs::spawn_prepare_packs_with_proxy;
 use super::rng::seed_now;
 use super::types::CardKind;
 use crate::anilist::auth::{check_anilist_auth, get_anilist_lists, AniListCollection};
-use crate::anilist::client::graphql_request;
 use crate::app_db::cards::{
     insert_pack, insert_pack_grant, insert_starter_grant, starter_grant, CardPackRow, LOCAL_USER_ID,
 };
@@ -270,42 +269,6 @@ pub fn completed_media_ids(lists: &[AniListCollection]) -> HashSet<u64> {
         .collect()
 }
 
-async fn fetch_media_total(
-    token: &str,
-    media_id: u64,
-    field: &str,
-    proxy: Option<&str>,
-) -> Result<Option<i32>, String> {
-    let response = graphql_request(
-        serde_json::json!({
-            "query": format!("query ($id: Int) {{ Media(id: $id) {{ {field} }} }}"),
-            "variables": { "id": media_id }
-        }),
-        Some(token),
-        proxy,
-    )
-    .await?;
-    Ok(response["data"]["Media"][field]
-        .as_i64()
-        .and_then(|value| i32::try_from(value).ok()))
-}
-
-pub async fn fetch_episode_count(
-    token: &str,
-    media_id: u64,
-    proxy: Option<&str>,
-) -> Result<Option<i32>, String> {
-    fetch_media_total(token, media_id, "episodes", proxy).await
-}
-
-pub async fn fetch_chapter_count(
-    token: &str,
-    media_id: u64,
-    proxy: Option<&str>,
-) -> Result<Option<i32>, String> {
-    fetch_media_total(token, media_id, "chapters", proxy).await
-}
-
 /// The profile state for the manual starter claim. It never grants anything.
 #[tauri::command]
 #[allow(non_snake_case)]
@@ -368,19 +331,15 @@ pub async fn cards_grant_starter(
 }
 
 /// Called from `save_anilist_entry` only when the compile-time flag is on.
-pub async fn maybe_grant_for_completion(
+pub fn maybe_grant_for_completion(
     app: &AppHandle,
     media_id: u64,
-    token: &str,
+    episodes: Option<i32>,
     proxy: Option<&str>,
 ) {
     if !CARDS_GRANT_ENABLED {
         return;
     }
-    let episodes = fetch_episode_count(token, media_id, proxy)
-        .await
-        .ok()
-        .flatten();
     match grant_for_completion(app, media_id, episodes, CARDS_GRANT_ENABLED) {
         Ok(result) if result.granted => {
             spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_string))
@@ -395,19 +354,15 @@ pub async fn maybe_grant_for_completion(
 }
 
 /// Called from `save_anilist_entry` for a completed manga when the flag is on.
-pub async fn maybe_grant_for_manga_completion(
+pub fn maybe_grant_for_manga_completion(
     app: &AppHandle,
     media_id: u64,
-    token: &str,
+    chapters: Option<i32>,
     proxy: Option<&str>,
 ) {
     if !CARDS_GRANT_ENABLED {
         return;
     }
-    let chapters = fetch_chapter_count(token, media_id, proxy)
-        .await
-        .ok()
-        .flatten();
     match grant_for_manga_completion(app, media_id, chapters, CARDS_GRANT_ENABLED) {
         Ok(result) if result.granted => {
             spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_string))

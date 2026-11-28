@@ -66,7 +66,7 @@ export default function StatsModal({
     queryFn: () =>
       anilistApi.search({
         adult: adult ? null : false,
-        maxPages: 4,
+        maxPages: 1,
         perPage: 50,
         season: season.season,
         seasonYear: season.year,

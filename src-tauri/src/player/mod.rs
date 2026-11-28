@@ -10,6 +10,8 @@ mod readiness;
 mod session;
 #[cfg(windows)]
 mod smtc;
+#[cfg(windows)]
+mod suspension;
 pub mod snapshot;
 pub mod state;
 mod validation;

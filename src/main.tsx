@@ -2,11 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "@/index.css";
 
-import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 
 import { ErrorBoundary } from "@/components/shared/errorBoundary.component";
 import { QUERY_CONFIG } from "@/config/system/query.config";
+import { PLAYER_ROUTE } from "@/config/player/playerRoute.config";
 import {
   isResizeObserverLoopError,
   noteGlobalError,
@@ -17,7 +17,6 @@ import { readThemeName } from "@/lib/core/fatal/fatalTheme.utils";
 import { attempt, attemptSync } from "@hullperse/hp_utils/attempt";
 import { markStartup } from "@/lib/core/system/startup.utils";
 import { tr } from "@/lib/locale/i18n.utils";
-import { router } from "@/routes/__root";
 import { addNotification } from "@/store/notification.store";
 
 if (consumeSafeMode()) markSessionSafe();
@@ -77,13 +76,36 @@ const [, mountError] = await attempt(
 
     if (!rootElement) throw new Error("Root element not found");
 
-    const { createRoot } = await import("react-dom/client");
+    const [{ createRoot }, content] = await Promise.all([
+      import("react-dom/client"),
+      (async () => {
+        if (window.location.pathname === PLAYER_ROUTE) {
+          document.documentElement.dataset.playerWindow = "on";
+          const { default: PlayerWindow } =
+            await import("@/routes/components/player/player.component");
+
+          return (
+            <div
+              className="text-text relative h-screen w-screen overflow-hidden"
+              aria-label="iluhaAnime"
+            >
+              <PlayerWindow />
+            </div>
+          );
+        }
+
+        const [{ RouterProvider }, { router }] = await Promise.all([
+          import("@tanstack/react-router"),
+          import("@/routes/__root"),
+        ]);
+
+        return <RouterProvider router={router} />;
+      })(),
+    ]);
     createRoot(rootElement).render(
       <StrictMode>
         <ErrorBoundary onResetCache={() => queryClient.clear()}>
-          <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{content}</QueryClientProvider>
         </ErrorBoundary>
       </StrictMode>
     );

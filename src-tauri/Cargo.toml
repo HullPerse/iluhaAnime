@@ -1,6 +1,6 @@
 [package]
 name = "iluhaAnime"
-version = "5.4.8"
+version = "6.0.0"
 description = "Anime Tracker and Player"
 authors = ["HullPerse"]
 edition = "2021"
@@ -51,6 +51,8 @@ reqwest = { version = "0.13", features = [
   "cookies",
   "stream",
   "socks",
+  "gzip",
+  "brotli",
 ] }
 futures = "0.3"
 encoding_rs = "0.8"

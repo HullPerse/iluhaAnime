@@ -2433,6 +2433,8 @@ pub fn run() {
             cards::grant::cards_starter_status,
             daily::commands::daily_test_proxy,
             daily::commands::daily_game_bootstrap,
+            daily::characters::daily_characters_play,
+            daily::characters::daily_characters_portrait,
             daily::commands::daily_game_search_index,
             daily::commands::daily_game_prepare,
             daily::commands::daily_game_prepare_op,

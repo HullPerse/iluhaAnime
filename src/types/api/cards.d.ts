@@ -120,6 +120,8 @@ export interface PackOpening {
   cards: OpenedCard[];
   value: number;
   chosenSlot: number | null;
+  /** True when the pack is still being prepared in the background. */
+  preparing: boolean;
 }
 
 export interface GiftCard extends OpenedCard {

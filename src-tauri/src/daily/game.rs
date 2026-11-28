@@ -12,7 +12,7 @@ use super::store;
 use super::themes;
 use super::types::{
     DailyFrameView, DailyFramesView, DailyGameState, DailyGuessView, DailyMode, DailyOpGuessView,
-    DailyOpView, DailyResultView,
+    DailyOpView,
 };
 
 const FRAME_COUNT: u32 = 6;
@@ -454,7 +454,7 @@ pub async fn guess(
         let result = {
             let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
             let connection = open_database(app)?;
-            let pack_id = store::finish_guess(
+            store::finish_guess(
                 &connection,
                 day,
                 mode,
@@ -463,22 +463,20 @@ pub async fn guess(
                 &guesses,
                 &game.entry,
             )?;
-            DailyResultView {
-                won: correct,
-                attempts,
-                answer: store::answer(&game.entry),
-                reward_pack_id: pack_id,
-            }
+            store::result_view(&connection, day, mode, &game.entry)?
+                .ok_or_else(|| "daily result missing after finish".to_string())?
         };
-        if correct {
+        let result_won = result.won;
+        let result_attempts = result.attempts;
+        if result_won {
             spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_owned));
         }
         return Ok(DailyGuessView {
-            correct,
+            correct: result_won,
             same_franchise,
-            attempts,
+            attempts: result_attempts,
             max_attempts,
-            revealed: attempts.clamp(1, max_attempts),
+            revealed: result_attempts.clamp(1, max_attempts),
             finished: true,
             frame: None,
             result: Some(result),
@@ -557,7 +555,7 @@ pub async fn skip(
         let result = {
             let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
             let connection = open_database(app)?;
-            let pack_id = store::finish_guess(
+            store::finish_guess(
                 &connection,
                 day,
                 mode,
@@ -566,19 +564,16 @@ pub async fn skip(
                 &game.guesses,
                 &game.entry,
             )?;
-            DailyResultView {
-                won: false,
-                attempts,
-                answer: store::answer(&game.entry),
-                reward_pack_id: pack_id,
-            }
+            store::result_view(&connection, day, mode, &game.entry)?
+                .ok_or_else(|| "daily result missing after finish".to_string())?
         };
+        let result_attempts = result.attempts;
         return Ok(DailyGuessView {
             correct: false,
             same_franchise: false,
-            attempts,
+            attempts: result_attempts,
             max_attempts,
-            revealed: attempts.clamp(1, max_attempts),
+            revealed: result_attempts.clamp(1, max_attempts),
             finished: true,
             frame: None,
             result: Some(result),
@@ -687,7 +682,7 @@ async fn guess_clip_game(
     guesses.push(media_id);
 
     if finished {
-        {
+        let pack_id = {
             let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
             let connection = open_database(app)?;
             store::finish_guess(
@@ -698,9 +693,9 @@ async fn guess_clip_game(
                 attempts,
                 &guesses,
                 &game.entry,
-            )?;
-        }
-        if correct {
+            )?
+        };
+        if pack_id.is_some() {
             spawn_prepare_packs_with_proxy(app.clone(), proxy.map(str::to_owned));
         }
     } else {
@@ -715,8 +710,9 @@ async fn guess_clip_game(
         let stored = store::load_game(&connection, day, mode)?;
         store::op_view(&connection, day, mode, &stored, attempts, max_attempts)?
     };
+    let stored_correct = view.result.as_ref().map_or(correct, |result| result.won);
     Ok(DailyOpGuessView {
-        correct,
+        correct: stored_correct,
         same_franchise,
         finished: view.result.is_some(),
         state: view,

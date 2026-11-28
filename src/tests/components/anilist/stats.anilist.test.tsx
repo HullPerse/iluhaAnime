@@ -167,7 +167,7 @@ describe("StatsModal inline detail", () => {
     expect(await screen.findByRole("button", { name: "Season Show" })).toBeDefined();
     expect(screen.queryByRole("button", { name: "Frieren" })).toBeNull();
     expect(anilistApi.search).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "RELEASING", maxPages: 4, perPage: 50 })
+      expect.objectContaining({ status: "RELEASING", maxPages: 1, perPage: 50 })
     );
   });
 

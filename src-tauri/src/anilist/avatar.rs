@@ -12,7 +12,11 @@ fn cache_now() -> i64 {
 }
 
 pub fn avatar_url_from_response(value: &serde_json::Value) -> Option<String> {
-    let avatar = value.get("data")?.get("Viewer")?.get("avatar")?;
+    let data = value.get("data")?;
+    let avatar = data
+        .get("User")
+        .or_else(|| data.get("Viewer"))?
+        .get("avatar")?;
     let url = avatar
         .get("large")
         .and_then(serde_json::Value::as_str)
@@ -101,11 +105,13 @@ pub async fn anilist_avatar(
         return Ok(Some(url));
     }
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let token = super::auth::optional_token(&app);
+    // `Viewer` always returns the signed-in user's avatar, which used to be
+    // cached under every friend's id. Ask for the requested id explicitly.
     let query = serde_json::json!({
-        "query": "query { Viewer { avatar { large medium } } }"
+        "query": "query ($id: Int) { User(id: $id) { avatar { large medium } } }",
+        "variables": { "id": anilist_id },
     });
-    let fetched = graphql_request(query, token.as_deref(), proxy.as_deref())
+    let fetched = graphql_request(query, None, proxy.as_deref())
         .await
         .map_or(None, |value| avatar_url_from_response(&value));
     // Guard only the synchronous write section: holding the process-wide
@@ -141,6 +147,14 @@ mod tests {
         assert_eq!(
             avatar_url_from_response(&medium_only).as_deref(),
             Some("http://cdn/ava.jpg")
+        );
+
+        let requested_user = serde_json::json!({
+            "data": { "User": { "avatar": { "large": "https://s4.anilist.co/file/u.png" } } }
+        });
+        assert_eq!(
+            avatar_url_from_response(&requested_user).as_deref(),
+            Some("https://s4.anilist.co/file/u.png")
         );
 
         assert_eq!(avatar_url_from_response(&serde_json::json!({})), None);

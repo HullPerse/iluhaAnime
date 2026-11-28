@@ -16,11 +16,13 @@ function isHidden(pauseOnHidden: boolean | undefined): boolean {
 
 export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
   const { intervalMs, enabled = true } = options;
+  const minSweepIntervalMs = options.minSweepIntervalMs ?? intervalMs;
 
   const optionsRef = useRef<LiveResourceOptions<K>>(options);
   const inFlightRef = useRef<Set<K>>(new Set());
   const attemptsRef = useRef<Map<K, number>>(new Map());
   const retryAtRef = useRef<Map<K, number>>(new Map());
+  const lastSweepAtRef = useRef<number>(0);
 
   useEffect(() => {
     optionsRef.current = options;
@@ -45,6 +47,7 @@ export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
 
       if (isHidden(pauseOnHidden)) return;
       const now = Date.now();
+      lastSweepAtRef.current = now;
 
       for (const key of collectKeys()) {
         if (inFlightRef.current.has(key)) continue;
@@ -73,7 +76,10 @@ export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
     sweep();
     const { cancel } = createInterval(sweep, intervalMs);
     const onVisible = () => {
-      if (!document.hidden) sweep();
+      if (document.hidden) return;
+
+      if (Date.now() - lastSweepAtRef.current < minSweepIntervalMs) return;
+      sweep();
     };
 
     document.addEventListener("visibilitychange", onVisible);
@@ -82,5 +88,5 @@ export function useLiveResource<K>(options: LiveResourceOptions<K>): void {
       cancel();
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [enabled, intervalMs]);
+  }, [enabled, intervalMs, minSweepIntervalMs]);
 }

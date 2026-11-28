@@ -101,7 +101,7 @@ describe("cards mutations", () => {
     const claimed = result.current.claimPack.mutateAsync({ packId: "choice", slot: 1 });
     unmount();
 
-    resolve({ packId: "choice", cards: [], value: 1, chosenSlot: 1 });
+    resolve({ packId: "choice", cards: [], value: 1, chosenSlot: 1, preparing: false });
     await claimed;
 
     for (const key of keys) {
@@ -115,6 +115,7 @@ describe("cards mutations", () => {
       cards: [],
       value: 8,
       chosenSlot: null,
+      preparing: false,
     });
     const { client, wrapper } = setup();
     const albumKey = queryKeys.cardsCollection({}, "");

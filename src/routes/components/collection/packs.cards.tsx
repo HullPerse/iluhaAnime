@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
@@ -14,6 +14,15 @@ export default function PacksCards() {
   const { t } = useI18n();
   const packs = useCardsPacks();
   const [selected, setSelected] = useState<CardPackRow | null>(null);
+  const latestSelected =
+    selected === null
+      ? null
+      : ((packs.data ?? []).find((pack) => pack.id === selected.id) ?? null);
+  useEffect(() => {
+    if (latestSelected !== null && latestSelected.contentsState !== selected?.contentsState) {
+      setSelected(latestSelected);
+    }
+  }, [latestSelected, selected?.contentsState]);
 
   if (packs.isPending) return <TabLoader className="min-h-48 flex-1" />;
 

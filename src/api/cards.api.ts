@@ -95,9 +95,9 @@ export class CardsApi {
     return assertSchema(await this.cardsClient.cardsPacks(), CardPackListSchema);
   }
 
-  async preparePacks(proxy: string | null = null): Promise<PackPreparation> {
+  async preparePacks(proxy: string | null = null, retryFailed = false): Promise<PackPreparation> {
     return assertSchema(
-      await this.cardsClient.cardsPreparePacks({ proxyUrl: proxy }),
+      await this.cardsClient.cardsPreparePacks({ proxyUrl: proxy, retryFailed }),
       PackPreparationSchema
     );
   }

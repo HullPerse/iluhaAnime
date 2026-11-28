@@ -276,10 +276,19 @@ describe("CardsApi", () => {
     expect(calls).toEqual([
       {
         command: "cards_prepare_packs",
-        args: { proxyUrl: "http://127.0.0.1:7890" },
+        args: { proxyUrl: "http://127.0.0.1:7890", retryFailed: false },
       },
       { command: "cards_ack_prepared_packs", args: undefined },
     ]);
+  });
+
+  it("requests failed pack retries only explicitly", async () => {
+    const { calls, transport } = fakeTransport({
+      cards_prepare_packs: { prepared: 0, failed: 0, repaired: 0, unnotified: 0 },
+    });
+    const api = new CardsApi({ transport });
+    await api.preparePacks(null, true);
+    expect(calls).toEqual([{ command: "cards_prepare_packs", args: { retryFailed: true } }]);
   });
 
   it("maps open, dust, buy, starter and gift commands", async () => {
@@ -289,6 +298,7 @@ describe("CardsApi", () => {
         cards: [openedCard],
         value: openedCard.value,
         chosenSlot: null,
+        preparing: false,
       },
       cards_dust: { remaining: 1, amount: 8, wallet: 8 },
       cards_buy_pack: { pack, price: 120, wallet: 8 },

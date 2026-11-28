@@ -30,7 +30,7 @@ export default function StreamEpisodeList({
     count: episodes.length,
     getScrollElement: () => scrollRef.current,
     getItemKey: (index) => episodes[index]?.id ?? index,
-    estimateSize: () => 48,
+    estimateSize: () => 56,
     overscan: 8,
     enabled: episodes.length > VIRTUALIZE_AFTER,
   });
@@ -78,7 +78,7 @@ export default function StreamEpisodeList({
                   key={item.key}
                   data-index={item.index}
                   ref={virtualizer.measureElement}
-                  className="absolute top-0 left-0 w-full"
+                  className="absolute top-0 left-0 flow-root w-full"
                   style={{ transform: `translateY(${item.start}px)` }}
                 >
                   <EpisodeRow

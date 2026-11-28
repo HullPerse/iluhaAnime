@@ -24,12 +24,8 @@
           "scope": "player"
         },
         {
-          "key": "changelog.5_4_8.added.player.loupe",
-          "scope": "player"
-        },
-        {
-          "key": "changelog.5_4_8.added.manga.loupe_cursor",
-          "scope": "manga"
+          "key": "changelog.6_0_0.added.game.characters",
+          "scope": "game"
         }
       ],
       "changed": [
@@ -43,6 +39,10 @@
         },
         {
           "key": "changelog.6_0_0.changed.anilist",
+          "scope": "anilist"
+        },
+        {
+          "key": "changelog.6_0_0.changed.anilist.search_pages",
           "scope": "anilist"
         },
         {
@@ -62,15 +62,19 @@
           "scope": "app"
         },
         {
-          "key": "changelog.5_4_8.changed.player.folder_scan",
-          "scope": "player"
+          "key": "changelog.6_0_0.changed.collection.pack_preparation",
+          "scope": "collection"
         },
         {
-          "key": "changelog.5_4_8.changed.collection.choice_packs",
-          "scope": "collection"
+          "key": "changelog.6_0_0.changed.game.daily_warmup",
+          "scope": "game"
         }
       ],
       "fixed": [
+        {
+          "key": "changelog.6_0_0.fixed.collection.pending_open",
+          "scope": "collection"
+        },
         {
           "key": "changelog.6_0_0.fixed.security",
           "scope": "app"
@@ -80,7 +84,15 @@
           "scope": "torrents"
         },
         {
+          "key": "changelog.6_0_0.fixed.anilist.manga_proxy",
+          "scope": "anilist"
+        },
+        {
           "key": "changelog.6_0_0.fixed.lifecycle",
+          "scope": "player"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.player.timeline",
           "scope": "player"
         },
         {
@@ -88,15 +100,27 @@
           "scope": "app"
         },
         {
-          "key": "changelog.5_4_8.fixed.collection.album_refresh",
+          "key": "changelog.6_0_0.fixed.collection.reward_refresh",
           "scope": "collection"
         },
         {
-          "key": "changelog.5_4_8.fixed.collection.gift_counter",
+          "key": "changelog.6_0_0.fixed.collection.metadata_refresh",
           "scope": "collection"
         },
         {
-          "key": "changelog.5_4_8.fixed.anilist.pack_preparation",
+          "key": "changelog.6_0_0.fixed.collection.choice_fallback",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.collection.sampling",
+          "scope": "collection"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.game.reward_duplicates",
+          "scope": "game"
+        },
+        {
+          "key": "changelog.6_0_0.fixed.anilist.manga_startup",
           "scope": "anilist"
         }
       ]

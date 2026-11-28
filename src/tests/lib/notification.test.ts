@@ -4,7 +4,7 @@ import {
   mockOpenPath as openPathSpy,
   mockWriteText as writeTextSpy,
 } from "@/tests/mocks";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   copyNotification,
@@ -13,6 +13,7 @@ import {
   formatRelativeTime,
   resolveNotificationText,
 } from "@/lib/core/ui/notification.utils";
+import { systemApi } from "@/api/system.api";
 import { deeplinkAtoms } from "@/store/deeplink.store";
 import {
   addNotification,
@@ -163,6 +164,10 @@ describe("formatRelativeTime", () => {
 });
 
 describe("popup mode gating for system toasts", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     mockInvoke.mockReset();
   });
@@ -191,21 +196,19 @@ describe("popup mode gating for system toasts", () => {
     expect(toasts.map((toast) => toast.title)).toContain("Hello");
   });
 
-  it("skips the system toast for in-app-only popups", async () => {
+  it("skips the system toast for in-app-only popups", () => {
+    const showToast = vi.spyOn(systemApi, "showToast");
     patchSettings({ notificationPopups: "inapp" });
     addNotification("Hello", "info", "World");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+    expect(showToast).not.toHaveBeenCalled();
     expect(notificationAtoms.items.get()).toHaveLength(1);
   });
 
-  it("skips the system toast when popups are off", async () => {
+  it("skips the system toast when popups are off", () => {
+    const showToast = vi.spyOn(systemApi, "showToast");
     patchSettings({ notificationPopups: "off" });
     addNotification("Hello", "info", "World");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+    expect(showToast).not.toHaveBeenCalled();
     expect(notificationAtoms.items.get()).toHaveLength(1);
   });
 
@@ -219,12 +222,11 @@ describe("popup mode gating for system toasts", () => {
     expect(notificationAtoms.items.get()).toHaveLength(2);
   });
 
-  it("honors a per-notification system opt-out", async () => {
+  it("honors a per-notification system opt-out", () => {
+    const showToast = vi.spyOn(systemApi, "showToast");
     patchSettings({ notificationPopups: "both" });
     addNotification("Hello", "info", "World", undefined, { system: false });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(mockInvoke.mock.calls.some((call) => call[0] === "show_toast")).toBe(false);
+    expect(showToast).not.toHaveBeenCalled();
   });
 });
 

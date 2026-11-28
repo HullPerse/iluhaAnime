@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use futures::StreamExt;
+pub(crate) const INSUFFICIENT_CHOICE_ROSTER: &str =
+    "choice pack roster has fewer than two distinct characters";
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use super::ceilings::max_page_for;
 use super::collection::{list_media_collection_items, CollectionItem};
@@ -25,9 +27,8 @@ pub const ROSTER_TTL_SECONDS: i64 = 7 * 24 * 60 * 60;
 pub const ROSTER_PAGE_SIZE: usize = 25;
 pub const ROSTER_INITIAL_PAGES: usize = 3;
 const ROSTER_PAGE_NAMESPACE: &str = "cards_roster_page_v2";
-const ROSTER_TOTALS_NAMESPACE: &str = "cards_roster_totals";
-const ROSTER_TOTALS_BATCH: usize = 25;
-const ROSTER_TOTALS_CONCURRENCY: usize = 3;
+const ROSTER_TOTALS_NAMESPACE: &str = "cards_roster_totals_exact_v2";
+static SHELF_REFRESH: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -201,14 +202,18 @@ pub(crate) async fn roster_choice_characters(
     proxy: Option<&str>,
 ) -> Result<Vec<CardNode>, String> {
     let mut characters = Vec::new();
-    for page in 1..=max_page_for(ROSTER_PAGE_SIZE as u32) as usize {
-        let cached = cached_roster_page(app, media_id, page, proxy).await?;
+    // A choice pack needs two distinct characters. Three pages (75 entries) are
+    // enough for every practical roster and cap the worst case; the previous
+    // loop walked up to the AniList depth limit of 200 pages.
+    let last_page = max_page_for(ROSTER_PAGE_SIZE as u32).min(ROSTER_INITIAL_PAGES as u32);
+    for page in 1..=last_page as usize {
+        let cached = cached_roster_page(app, media_id, page, proxy, true).await?;
         characters.extend(cached.characters);
         if !cached.has_next {
-            return pick_choice_characters(characters, media_popularity, seed);
+            break;
         }
     }
-    Err("choice pack roster exceeds the AniList page limit".into())
+    pick_choice_characters(characters, media_popularity, seed)
 }
 
 fn pick_choice_characters(
@@ -234,9 +239,22 @@ fn pick_choice_characters(
     let mut rng = Rng::new(seed ^ 0x5E1E_C7A1);
     let picked = pick_distinct(&pool, CHOICE_PACK_SIZE, &mut rng);
     if picked.len() != CHOICE_PACK_SIZE {
-        return Err("choice pack roster has fewer than two distinct characters".into());
+        return Err(INSUFFICIENT_CHOICE_ROSTER.into());
     }
     Ok(picked)
+}
+
+async fn roster_request(
+    background: bool,
+    query: serde_json::Value,
+    token: Option<&str>,
+    proxy: Option<&str>,
+) -> Result<serde_json::Value, String> {
+    if background {
+        crate::anilist::client::graphql_request_background(query, token, proxy).await
+    } else {
+        graphql_request(query, token, proxy).await
+    }
 }
 
 async fn fetch_roster_page(
@@ -244,10 +262,11 @@ async fn fetch_roster_page(
     media_id: i64,
     page: usize,
     proxy: Option<&str>,
+    background: bool,
 ) -> Result<RosterPageCache, String> {
     let token = optional_token(app);
     let query = roster_query(media_id, page);
-    let response = match graphql_request(query.clone(), token.as_deref(), proxy).await {
+    let response = match roster_request(background, query.clone(), token.as_deref(), proxy).await {
         Ok(response) => response,
         Err(error) if token.is_some() && is_invalid_token(&error) => {
             tracing::warn!(
@@ -256,7 +275,7 @@ async fn fetch_roster_page(
                 page,
                 "card roster token rejected; retrying anonymously"
             );
-            graphql_request(query, None, proxy)
+            roster_request(background, query, None, proxy)
                 .await
                 .map_err(|error| format!("card roster request: {error}"))?
         }
@@ -281,6 +300,7 @@ async fn cached_roster_page(
     media_id: i64,
     page: usize,
     proxy: Option<&str>,
+    background: bool,
 ) -> Result<RosterPageCache, String> {
     let key = format!("{media_id}:{page}");
     if let Ok(Some(payload)) = read_cached_payload(app, ROSTER_PAGE_NAMESPACE, &key) {
@@ -288,7 +308,7 @@ async fn cached_roster_page(
             return Ok(cache);
         }
     }
-    let cache = fetch_roster_page(app, media_id, page, proxy).await?;
+    let cache = fetch_roster_page(app, media_id, page, proxy, background).await?;
     if let Ok(payload) = serde_json::to_string(&cache) {
         if let Err(error) = put_app_cache(
             app.clone(),
@@ -313,7 +333,7 @@ async fn initial_roster(
     media_id: i64,
     proxy: Option<&str>,
 ) -> Result<(Vec<RosterMeta>, usize, bool, Option<usize>), String> {
-    let first = cached_roster_page(app, media_id, 1, proxy).await?;
+    let first = cached_roster_page(app, media_id, 1, proxy, false).await?;
     let RosterPageCache {
         characters: first_characters,
         has_next: first_has_next,
@@ -338,7 +358,7 @@ async fn initial_roster(
     }
 
     let pages = futures::future::join_all(
-        (2..=page_count).map(|page| cached_roster_page(app, media_id, page, proxy)),
+        (2..=page_count).map(|page| cached_roster_page(app, media_id, page, proxy, false)),
     )
     .await;
     for (index, page) in (2..=page_count).zip(pages) {
@@ -488,74 +508,57 @@ fn cached_roster_totals(app: &AppHandle, ids: &[i64]) -> HashMap<i64, i64> {
     totals
 }
 
-async fn fetch_roster_totals(
-    app: &AppHandle,
-    ids: &[i64],
-    proxy: Option<&str>,
-) -> HashMap<i64, i64> {
-    let token = optional_token(app);
-    let chunks: Vec<Vec<i64>> = ids
-        .chunks(ROSTER_TOTALS_BATCH)
-        .map(<[i64]>::to_vec)
-        .collect();
-    if chunks.is_empty() {
-        return HashMap::new();
-    }
-
-    let mut requests = futures::stream::iter(chunks)
-        .map(|chunk| {
-            let token = token.clone();
-            let proxy = proxy.map(str::to_string);
-            async move {
-                let fields = chunk
-                    .iter()
-                    .enumerate()
-                    .map(|(index, id)| {
-                        format!(
-                            "a{index}: Media(id: {id}) {{ characters(perPage: 1) {{ pageInfo {{ total }} }} }}"
-                        )
-                    })
-                    .collect::<String>();
-                let query = format!("query {{ {fields} }}");
-                let response = graphql_request(
-                    json!({ "query": query }),
-                    token.as_deref(),
-                    proxy.as_deref(),
-                )
-                .await;
-                (chunk, response)
-            }
-        })
-        .buffer_unordered(ROSTER_TOTALS_CONCURRENCY);
-
-    let mut totals = HashMap::new();
-    while let Some((chunk, response)) = requests.next().await {
-        let response = match response {
-            Ok(response) => response,
-            Err(error) => {
-                tracing::warn!(
-                    error = error.as_str(),
-                    "card roster totals chunk unavailable"
-                );
-                continue;
-            }
-        };
-        for (index, id) in chunk.iter().enumerate() {
-            let total =
-                response["data"][format!("a{index}")]["characters"]["pageInfo"]["total"].as_i64();
-            if let Some(total) = total {
-                totals.insert(*id, total);
-                let _ = put_app_cache(
-                    app.clone(),
-                    ROSTER_TOTALS_NAMESPACE.to_string(),
-                    id.to_string(),
-                    total.to_string(),
-                    Some(ROSTER_TTL_SECONDS),
-                );
-            }
+async fn exact_roster_total<F, Fut>(mut fetch: F) -> Result<i64, String>
+where
+    F: FnMut(usize) -> Fut,
+    Fut: std::future::Future<Output = Result<RosterPageCache, String>>,
+{
+    let mut seen = std::collections::HashSet::new();
+    // AniList's maximum pagination depth is 5000 entries.
+    for page in 1..=5000 / ROSTER_PAGE_SIZE {
+        let roster = fetch(page).await?;
+        let previous = seen.len();
+        seen.extend(
+            roster
+                .characters
+                .iter()
+                .map(|character| character.entity_id),
+        );
+        if !roster.has_next {
+            return Ok(seen.len() as i64);
+        }
+        if seen.len() == previous {
+            return Err("card roster pagination made no progress".into());
         }
     }
-    totals
+    Err("card roster exceeded pagination depth; total remains unknown".into())
+}
+
+async fn fetch_roster_totals(app: &AppHandle, ids: &[i64], proxy: Option<&str>) {
+    for id in ids {
+        let total = match exact_roster_total(|page| cached_roster_page(app, *id, page, proxy, true))
+            .await
+        {
+            Ok(total) => total,
+            Err(error) => {
+                tracing::warn!(media_id = id, %error, "card roster total unavailable");
+                break;
+            }
+        };
+        if let Err(error) = put_app_cache(
+            app.clone(),
+            ROSTER_TOTALS_NAMESPACE.to_string(),
+            id.to_string(),
+            total.to_string(),
+            Some(ROSTER_TTL_SECONDS),
+        ) {
+            tracing::warn!(media_id = id, %error, "card roster total cache write failed");
+            break;
+        }
+        if let Err(error) = app.emit("cards-album-metadata-updated", ()) {
+            tracing::warn!(%error, "emit card shelf update failed");
+        }
+    }
 }
 
 fn shelf_rows(app: &AppHandle) -> Result<Vec<ShelfRow>, String> {
@@ -682,7 +685,6 @@ pub async fn cards_collections(
 ) -> Result<Vec<CollectionShelfItem>, String> {
     let mut trace = CommandTrace::start("cards_collections");
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    repair_collection_links(&app, proxy.as_deref()).await?;
     let rows = shelf_rows(&app)?;
     let mut shelf = shelf_from_rows(
         rows.into_iter(),
@@ -691,14 +693,35 @@ pub async fn cards_collections(
     )?;
     trace.mark("shelf");
     let ids: Vec<i64> = shelf.iter().map(|item| item.anime_id).collect();
-    let mut totals = cached_roster_totals(&app, &ids);
+    let totals = cached_roster_totals(&app, &ids);
     let missing: Vec<i64> = ids
         .iter()
         .copied()
         .filter(|id| !totals.contains_key(id))
         .collect();
-    if !missing.is_empty() {
-        totals.extend(fetch_roster_totals(&app, &missing, proxy.as_deref()).await);
+    let repair_count = unlinked_owned_characters(&open_database(&app)?)?.len();
+    let needs_repair = repair_count > 0;
+    if !missing.is_empty() || needs_repair {
+        if let Ok(guard) = SHELF_REFRESH.try_lock() {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let _guard = guard;
+                if needs_repair {
+                    if let Err(error) = repair_collection_links(&app, proxy.as_deref()).await {
+                        tracing::warn!(%error, "card shelf link refresh failed");
+                    }
+                }
+                let repaired = open_database(&app)
+                    .and_then(|connection| unlinked_owned_characters(&connection))
+                    .is_ok_and(|keys| keys.len() < repair_count);
+                fetch_roster_totals(&app, &missing, proxy.as_deref()).await;
+                if repaired {
+                    if let Err(error) = app.emit("cards-album-metadata-updated", ()) {
+                        tracing::warn!(%error, "emit card shelf update failed");
+                    }
+                }
+            });
+        }
     }
     for item in &mut shelf {
         item.total = totals.get(&item.anime_id).map(|total| 1 + *total);
@@ -861,7 +884,7 @@ pub async fn cards_collection_roster(
         Some(_) => return Err("unknown collection kind".into()),
     };
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    let cache = cached_roster_page(&app, media_id, page, proxy.as_deref()).await?;
+    let cache = cached_roster_page(&app, media_id, page, proxy.as_deref(), false).await?;
     let owned = owned_character_ids(&app, media_id, kind)?;
     let characters = cache
         .characters
@@ -889,6 +912,51 @@ pub async fn cards_collection_roster(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn count_page(ids: &[i64], has_next: bool) -> RosterPageCache {
+        RosterPageCache {
+            characters: ids
+                .iter()
+                .map(|id| RosterMeta {
+                    entity_id: *id,
+                    title: id.to_string(),
+                    image_url: None,
+                    favourites: 0,
+                })
+                .collect(),
+            has_next,
+            total: Some(500),
+        }
+    }
+
+    #[tokio::test]
+    async fn exact_total_ignores_placeholder_totals_and_deduplicates_pages() {
+        let mut pages = vec![count_page(&[1, 2], true), count_page(&[2, 3], false)].into_iter();
+        let total = exact_roster_total(|_| std::future::ready(Ok(pages.next().unwrap()))).await;
+        assert_eq!(total.unwrap(), 3);
+    }
+
+    #[tokio::test]
+    async fn exact_total_keeps_failed_or_repeating_rosters_unknown() {
+        let mut pages = vec![Ok(count_page(&[1], true)), Err("429".to_string())].into_iter();
+        assert_eq!(
+            exact_roster_total(|_| std::future::ready(pages.next().unwrap()))
+                .await
+                .unwrap_err(),
+            "429"
+        );
+        assert!(
+            exact_roster_total(|_| std::future::ready(Ok(count_page(&[1], true))))
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            exact_roster_total(|_| std::future::ready(Ok(count_page(&[], false))))
+                .await
+                .unwrap(),
+            0
+        );
+    }
 
     #[test]
     fn choice_pack_can_draw_from_the_entire_roster_without_duplicates() {
@@ -1166,5 +1234,20 @@ mod tests {
         assert_eq!(ROSTER_INITIAL_PAGES, 3);
         assert_eq!(ROSTER_PAGE_SIZE * ROSTER_INITIAL_PAGES, 75);
         assert_eq!(ROSTER_TTL_SECONDS, 7 * 24 * 60 * 60);
+    }
+
+    #[tokio::test]
+    async fn shelf_refresh_excludes_duplicate_work_and_releases_after_abort() {
+        for _ in 0..3 {
+            let guard = SHELF_REFRESH.try_lock().unwrap();
+            assert!(SHELF_REFRESH.try_lock().is_err());
+            let task = tokio::spawn(async move {
+                let _guard = guard;
+                std::future::pending::<()>().await;
+            });
+            task.abort();
+            assert!(task.await.unwrap_err().is_cancelled());
+        }
+        assert!(SHELF_REFRESH.try_lock().is_ok());
     }
 }

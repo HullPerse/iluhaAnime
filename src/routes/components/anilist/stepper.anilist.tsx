@@ -142,6 +142,8 @@ export function ProgressStepper({
       });
       addNotification(t("anilist.controls.save.error.detail", { error: reason }), "error");
     } else {
+      ignore(queryClient.invalidateQueries({ queryKey: queryKeys.cardsShellScope() }));
+      ignore(queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() }));
       const confirmed = saved?.progress ?? target;
       const confirmedStatus = saved?.status ?? nextStatus;
       confirmedRef.current = confirmed;

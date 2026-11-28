@@ -3,7 +3,7 @@ import { useCell } from "@hullperse/hp_utils/react";
 
 import { Button } from "@/components/ui/button.component";
 import { cardsTabLabelKeys } from "@/config/cards/labels.config";
-import { useCardsShell } from "@/hooks/cards/queries.hook";
+import { useCardsPacks, useCardsShell } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { cardsAtoms, setCardsAlbumMode, setCardsTab } from "@/store/cards.store";
 import type { CardsAlbumMode, CardsTab } from "@/types/store/cards";
@@ -32,10 +32,14 @@ export default function TabsCards() {
   const tab = useCell(cardsAtoms.tab);
   const albumMode = useCell(cardsAtoms.albumMode);
   const shell = useCardsShell();
+  const packs = useCardsPacks();
   const totalCards = shell.data?.stats.totalCards;
   const activeGifts = shell.data?.stats.activeGifts;
   const unreadPacks = shell.data?.unread.packs ?? 0;
   const unreadCards = shell.data?.unread.cards ?? 0;
+  const queuedPacks = (packs.data ?? []).filter(
+    (pack) => pack.openedAt === null && pack.contentsState !== "ready"
+  ).length;
 
   return (
     <nav className="flex min-h-0 flex-col gap-1">
@@ -118,6 +122,16 @@ export default function TabsCards() {
                         {t(cardsTabLabelKeys[value])}
                       </span>
                       {value === "game" && <GameResetTimer />}
+                      {value === "packs" && queuedPacks > 0 && (
+                        <span
+                          data-testid="collection-pending-packs"
+                          className="windows95-text text-hint tabular-nums"
+                          title={t("collection.packs.queue", { count: queuedPacks })}
+                          aria-label={t("collection.packs.queue", { count: queuedPacks })}
+                        >
+                          ⏳{queuedPacks}
+                        </span>
+                      )}
                       {unreadCount > 0 && (
                         <span
                           data-testid={`collection-unread-${value}`}

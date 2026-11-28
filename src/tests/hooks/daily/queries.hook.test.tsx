@@ -144,19 +144,19 @@ describe("daily query proxy", () => {
 
 describe("daily reward cache", () => {
   const PACKS_KEY = queryKeys.cardsPacks("");
-  const UNREAD_KEY = queryKeys.cardsUnread(0, 0);
+  const SHELL_KEY = queryKeys.cardsShell();
 
   const seedCardsCache = () => {
     client.setQueryData(PACKS_KEY, []);
-    client.setQueryData(UNREAD_KEY, { packs: 0, cards: 0 });
+    client.setQueryData(SHELL_KEY, { packs: 0, cards: 0 });
   };
 
   const expectInvalidated = (invalidated: boolean) => {
     expect(client.getQueryState(PACKS_KEY)?.isInvalidated).toBe(invalidated);
-    expect(client.getQueryState(UNREAD_KEY)?.isInvalidated).toBe(invalidated);
+    expect(client.getQueryState(SHELL_KEY)?.isInvalidated).toBe(invalidated);
   };
 
-  it("invalidates the packs and unread caches after a frames win", async () => {
+  it("invalidates the packs and shell caches after a frames win", async () => {
     vi.spyOn(dailyApi, "guess").mockResolvedValue(guessView("daily-2026-11-15-frames"));
     seedCardsCache();
     const { result } = renderHook(() => useGuessDailyGame(DAY), { wrapper });

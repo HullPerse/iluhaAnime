@@ -112,6 +112,7 @@ export const PackOpeningSchema = z.compile(
     cards: z.array(OpenedCardSchema),
     value: z.number(),
     chosenSlot: z.nullable(z.number()),
+    preparing: z.boolean(),
   })
 );
 

@@ -91,7 +91,7 @@ export default function AniListScrollView({
       data-virtual-list
       className="scroll-edge-fade windows95-border bg-field flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto border p-1"
     >
-      <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
+      <div className="relative w-full shrink-0" style={{ height: rowVirtualizer.getTotalSize() }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const row = grouped ? (rows?.[virtualRow.index] ?? null) : null;
 

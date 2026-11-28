@@ -46,6 +46,8 @@ export const queryKeys = {
   anilistSearch: (request: unknown) => ["anilist_search", request] as const,
   anilistSeasonAiring: (season: string, year: number, adult: boolean) =>
     ["anilist_season_airing", season, year, adult ? 1 : 0] as const,
+  anilistSeasonAiringPages: (season: string, year: number, adult: boolean) =>
+    ["anilist_season_airing_pages", season, year, adult ? 1 : 0] as const,
   anilistSearchPages: (request: unknown) => ["anilist_search_pages", request] as const,
   friendBundle: (id: number | null) => ["anilist_friend_bundle", id] as const,
   friendLists: (id: number | null) => ["anilist_friend_lists", id] as const,

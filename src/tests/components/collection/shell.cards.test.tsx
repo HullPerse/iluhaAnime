@@ -9,8 +9,9 @@ import {
   makeCardsStats,
   makeCollectionItem,
   makeCollectionPage,
+  makePack,
 } from "@/tests/fixtures/cards/cards.fixture";
-import { mockInvoke } from "@/tests/mocks";
+import { mockInvoke, mockListen } from "@/tests/mocks";
 import { renderWithCardsClient } from "@/tests/components/collection/render.cards";
 
 const NO_STARTER = {
@@ -32,6 +33,7 @@ const shell = (
 ) => ({ bootstrap, stats, unread, seen });
 
 beforeEach(() => {
+  mockListen.mockResolvedValue(() => undefined);
   mockInvoke.mockImplementation((command: unknown) => {
     if (command === "cards_shell") return Promise.resolve(shell());
 
@@ -52,6 +54,33 @@ afterEach(() => {
 });
 
 describe("collection shell", () => {
+  it("drains preparation batches and hides the action once every available pack is ready", async () => {
+    let prepared = 0;
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_shell") return Promise.resolve(shell());
+
+      if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
+      if (command === "cards_packs")
+        return Promise.resolve(
+          Array.from({ length: 3 }, (_, i) =>
+            makePack({ id: `batch-${i}`, contentsState: i < prepared ? "ready" : "pending" })
+          )
+        );
+
+      if (command === "cards_prepare_packs") {
+        prepared++;
+
+        return Promise.resolve({ prepared: 1, failed: 0, repaired: 0, unnotified: 0 });
+      }
+
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(<CollectionShell />);
+    fireEvent.click(await screen.findByTestId("collection-prepare-packs"));
+    await waitFor(() => expect(screen.queryByTestId("collection-prepare-packs")).toBeNull());
+    expect(prepared).toBe(3);
+  });
   it("shows the tabs and the wallet", async () => {
     renderWithCardsClient(<CollectionShell />);
 
@@ -84,6 +113,39 @@ describe("collection shell", () => {
     const badge = await screen.findByTestId("collection-active-gifts");
     expect(badge.textContent).toBe("2");
     expect(badge.title).toBe("Действующих подарков: 2");
+  });
+
+  it("shows the pack queue and opens the preparation dialog", async () => {
+    mockInvoke.mockImplementation((command: unknown) => {
+      if (command === "cards_shell") return Promise.resolve(shell());
+
+      if (command === "cards_starter_status") return Promise.resolve(NO_STARTER);
+
+      if (command === "cards_packs")
+        return Promise.resolve([
+          makePack({ id: "pending", contentsState: "pending" }),
+          makePack({ id: "failed", contentsState: "failed" }),
+          makePack({ id: "ready", contentsState: "ready" }),
+          makePack({ id: "opened", openedAt: 1_760_000_100 }),
+        ]);
+
+      if (command === "cards_prepare_packs")
+        return Promise.resolve({ prepared: 0, failed: 0, repaired: 0, unnotified: 0 });
+
+      if (command === "cards_collection")
+        return Promise.resolve(makeCollectionPage({ items: [], total: 0 }));
+
+      return Promise.resolve(null);
+    });
+    renderWithCardsClient(<CollectionShell />);
+
+    const badge = await screen.findByTestId("collection-pending-packs");
+    expect(badge.textContent).toBe("⏳2");
+
+    fireEvent.click(await screen.findByTestId("collection-prepare-packs"));
+
+    expect(await screen.findByText("Подготовка паков")).toBeTruthy();
+    expect(await screen.findByText("В очереди: 2")).toBeTruthy();
   });
 
   it("shows unread badges on the packs and album tabs", async () => {

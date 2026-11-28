@@ -4,7 +4,7 @@ use tauri::AppHandle;
 use super::rarity::score_for;
 use super::types::CardKind;
 use crate::anilist::auth::optional_token;
-use crate::anilist::client::graphql_request;
+use crate::anilist::client::{graphql_request, graphql_request_background};
 use crate::app_db::cards::{get_meta, upsert_meta, CardMetaRow};
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -16,6 +16,13 @@ pub const STUDIO_COLLAGE_SIZE: usize = 4;
 
 pub fn is_fresh(fetched_at: i64, now: i64) -> bool {
     fetched_at >= now.saturating_sub(META_TTL_SECONDS)
+}
+
+/// Anime and manga metadata can be written from the `CardNode` that was
+/// already sampled. Characters still need their primary collection link and
+/// studios need their collage, so only those kinds require a remote refresh.
+pub fn needs_remote_metadata(kind: CardKind) -> bool {
+    matches!(kind, CardKind::Character | CardKind::Studio)
 }
 
 /// Studios store their 2x2 collage in the shared metadata row. A cached row
@@ -244,7 +251,7 @@ pub async fn refresh_metadata(
     cards: &[(CardKind, i64)],
     proxy: Option<&str>,
 ) -> Result<usize, String> {
-    refresh_metadata_with_changes(app, cards, proxy)
+    refresh_metadata_impl(app, cards, proxy, true)
         .await
         .map(|(count, _)| count)
 }
@@ -253,6 +260,15 @@ pub(super) async fn refresh_metadata_with_changes(
     app: &AppHandle,
     cards: &[(CardKind, i64)],
     proxy: Option<&str>,
+) -> Result<(usize, bool), String> {
+    refresh_metadata_impl(app, cards, proxy, false).await
+}
+
+async fn refresh_metadata_impl(
+    app: &AppHandle,
+    cards: &[(CardKind, i64)],
+    proxy: Option<&str>,
+    background: bool,
 ) -> Result<(usize, bool), String> {
     let connection = open_database(app)?;
     let now = now_seconds();
@@ -301,12 +317,12 @@ pub(super) async fn refresh_metadata_with_changes(
             page_aliases.push((alias, kind));
         }
     }
-    let response = graphql_request(
-        json!({ "query": format!("query {{ {} }}", parts.join(" ")) }),
-        token.as_deref(),
-        proxy,
-    )
-    .await?;
+    let body = json!({ "query": format!("query {{ {} }}", parts.join(" ")) });
+    let response = if background {
+        graphql_request_background(body, token.as_deref(), proxy).await?
+    } else {
+        graphql_request(body, token.as_deref(), proxy).await?
+    };
     let mut rows: Vec<CardMetaRow> = Vec::new();
     for (alias, kind) in page_aliases {
         let value = &response["data"][alias.as_str()];

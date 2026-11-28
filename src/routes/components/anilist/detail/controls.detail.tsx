@@ -79,10 +79,11 @@ function AniListActionControls({
   } = useListDraft(anime.id, listEntry);
   const [saving, setSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
+  const [customListsRequested, setCustomListsRequested] = useState<boolean>(false);
   const { data: customLists } = useAppQuery("slow", {
     queryKey: [...queryKeys.customLists(), anime.media_type],
     queryFn: () => anilistApi.getCustomLists(anime.media_type ?? undefined),
-    enabled: isLoggedIn,
+    enabled: isLoggedIn && (listEntry !== undefined || customListsRequested),
     retry: false,
   });
 
@@ -168,6 +169,8 @@ function AniListActionControls({
         return;
       }
 
+      queryClient.invalidateQueries({ queryKey: queryKeys.cardsShellScope() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
       const reconciled = reconcileSavedEntry(queryClient, anime.id, previousStatus, values, saved);
       markOwnAnilistListStatus(anime.id, reconciled.status);
 
@@ -190,7 +193,10 @@ function AniListActionControls({
             className="flex-1"
             label={t("anilist.controls.status")}
             value={editStatus}
-            onChange={(v) => setEditStatus(v)}
+            onChange={(v) => {
+              setCustomListsRequested(true);
+              setEditStatus(v);
+            }}
             options={[
               ...(listEntry === undefined ? [{ value: "", label: "-" }] : []),
               ...listStatusOptions.map((o) => ({

@@ -274,7 +274,8 @@ pub async fn get_anilist_statistics(
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let mut body = statistics_body(user_id);
     if manga {
-        body["query"] = serde_json::Value::String(r"
+        body["query"] = serde_json::Value::String(
+            r"
           query ($userId: Int) { User(id: $userId) { statistics { anime: manga {
             count meanScore standardDeviation episodesWatched: chaptersRead
             statuses { status count }
@@ -284,7 +285,9 @@ pub async fn get_anilist_statistics(
             startYears { startYear count meanScore mediaIds }
             genres(limit: 50, sort: COUNT_DESC) { genre count meanScore mediaIds }
           } } } }
-        ".to_string());
+        "
+            .to_string(),
+        );
     }
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
     let statistics = parse_statistics(&json)?;

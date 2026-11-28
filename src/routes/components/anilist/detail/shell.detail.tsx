@@ -1,6 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { anilistApi } from "@/api/anilist.api";
 import { TrailerEmbed } from "@/components/shared/lightbox/trailerEmbed.media";
@@ -59,20 +58,12 @@ export function AnimeDetailShell({
   };
 
   const anilistProxyUrl = useCell(settingsAtoms.anilistProxyUrl);
-  const queryClient = useQueryClient();
   const { entryLookup, listEntry, scoreFormat } = useDetailEntryContext(props);
   const query = useAppQuery("static", {
     queryKey: queryKeys.animeFull(props.animeId, anilistProxyUrl ?? "", props.isLoggedIn),
     queryFn: () => anilistApi.getAnimeFull(props.animeId),
     retry: 1,
   });
-  useEffect(() => {
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.animeFranchiseRefresh(props.animeId, 0),
-      queryFn: () => anilistApi.getAnimeFranchise(props.animeId, "all"),
-      staleTime: Infinity,
-    });
-  }, [props.animeId, queryClient]);
   useDetailPresence(query.data?.media, props.animeId);
   const { backScreen, openAnime, pushScreen, screenTop } = useDetailScreens(
     props.animeId,

@@ -1,6 +1,5 @@
 import { useCell } from "@hullperse/hp_utils/react";
 import { anilistMangaMode } from "@/store/anilistManga.store";
-import { useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,15 +13,12 @@ import { BROWSE_SORT_MAP, BROWSE_TABS } from "@/config/search/browse.config";
 import { BROWSE_GENRE_COUNT } from "@/config/anilist/anilistFilters.config";
 import { listStatusLabels, seasonLabels, statusLabels } from "@/config/system/labels.config";
 import { BROWSE_PAGE_SIZE } from "@/config/system/pagination.config";
-import { QUERY_PRESETS } from "@/config/system/query.config";
 import { useAppQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
 import { getStatusColor } from "@/lib/anilist/entries.utils";
 import { hasRating } from "@/lib/anilist/anilistScore.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
-import { scheduleTask } from "@hullperse/hp_utils/shared";
-import type { ScheduledTask } from "@/types/core/shared";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { paginate } from "@/lib/core/text/pagination.utils";
 import type { ActivityDetailBundle } from "@/types/anilist/anilist";
@@ -52,8 +48,6 @@ export default function BrowseAnimeModal({
   const [detailId, setDetailId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState<number>(1);
-  const queryClient = useQueryClient();
-  const prefetchedRef = useRef<BrowseTab[]>([]);
 
   const { data = [], isLoading } = useAppQuery("slow", {
     queryKey: [...queryKeys.anilistBrowse(activeTab), manga],
@@ -67,49 +61,6 @@ export default function BrowseAnimeModal({
         maxPages: 1,
       }),
   });
-
-  useEffect(() => {
-    const prefetchOthers = () => {
-      const others = BROWSE_TABS.filter((tab) => tab.id !== activeTab);
-      prefetchedRef.current = others.map((tab) => tab.id);
-
-      for (const tab of others) {
-        queryClient.prefetchQuery({
-          queryKey: [...queryKeys.anilistBrowse(tab.id), manga],
-          queryFn: () =>
-            anilistApi.search({
-              mediaType: manga ? "MANGA" : "ANIME",
-              query: null,
-              sort: BROWSE_SORT_MAP[tab.id],
-              adult: false,
-              perPage: BROWSE_PAGE_SIZE,
-              maxPages: 1,
-            }),
-          staleTime: QUERY_PRESETS.slow.staleTime,
-        });
-      }
-    };
-
-    let idleId: number | undefined;
-    let fallback: ScheduledTask | undefined;
-
-    if (typeof window.requestIdleCallback === "function") {
-      idleId = window.requestIdleCallback(prefetchOthers);
-    } else {
-      fallback = scheduleTask("timeout", 1500, prefetchOthers);
-    }
-
-    return () => {
-      if (idleId !== undefined) window.cancelIdleCallback(idleId);
-      fallback?.cancel();
-
-      for (const tabId of prefetchedRef.current) {
-        queryClient.cancelQueries({ queryKey: queryKeys.anilistBrowse(tabId) });
-      }
-
-      prefetchedRef.current = [];
-    };
-  }, [activeTab, manga, queryClient]);
 
   const { total, from, to, lastPage } = usePagination(data.length, BROWSE_PAGE_SIZE, page, setPage);
 

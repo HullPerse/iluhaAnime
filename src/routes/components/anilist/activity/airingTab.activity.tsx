@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button.component";
 import ImageComponent from "@/components/ui/image.component";
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { seasonLabels } from "@/config/system/labels.config";
-import { useAppQuery } from "@/hooks/appQuery.hook";
+import { useAppInfiniteQuery } from "@/hooks/appQuery.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import {
   AIRING_TICK_MS,
@@ -24,7 +24,8 @@ import { createInterval } from "@hullperse/hp_utils/interval";
 import { enterOrSpace } from "@/lib/ui/keyboard.utils";
 import { settingsAtoms } from "@/store/settings.store";
 import { LOCAL_TIME_ZONE } from "@/lib/core/text/time.utils";
-import type { AniListCollection, AniMedia } from "@/types/anilist/anilist";
+import type { AniListCollection } from "@/types/anilist/anilist";
+import type { FilterPage } from "@/types/core/ipc";
 
 type AiringMode = "list" | "season";
 
@@ -48,20 +49,34 @@ export function AiringTab({
     return cancel;
   }, []);
 
-  const seasonQuery = useAppQuery<AniMedia[]>("slow", {
-    queryKey: queryKeys.anilistSeasonAiring(season.season, season.year, adult),
-    queryFn: () =>
-      anilistApi.search({
+  const seasonQuery = useAppInfiniteQuery<FilterPage, Error>("slow", {
+    queryKey: queryKeys.anilistSeasonAiringPages(season.season, season.year, adult),
+    queryFn: ({ pageParam }) =>
+      anilistApi.filterPage({
         adult: adult ? null : false,
-        maxPages: 4,
+        mediaType: "ANIME",
+        page: pageParam as number,
         perPage: 50,
         season: season.season,
         seasonYear: season.year,
         sort: ["POPULARITY_DESC"],
         status: "RELEASING",
       }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+      const loaded = allPages.reduce((count, page) => count + page.media.length, 0);
+
+      if (lastPage.media.length < 50 || loaded >= lastPage.total) return undefined;
+
+      return (lastPageParam as number) + 1;
+    },
     enabled: mode === "season",
   });
+
+  const seasonMedia = useMemo(
+    () => seasonQuery.data?.pages.flatMap((page) => page.media) ?? [],
+    [seasonQuery.data]
+  );
 
   const statuses = useMemo(() => {
     const seen = new Set<string>();
@@ -77,10 +92,8 @@ export function AiringTab({
 
   const rows = useMemo(
     () =>
-      mode === "list"
-        ? collectAiringRows(lists, statusFilter)
-        : seasonAiringRows(seasonQuery.data ?? []),
-    [lists, mode, seasonQuery.data, statusFilter]
+      mode === "list" ? collectAiringRows(lists, statusFilter) : seasonAiringRows(seasonMedia),
+    [lists, mode, seasonMedia, statusFilter]
   );
   const days = useMemo(() => groupAiringByDay(rows), [rows]);
   const loading = mode === "season" && seasonQuery.isLoading;
@@ -167,56 +180,71 @@ export function AiringTab({
           </span>
         </div>
       ) : (
-        days.map((day) => (
-          <section key={day.dayStartMs} className="mt-1 flex flex-col gap-0.5">
-            <span className="windows95-text text-hint text-xs font-bold">
-              {new Date(day.dayStartMs).toLocaleDateString(locale, {
-                weekday: "long",
-                day: "numeric",
-                month: "short",
-                timeZone: LOCAL_TIME_ZONE,
-              })}
-            </span>
-            <div className="flex flex-col gap-0.5">
-              {day.rows.map((row) => {
-                const secs = airingCountdownSecs(row.airingAt, nowMs);
-                const countdown = formatAiringCountdown(secs, t);
+        <>
+          {days.map((day) => (
+            <section key={day.dayStartMs} className="mt-1 flex flex-col gap-0.5">
+              <span className="windows95-text text-hint text-xs font-bold">
+                {new Date(day.dayStartMs).toLocaleDateString(locale, {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "short",
+                  timeZone: LOCAL_TIME_ZONE,
+                })}
+              </span>
+              <div className="flex flex-col gap-0.5">
+                {day.rows.map((row) => {
+                  const secs = airingCountdownSecs(row.airingAt, nowMs);
+                  const countdown = formatAiringCountdown(secs, t);
 
-                return (
-                  <div
-                    key={row.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={row.title}
-                    data-vim-target="airing-item"
-                    className="windows95-active-border bg-primary hover:bg-surface flex cursor-pointer items-center gap-2 px-1 py-1"
-                    onClick={() => onAnimeClick(row.id)}
-                    onKeyDown={enterOrSpace(() => onAnimeClick(row.id))}
-                  >
-                    {row.cover && (
-                      <ImageComponent
-                        src={row.cover}
-                        alt="cover"
-                        className="windows95-border h-10 w-7 shrink-0"
-                      />
-                    )}
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="windows95-font truncate text-xs font-bold">{row.title}</span>
-                      <span className="text-hint windows95-font text-xs">
-                        {row.episode != null
-                          ? `${t("anilist.activity.episode", { n: row.episode })} - `
-                          : ""}
-                        {countdown
-                          ? t("anilist.airing.in", { time: countdown })
-                          : (formatAiringLocal(row.airingAt, locale) ?? t("anilist.airing.aired"))}
-                      </span>
+                  return (
+                    <div
+                      key={row.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={row.title}
+                      data-vim-target="airing-item"
+                      className="windows95-active-border bg-primary hover:bg-surface flex cursor-pointer items-center gap-2 px-1 py-1"
+                      onClick={() => onAnimeClick(row.id)}
+                      onKeyDown={enterOrSpace(() => onAnimeClick(row.id))}
+                    >
+                      {row.cover && (
+                        <ImageComponent
+                          src={row.cover}
+                          alt="cover"
+                          className="windows95-border h-10 w-7 shrink-0"
+                        />
+                      )}
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="windows95-font truncate text-xs font-bold">
+                          {row.title}
+                        </span>
+                        <span className="text-hint windows95-font text-xs">
+                          {row.episode != null
+                            ? `${t("anilist.activity.episode", { n: row.episode })} - `
+                            : ""}
+                          {countdown
+                            ? t("anilist.airing.in", { time: countdown })
+                            : (formatAiringLocal(row.airingAt, locale) ??
+                              t("anilist.airing.aired"))}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+          {seasonQuery.hasNextPage && (
+            <Button
+              className="windows95-text self-start px-1.5 py-0.5 text-xs"
+              variant="outline"
+              loading={seasonQuery.isFetchingNextPage}
+              onClick={() => seasonQuery.fetchNextPage()}
+            >
+              {t("anilist.route.load.more")}
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

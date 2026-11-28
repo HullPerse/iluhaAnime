@@ -128,6 +128,7 @@ pub fn daily_game_bootstrap(app: AppHandle, day: String) -> Result<DailyBootstra
     let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
     let connection = open_database(&app)?;
     store::ensure_games(&connection, &day)?;
+    super::characters::ensure_table(&connection)?;
     store::bootstrap(&connection, &day)
 }
 

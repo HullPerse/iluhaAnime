@@ -2,10 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::app_db::cards::{insert_pack, CardPackRow, LOCAL_USER_ID};
+use crate::app_db::cards::{
+    get_meta, insert_pack, upsert_meta, CardMetaRow, CardPackRow, LOCAL_USER_ID,
+};
 use crate::app_db::db::now_seconds;
 use crate::cards::config::CARD_PACK_SIZE;
-use crate::cards::types::CardPackContentsState;
+use crate::cards::rarity::score_for;
+use crate::cards::types::{CardKind, CardPackContentsState};
 
 use super::pool::{self, Candidate, PoolEntry};
 use super::types::{
@@ -19,6 +22,35 @@ fn db_error(context: &str, error: rusqlite::Error) -> String {
 
 fn source_index(value: i64) -> usize {
     usize::try_from(value.max(0)).unwrap_or(0)
+}
+
+/// A daily win must stay preparable when AniList is unavailable. Seed a
+/// deliberately stale metadata row from the pool entry; a later refresh can
+/// replace it with the cover, while preparation still gets a title and score.
+fn fallback_answer_meta(entry: &PoolEntry) -> CardMetaRow {
+    let popularity = u32::try_from(entry.popularity.max(0)).unwrap_or(u32::MAX);
+    let title = entry.title.trim();
+    CardMetaRow {
+        kind: CardKind::Anime,
+        entity_id: entry.media_id,
+        title: if title.is_empty() {
+            format!("Anime {}", entry.media_id)
+        } else {
+            title.to_string()
+        },
+        image_url: None,
+        score: Some(score_for(CardKind::Anime, 0, popularity).round() as i64),
+        popularity: Some(i64::from(popularity)),
+        favourites: Some(0),
+        collection_anime_id: None,
+        collection_manga_id: None,
+        collection_title: None,
+        collection_cover_url: None,
+        collage_json: None,
+        fetched_at: 0,
+        preferred_image_url: None,
+        collage_expected: None,
+    }
 }
 
 pub struct StoredGame {
@@ -663,10 +695,19 @@ pub fn finish_guess(
         )
         .map_err(|error| db_error("insert daily result", error))?;
     if changed == 0 {
+        let stored: Option<String> = transaction
+            .query_row(
+                "SELECT reward_pack_id FROM daily_results WHERE day = ?1 AND mode = ?2",
+                params![day, mode.as_str()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|error| db_error("read repeated daily reward", error))?
+            .flatten();
         transaction
             .commit()
             .map_err(|error| db_error("commit repeated daily result", error))?;
-        return Ok(pack_id);
+        return Ok(stored);
     }
     transaction
         .execute(
@@ -694,6 +735,9 @@ pub fn finish_guess(
                 chosen_slot: None,
             },
         )?;
+        if get_meta(&transaction, CardKind::Anime, entry.media_id)?.is_none() {
+            upsert_meta(&transaction, &fallback_answer_meta(entry))?;
+        }
     }
     transaction
         .commit()
@@ -763,6 +807,7 @@ pub fn history(
 /// Test-only reset: clears every daily game, its frames and results, plus
 /// unopened reward packs. Opened packs stay so the album history is intact.
 pub fn reset(connection: &Connection) -> Result<(), String> {
+    super::characters::ensure_table(connection)?;
     let transaction = connection
         .unchecked_transaction()
         .map_err(|error| db_error("daily reset transaction", error))?;
@@ -791,14 +836,20 @@ pub fn reset(connection: &Connection) -> Result<(), String> {
         .execute("DELETE FROM daily_games", [])
         .map_err(|error| db_error("clear daily games", error))?;
     transaction
+        .execute("DELETE FROM daily_characters", [])
+        .map_err(|error| db_error("clear daily characters", error))?;
+    transaction
         .commit()
         .map_err(|error| db_error("commit daily reset", error))?;
     Ok(())
 }
 
 pub fn streak(connection: &Connection, day: &str) -> i64 {
+    if super::characters::ensure_table(connection).is_err() {
+        return 0;
+    }
     let Ok(mut statement) =
-        connection.prepare("SELECT DISTINCT day FROM daily_results ORDER BY day DESC LIMIT 400")
+        connection.prepare("SELECT day FROM daily_results UNION SELECT day FROM daily_characters WHERE finished=1 OR reward_pack_id IS NOT NULL ORDER BY day DESC LIMIT 400")
     else {
         return 0;
     };
@@ -806,7 +857,7 @@ pub fn streak(connection: &Connection, day: &str) -> i64 {
         return 0;
     };
     let Ok(today_played) = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM daily_results WHERE day = ?1)",
+        "SELECT EXISTS(SELECT 1 FROM daily_results WHERE day = ?1 UNION SELECT 1 FROM daily_characters WHERE day=?1 AND (finished=1 OR reward_pack_id IS NOT NULL))",
         [day],
         |row| row.get::<_, bool>(0),
     ) else {
@@ -1227,6 +1278,99 @@ mod tests {
             .expect("count packs");
         assert_eq!(packs, 1);
         assert_eq!(streak(&connection, "2026-11-14"), 1);
+    }
+
+    #[test]
+    fn a_repeated_finish_returns_the_stored_reward_after_a_loss() {
+        let connection = memory_db();
+        ensure_games(&connection, "2026-11-14").expect("ensure");
+        let game = load_game(&connection, "2026-11-14", DailyMode::Frames).expect("game");
+        let first = finish_guess(
+            &connection,
+            "2026-11-14",
+            DailyMode::Frames,
+            false,
+            game.attempts + 1,
+            &[1],
+            &game.entry,
+        )
+        .expect("first finish");
+        assert_eq!(first, None);
+
+        let second = finish_guess(
+            &connection,
+            "2026-11-14",
+            DailyMode::Frames,
+            true,
+            game.attempts + 1,
+            &[game.entry.media_id],
+            &game.entry,
+        )
+        .expect("repeated finish");
+        assert_eq!(second, None);
+        let packs: i64 = connection
+            .query_row("SELECT COUNT(*) FROM card_packs", [], |row| row.get(0))
+            .expect("count packs");
+        assert_eq!(packs, 0);
+    }
+
+    #[test]
+    fn a_repeated_finish_keeps_the_stored_reward_after_a_win() {
+        let connection = memory_db();
+        ensure_games(&connection, "2026-11-14").expect("ensure");
+        let game = load_game(&connection, "2026-11-14", DailyMode::Frames).expect("game");
+        let first = finish_guess(
+            &connection,
+            "2026-11-14",
+            DailyMode::Frames,
+            true,
+            1,
+            &[game.entry.media_id],
+            &game.entry,
+        )
+        .expect("first finish");
+        assert!(first.is_some());
+
+        let second = finish_guess(
+            &connection,
+            "2026-11-14",
+            DailyMode::Frames,
+            false,
+            2,
+            &[1, 2],
+            &game.entry,
+        )
+        .expect("repeated finish");
+        assert_eq!(second, first);
+    }
+
+    #[test]
+    fn a_daily_win_seeds_fallback_answer_metadata() {
+        let connection = memory_db();
+        ensure_games(&connection, "2026-11-14").expect("ensure");
+        let game = load_game(&connection, "2026-11-14", DailyMode::Frames).expect("game");
+        finish_guess(
+            &connection,
+            "2026-11-14",
+            DailyMode::Frames,
+            true,
+            1,
+            &[game.entry.media_id],
+            &game.entry,
+        )
+        .expect("finish");
+
+        let (title, image_url, fetched_at): (String, Option<String>, i64) = connection
+            .query_row(
+                "SELECT title, image_url, fetched_at FROM card_meta
+                  WHERE kind = 'anime' AND entity_id = ?1",
+                [game.entry.media_id],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .expect("fallback metadata");
+        assert_eq!(title, game.entry.title);
+        assert_eq!(image_url, None);
+        assert_eq!(fetched_at, 0);
     }
 
     #[test]

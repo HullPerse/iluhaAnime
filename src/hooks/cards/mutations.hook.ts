@@ -98,10 +98,17 @@ export function useCardsMutations() {
     },
   });
 
+  const preparePacks = useMutation({
+    mutationFn: (retryFailed: boolean) => cardsApi.preparePacks(anilistProxy(), retryFailed),
+    onSuccess: invalidate,
+  });
+
   const openPack = useMutation({
     mutationFn: (packId: string) => cardsApi.openPack(packId, anilistProxy()),
     onSuccess: (opening) => {
-      if (!mounted.current) invalidate();
+      if (opening.preparing) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
+      } else if (!mounted.current) invalidate();
       else if (opening.value > 0) invalidateOwnership();
     },
   });
@@ -177,6 +184,7 @@ export function useCardsMutations() {
     setPreferredImage,
     setCardVariant,
     setCardFavorite,
+    preparePacks,
     openPack,
     claimPack,
     dust,

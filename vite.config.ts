@@ -37,6 +37,7 @@ export default defineConfig({
   clearScreen: false,
 
   optimizeDeps: {
+    entries: ["index.html"],
     include: OPTIMIZE_DEPS,
   },
 

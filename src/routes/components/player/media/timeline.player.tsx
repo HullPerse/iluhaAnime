@@ -51,7 +51,7 @@ function Timeline({
   const progress = duration > 0 ? clamp01(displayTime / duration) * 100 : 0;
   const showBuffered = hover !== null || dragging;
   const showRemainingTime = showRemaining && duration > 0;
-  const timeWidth = `${formatClock(duration).length * 2 + 4}ch`;
+  const timeWidth = "20ch";
   const timeLabel = showRemainingTime
     ? `-${formatClock(Math.max(0, duration - displayTime))}`
     : `${formatClock(displayTime)} / ${formatClock(duration)}`;

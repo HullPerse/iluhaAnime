@@ -5,6 +5,7 @@ import { anilistApi } from "@/api/anilist.api";
 import Modal from "@/components/shared/modal.component";
 import { Button } from "@/components/ui/button.component";
 import { useI18n } from "@/hooks/i18n.hook";
+import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { trackedManga } from "@/store/anilistManga.store";
 import { searchLocalManga } from "@/store/manga.store";
 import { patchSettings } from "@/store/settings.store";
@@ -67,7 +68,12 @@ export default function TrackedMangaDetail({
           ? form.getAll("custom").filter((name): name is string => typeof name === "string")
           : undefined,
       }),
-    onSuccess: () => client.invalidateQueries({ queryKey: [...trackingMangaKey, "lists"] }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: queryKeys.cardsShellScope() });
+      client.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
+
+      return client.invalidateQueries({ queryKey: [...trackingMangaKey, "lists"] });
+    },
   });
   const toggle = useMutation({
     mutationFn: () => anilistApi.toggleMangaFavourite(id),

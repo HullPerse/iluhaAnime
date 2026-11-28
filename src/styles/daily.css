@@ -12,6 +12,90 @@
   background: transparent;
 }
 
+.daily-character-game {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0;
+}
+
+.daily-character-round {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  min-width: 0;
+}
+
+.daily-character-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+  width: min(100%, 64rem);
+  margin: 1rem auto 0;
+}
+
+@media (max-width: 760px) {
+  .daily-character-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+.daily-character-answer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.3rem;
+}
+
+.daily-character-answer[data-correct="true"] {
+  color: var(--color-success);
+}
+
+.daily-character-answer[data-correct="false"] {
+  color: var(--color-destructive);
+}
+
+.daily-character-answer[data-correct] input {
+  box-shadow: inset 0 0 0 2px currentColor;
+  color: inherit;
+}
+
+.daily-character-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.daily-character-result-art {
+  display: flex;
+  align-items: center;
+  background: var(--color-primary);
+}
+
+.daily-character-result-art svg {
+  width: 100%;
+  height: auto;
+}
+
+.daily-character-result-score {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.daily-character-history th:nth-child(2) {
+  width: 9rem;
+}
+
+.daily-character-portrait {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  background: var(--color-field);
+}
+
 .daily-game * {
   box-sizing: border-box;
 }
@@ -57,17 +141,10 @@
   display: flex;
   flex: 0 0 auto;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.5rem;
   padding: 0 0.15rem 0.4rem;
   border-bottom: 1px solid color-mix(in srgb, var(--color-text) 18%, transparent);
-}
-
-.daily-game-title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
 }
 
 .daily-game-meta {
@@ -81,8 +158,12 @@
 
 .daily-modes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.65rem;
+}
+
+.daily-mode-characters {
+  grid-column: 1;
 }
 
 .daily-mode-card {

@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use futures::{stream, StreamExt};
 use serde::Serialize;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use super::ceilings::{batch_page_ceilings, can_retry_smaller_query, fetch_pages, page_ceiling};
 use super::config::{pick_variant, shop_pack, CHOICE_PACK_KIND, CHOICE_PACK_SIZE};
-use super::metadata::{refresh_metadata, studio_collage_missing};
+use super::metadata::{needs_remote_metadata, refresh_metadata, studio_collage_missing};
 use super::rarity::{card_value, score_for, tier_for};
 use super::rng::Rng;
 use super::sampling::{
@@ -15,15 +16,15 @@ use super::sampling::{
     parse_id_response, parse_max_id, pick_distinct, random_id_query, CardNode,
 };
 use super::types::{CardKind, CardPackContentsState, CardRarity, CardVariant};
-use crate::anilist::client::graphql_request;
+use crate::anilist::client::graphql_request_background;
 use crate::app_db::cards::{
     acknowledge_ready_packs, add_wallet, claim_pack_card, get_meta, get_pack, get_user_card,
     insert_ledger, insert_opening, list_openings_for_pack, list_pack_cards, list_packs,
     list_packs_to_prepare, list_user_card_stacks, list_user_cards, mark_pack_opened,
-    mark_pack_prepare_failed, mark_pack_prepare_started, ready_unnotified_count, save_pack_cards,
-    trim_ledger, trim_openings, upsert_card, upsert_meta, CardMetaRow, CardOpeningRow,
-    CardPackCardRow, CardPackRow, ChubrikLedgerRow, UserCardRow, LEDGER_RETENTION, LOCAL_USER_ID,
-    OPENINGS_RETENTION,
+    mark_pack_prepare_failed, mark_pack_prepare_started, ready_unnotified_count,
+    reset_failed_pack_attempts, save_pack_cards, trim_ledger, trim_openings, upsert_card,
+    upsert_meta, CardMetaRow, CardOpeningRow, CardPackCardRow, CardPackRow, ChubrikLedgerRow,
+    UserCardRow, LEDGER_RETENTION, LOCAL_USER_ID, OPENINGS_RETENTION,
 };
 use crate::app_db::db::{
     lock_app_data_write_timeout, now_seconds, open_database, APP_DATA_WRITE_TIMEOUT,
@@ -123,6 +124,9 @@ pub struct PackOpening {
     pub value: i64,
     /// Set for choice packs once a card has been picked.
     pub chosen_slot: Option<i64>,
+    /// True when the pack is not ready yet and background preparation was
+    /// started instead of blocking the open handler.
+    pub preparing: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -150,6 +154,8 @@ struct PreparedCard {
     /// AniList art kept separately from the frozen pack art so saving a pack
     /// never rewrites the metadata default with the user's MAL choice.
     meta_image_url: Option<String>,
+    /// Zero means the remote metadata refresh failed; only characters and
+    /// studios need it, anime/manga are complete from the sampled node.
     meta_fetched_at: i64,
     collage_expected: Option<i64>,
 }
@@ -218,7 +224,14 @@ impl PreparedCard {
             collage_json: Some(
                 serde_json::to_string(&self.card.collage).unwrap_or_else(|_| "[]".to_string()),
             ),
-            fetched_at: if self.meta_fetched_at > 0 { now } else { 0 },
+            // Anime and manga are complete from the sampled node. Characters
+            // and studios still depend on the remote refresh, so keep its
+            // timestamp (zero retries on the next prepare pass).
+            fetched_at: if needs_remote_metadata(self.card.kind) {
+                self.meta_fetched_at
+            } else {
+                now
+            },
             preferred_image_url: None,
             collage_expected: self.collage_expected,
         }
@@ -312,6 +325,9 @@ async fn sample_pool(
 
 const RANDOM_ID_BATCH: usize = 200;
 const RANDOM_ID_ROUNDS: usize = 5;
+/// The maximum id only moves when AniList adds entities. A day is enough to
+/// avoid a max-id request on every preparation run.
+const MAX_ID_TTL_SECONDS: i64 = 24 * 60 * 60;
 
 fn guaranteed_rarity(rng: &mut Rng) -> CardRarity {
     if rng.next_below(100) < 2 {
@@ -338,7 +354,7 @@ fn store_max_id(app: &AppHandle, kind: CardKind, id: u32) {
         "cards".into(),
         key,
         id.to_string(),
-        Some(24 * 60 * 60),
+        Some(MAX_ID_TTL_SECONDS),
     ) {
         tracing::warn!(error = error.as_str(), "card ID ceiling cache failed");
     }
@@ -352,7 +368,7 @@ async fn maximum_entity_id(
     if let Some(id) = cached_max_id(app, kind) {
         return Ok(id);
     }
-    let response = graphql_request(max_id_query(kind), None, proxy).await?;
+    let response = graphql_request_background(max_id_query(kind), None, proxy).await?;
     let nodes = parse_id_response(kind, &response, 1)?;
     let id = nodes
         .first()
@@ -363,7 +379,10 @@ async fn maximum_entity_id(
     Ok(id)
 }
 
-async fn sample_random_ids(
+/// Fetches up to `count` random ids. Unlike [`sample_random_ids`] this is
+/// allowed to return fewer nodes so a batch can share one request across all
+/// packs of a prepare run and let individual packs fall back only if needed.
+async fn fetch_random_ids(
     app: &AppHandle,
     kind: CardKind,
     count: usize,
@@ -389,7 +408,7 @@ async fn sample_random_ids(
                 ids.push(id);
             }
         }
-        let response = graphql_request(random_id_query(kind, &ids), None, proxy).await?;
+        let response = graphql_request_background(random_id_query(kind, &ids), None, proxy).await?;
         let mut nodes = parse_id_response(kind, &response, ids.len().div_ceil(50))?;
         rng.shuffle(&mut nodes);
         for card in nodes {
@@ -402,15 +421,110 @@ async fn sample_random_ids(
             }
             result.push(card);
             if result.len() == count {
-                return Ok(result);
+                break;
+            }
+        }
+        if result.len() == count {
+            break;
+        }
+    }
+    Ok(result)
+}
+
+async fn sample_random_ids(
+    app: &AppHandle,
+    kind: CardKind,
+    count: usize,
+    rng: &mut Rng,
+    proxy: Option<&str>,
+    excluded: &[CardNode],
+) -> Result<Vec<CardNode>, String> {
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+    let result = fetch_random_ids(app, kind, count, rng, proxy, excluded).await?;
+    if result.len() < count {
+        return Err(format!(
+            "AniList returned {} of {count} random {} cards",
+            result.len(),
+            kind.as_str()
+        ));
+    }
+    Ok(result)
+}
+
+/// Nodes fetched once for a whole prepare run and consumed by each pack.
+#[derive(Default)]
+struct BatchSamples {
+    by_kind: HashMap<CardKind, Vec<CardNode>>,
+}
+
+impl BatchSamples {
+    fn take(&mut self, kind: CardKind, count: usize, excluded: &[CardNode]) -> Vec<CardNode> {
+        if count == 0 {
+            return Vec::new();
+        }
+        let Some(pool) = self.by_kind.get_mut(&kind) else {
+            return Vec::new();
+        };
+        let mut picked = Vec::with_capacity(count.min(pool.len()));
+        let mut index = 0;
+        while index < pool.len() && picked.len() < count {
+            let card = &pool[index];
+            if excluded
+                .iter()
+                .any(|old| old.kind == card.kind && old.entity_id == card.entity_id)
+            {
+                index += 1;
+                continue;
+            }
+            picked.push(pool.remove(index));
+        }
+        picked
+    }
+}
+
+/// One random-id request per kind for every pack in the run. The per-pack path
+/// used one request per kind, i.e. 10-12 requests for five default packs.
+async fn prefetch_batch_samples(
+    app: &AppHandle,
+    packs: &[CardPackRow],
+    proxy: Option<&str>,
+    rng: &mut Rng,
+) -> BatchSamples {
+    let mut totals: Vec<(CardKind, usize)> = Vec::new();
+    for pack in packs {
+        let Ok(needs) = planned_needs(pack) else {
+            continue;
+        };
+        for (kind, count) in needs {
+            if let Some((_, total)) = totals.iter_mut().find(|(known, _)| *known == kind) {
+                *total += count;
+            } else {
+                totals.push((kind, count));
             }
         }
     }
-    Err(format!(
-        "AniList returned {} of {count} random {} cards",
-        result.len(),
-        kind.as_str()
-    ))
+    let mut batch = BatchSamples::default();
+    for (kind, total) in totals {
+        if total == 0 {
+            continue;
+        }
+        // A small margin covers cards the user already owns and duplicates
+        // between packs, which remain allowed exactly as before.
+        match fetch_random_ids(app, kind, total + 8, rng, proxy, &[]).await {
+            Ok(cards) if !cards.is_empty() => {
+                batch.by_kind.insert(kind, cards);
+            }
+            Ok(_) => {}
+            Err(error) => tracing::warn!(
+                kind = kind.as_str(),
+                error = error.as_str(),
+                "card batch random-id prefetch failed"
+            ),
+        }
+    }
+    batch
 }
 
 async fn sample_cards(
@@ -419,6 +533,7 @@ async fn sample_cards(
     seed: u64,
     proxy: Option<&str>,
     pools: &mut PoolCache,
+    mut batch: Option<&mut BatchSamples>,
 ) -> Result<Vec<CardNode>, String> {
     let mut rng = Rng::new(seed);
     let target = guaranteed_rarity(&mut rng);
@@ -462,7 +577,26 @@ async fn sample_cards(
             })?);
             random_count -= 1;
         }
-        let cards = sample_random_ids(app, *kind, random_count, &mut rng, proxy, &selected).await?;
+        let cards = if let Some(batch) = batch.as_deref_mut() {
+            let mut cards = batch.take(*kind, random_count, &selected);
+            if cards.len() < random_count {
+                let mut excluded = selected.clone();
+                excluded.extend(cards.iter().cloned());
+                let extra = sample_random_ids(
+                    app,
+                    *kind,
+                    random_count - cards.len(),
+                    &mut rng,
+                    proxy,
+                    &excluded,
+                )
+                .await?;
+                cards.extend(extra);
+            }
+            cards
+        } else {
+            sample_random_ids(app, *kind, random_count, &mut rng, proxy, &selected).await?
+        };
         selected.extend(cards);
     }
     if let Some(card) = selected.first() {
@@ -474,8 +608,8 @@ async fn sample_cards(
 }
 
 fn card_node_from_meta(meta: &CardMetaRow) -> CardNode {
-    let favourites = meta.favourites.unwrap_or(0).clamp(0, i64::from(u32::MAX)) as u32;
-    let popularity = meta.popularity.unwrap_or(0).clamp(0, i64::from(u32::MAX)) as u32;
+    let favourites = stat_u32(meta.favourites, 0);
+    let popularity = stat_u32(meta.popularity, 0);
     CardNode {
         kind: meta.kind,
         entity_id: meta.entity_id,
@@ -484,6 +618,43 @@ fn card_node_from_meta(meta: &CardMetaRow) -> CardNode {
         favourites,
         popularity,
         score: score_for(meta.kind, favourites, popularity),
+    }
+}
+
+fn stat_u32(value: Option<i64>, fallback: u32) -> u32 {
+    value
+        .and_then(|value| u32::try_from(value.clamp(0, i64::from(u32::MAX))).ok())
+        .unwrap_or(fallback)
+}
+
+/// Sampling characters asks only for their own favourites; the anime
+/// popularity bonus comes from `card_meta`. The metadata pass is shared by the
+/// whole preparation batch, so this keeps the random-id query small without
+/// losing the calibrated character score.
+fn prepared_stats(node: &CardNode, meta: Option<&CardMetaRow>) -> (u32, u32, f64) {
+    let Some(meta) = meta else {
+        return (node.favourites, node.popularity, node.score);
+    };
+    let favourites = stat_u32(meta.favourites, node.favourites);
+    let popularity = stat_u32(meta.popularity, node.popularity);
+    (
+        favourites,
+        popularity,
+        score_for(node.kind, favourites, popularity),
+    )
+}
+
+/// Last-resort answer node for an old pack with no metadata row. The pack must
+/// still open; a later metadata refresh can fill the cover and title.
+fn fallback_daily_node(media_id: i64) -> CardNode {
+    CardNode {
+        kind: CardKind::Anime,
+        entity_id: media_id,
+        title: format!("Anime {media_id}"),
+        image_url: None,
+        favourites: 0,
+        popularity: 0,
+        score: 0.0,
     }
 }
 
@@ -526,7 +697,7 @@ async fn ensure_daily_guarantee(
     protected: (CardKind, i64),
     proxy: Option<&str>,
 ) -> Result<(), String> {
-    if pack.source != "daily" {
+    if pack.source != "daily" || pack.id.ends_with("-characters") {
         return Ok(());
     }
     let Some(media_id) = pack.media_id.filter(|id| *id > 0) else {
@@ -538,17 +709,25 @@ async fn ensure_daily_guarantee(
     {
         return Ok(());
     }
-    refresh_metadata(app, &[(CardKind::Anime, media_id)], proxy).await?;
+    // Metadata is an enhancement, not a reason to leave a reward unopened. A
+    // fallback row is written at grant time; if it is missing or stale, refresh
+    // best-effort and use a generic node when the network is down.
+    if let Err(error) = refresh_metadata(app, &[(CardKind::Anime, media_id)], proxy).await {
+        tracing::warn!(
+            pack_id = pack.id,
+            media_id,
+            error = error.as_str(),
+            "daily answer metadata refresh failed; using fallback"
+        );
+    }
     let connection = open_database(app)?;
-    let meta = get_meta(&connection, CardKind::Anime, media_id)?
-        .ok_or_else(|| format!("daily answer metadata missing for {media_id}"))?;
+    let meta = get_meta(&connection, CardKind::Anime, media_id)?;
     drop(connection);
-    replace_with_guaranteed(
-        generated,
-        card_node_from_meta(&meta),
-        pack.seed as u64,
-        Some(protected),
-    )
+    let node = meta
+        .as_ref()
+        .map(card_node_from_meta)
+        .unwrap_or_else(|| fallback_daily_node(media_id));
+    replace_with_guaranteed(generated, node, pack.seed as u64, Some(protected))
 }
 
 fn generate_cards(nodes: Vec<CardNode>, seed: u64) -> Vec<GeneratedCard> {
@@ -629,15 +808,24 @@ async fn generate_choice_contents(
 
 async fn generate_pack_contents(
     app: &AppHandle,
-    pack: &CardPackRow,
+    pack: &mut CardPackRow,
     proxy: Option<&str>,
     pools: &mut PoolCache,
+    batch: Option<&mut BatchSamples>,
 ) -> Result<Vec<GeneratedCard>, String> {
     if pack.pack_kind == CHOICE_PACK_KIND {
-        return generate_choice_contents(app, pack, proxy).await;
+        match generate_choice_contents(app, pack, proxy).await {
+            Ok(cards) => return Ok(cards),
+            Err(error) if error == super::collections::INSUFFICIENT_CHOICE_ROSTER => {
+                let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+                let connection = open_database(app)?;
+                replace_unavailable_choice_pack(&connection, pack)?;
+            }
+            Err(error) => return Err(error),
+        }
     }
     let needs = planned_needs(pack)?;
-    let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools).await?;
+    let nodes = sample_cards(app, &needs, pack.seed as u64, proxy, pools, batch).await?;
     let protected = nodes
         .first()
         .map(|node| (node.kind, node.entity_id))
@@ -652,31 +840,23 @@ async fn generate_pack_contents(
     Ok(generated)
 }
 
+fn replace_unavailable_choice_pack(
+    connection: &rusqlite::Connection,
+    pack: &mut CardPackRow,
+) -> Result<(), String> {
+    let changed=connection.execute("UPDATE card_packs SET pack_kind='default',size=?3,contents_state='pending',prepare_attempts=0,last_prepare_error=NULL WHERE id=?1 AND user_id=?2 AND pack_kind='choice' AND opened_at IS NULL AND claimed_at IS NULL",rusqlite::params![pack.id,LOCAL_USER_ID,super::config::CARD_PACK_SIZE as i64]).map_err(|e|format!("replace unavailable choice pack: {e}"))?;
+    if changed != 1 {
+        return Err("choice pack is no longer available for replacement".into());
+    }
+    pack.pack_kind = "default".into();
+    pack.size = super::config::CARD_PACK_SIZE as i64;
+    pack.contents_state = CardPackContentsState::Pending;
+    Ok(())
+}
+
 /// Fills the metadata cache for generated cards. The caller batches every
 /// pack of a prepare run into a single pass so five packs share one set of
 /// AniList requests instead of repeating them per pack.
-async fn refresh_generated_metadata(
-    app: &AppHandle,
-    generated: &[GeneratedCard],
-    proxy: Option<&str>,
-) {
-    let mut meta_keys: Vec<(CardKind, i64)> = generated
-        .iter()
-        .map(|item| (item.card.kind, item.card.entity_id))
-        .collect();
-    if meta_keys.is_empty() {
-        return;
-    }
-    meta_keys.sort_unstable_by_key(|(kind, entity_id)| (kind.as_str(), *entity_id));
-    meta_keys.dedup();
-    if let Err(error) = refresh_metadata(app, &meta_keys, proxy).await {
-        tracing::warn!(
-            error = error.as_str(),
-            "card metadata refresh after prepare failed"
-        );
-    }
-}
-
 fn prepare_generated(
     connection: &rusqlite::Connection,
     generated: Vec<GeneratedCard>,
@@ -685,16 +865,24 @@ fn prepare_generated(
         .into_iter()
         .map(|generated| {
             let GeneratedCard { node, mut card } = generated;
+            let meta = get_meta(connection, card.kind, card.entity_id)?;
+            let (favourites, popularity, score) = prepared_stats(&node, meta.as_ref());
             if let Some(existing) =
                 list_user_card_stacks(connection, LOCAL_USER_ID, card.kind, card.entity_id)?
                     .into_iter()
                     .min_by_key(|row| row.first_obtained_at)
             {
                 card.rarity = existing.rarity;
-                card.value =
-                    i64::from(card_value(card.kind, card.rarity, card.variant, node.score));
+            } else if meta.is_some() {
+                // Character rarity needs the anime popularity that sampling no
+                // longer asks for. The frozen pack must use the same score as
+                // the metadata row, not the temporary favourites-only value.
+                card.rarity = tier_for(card.kind, score);
             }
-            let meta = get_meta(connection, card.kind, card.entity_id)?;
+            if card.variant == CardVariant::Holo && card.rarity < CardRarity::Rare {
+                card.variant = CardVariant::Foil;
+            }
+            card.value = i64::from(card_value(card.kind, card.rarity, card.variant, score));
             let meta_image_url = meta
                 .as_ref()
                 .and_then(|row| row.image_url.clone())
@@ -719,29 +907,15 @@ fn prepare_generated(
             card.collage = collage;
             Ok(PreparedCard {
                 card,
-                favourites: node.favourites,
-                popularity: node.popularity,
-                score: node.score,
+                favourites,
+                popularity,
+                score,
                 meta_image_url,
                 meta_fetched_at: meta.as_ref().map_or(0, |row| row.fetched_at),
                 collage_expected,
             })
         })
         .collect()
-}
-
-async fn prepare_pack(
-    app: &AppHandle,
-    pack: &CardPackRow,
-    proxy: Option<&str>,
-) -> Result<Vec<PreparedCard>, String> {
-    let mut pools = PoolCache::new();
-    let generated = generate_pack_contents(app, pack, proxy, &mut pools).await?;
-    refresh_generated_metadata(app, &generated, proxy).await;
-    let connection = open_database(app)?;
-    let prepared = prepare_generated(&connection, generated)?;
-    drop(connection);
-    Ok(prepared)
 }
 
 fn save_prepared(
@@ -853,6 +1027,7 @@ fn open_prepared(
             cards,
             value: 0,
             chosen_slot: None,
+            preparing: false,
         });
     }
     let mut value = 0i64;
@@ -891,6 +1066,7 @@ fn open_prepared(
         cards,
         value,
         chosen_slot: None,
+        preparing: false,
     })
 }
 
@@ -986,9 +1162,14 @@ async fn repair_owned_studio_metadata(app: &AppHandle, proxy: Option<&str>) -> u
     repaired
 }
 
-const WARM_IMAGE_CONCURRENCY: usize = 4;
+/// Half of the shared image-download budget: the other half stays available
+/// for covers the user is actually looking at.
+const WARM_IMAGE_CONCURRENCY: usize = 2;
 
 async fn warm_images(app: &AppHandle, urls: Vec<String>, proxy: Option<&str>) {
+    // Image warmup is a cache fill, not a user action. Give the visible
+    // collection a head start before competing for the image loader.
+    tokio::time::sleep(Duration::from_secs(2)).await;
     let proxy = proxy.map(str::to_string);
     let results = stream::iter(urls)
         .map(|url| {
@@ -1123,57 +1304,58 @@ async fn prefill_pools(
         let pages = sampled_pages(*kind, ceiling, &mut rng);
         entries.extend(pages.into_iter().map(|page| (*kind, page)));
     }
+    const PREFILL_ALIAS_CHUNK: usize = 8;
     let missing_max: Vec<CardKind> = kinds
         .iter()
         .copied()
         .filter(|kind| cached_max_id(app, *kind).is_none())
         .collect();
-    let query = if missing_max.is_empty() {
-        batch_page_query(&entries, 25)
-    } else {
-        batch_page_query_with_max(&entries, &missing_max)
-    };
-    let response = match graphql_request(query, None, proxy).await {
-        Ok(response) => response,
-        Err(error) if !missing_max.is_empty() && can_retry_smaller_query(&error) => {
-            tracing::warn!(
-                error = error.as_str(),
-                "combined card page and max ID request failed, retrying pages only"
-            );
-            match graphql_request(batch_page_query(&entries, 25), None, proxy).await {
-                Ok(response) => response,
-                Err(error) if can_retry_smaller_query(&error) => {
-                    tracing::warn!(
-                        error = error.as_str(),
-                        "card page batch failed, falling back to per-kind fetches"
-                    );
-                    return Ok(());
-                }
-                Err(error) => return Err(error),
+    let chunk_count = entries.len().div_ceil(PREFILL_ALIAS_CHUNK);
+    let mut responses: Vec<serde_json::Value> = Vec::with_capacity(chunk_count);
+    for (chunk_index, chunk) in entries.chunks(PREFILL_ALIAS_CHUNK).enumerate() {
+        let query = if chunk_index == 0 && !missing_max.is_empty() {
+            batch_page_query_with_max(chunk, &missing_max)
+        } else {
+            batch_page_query(chunk, 25)
+        };
+        match graphql_request_background(query, None, proxy).await {
+            Ok(response) => responses.push(response),
+            Err(error) if can_retry_smaller_query(&error) => {
+                tracing::warn!(
+                    chunk = chunk_index,
+                    error = error.as_str(),
+                    "card page batch failed, falling back to per-kind fetches"
+                );
+                return Ok(());
             }
+            Err(error) => return Err(error),
         }
-        Err(error) if can_retry_smaller_query(&error) => {
-            tracing::warn!(
-                error = error.as_str(),
-                "card page batch failed, falling back to per-kind fetches"
-            );
-            return Ok(());
+        if chunk_index + 1 < chunk_count {
+            // Keep the alias burst below the server's burst limiter. The gap is
+            // deterministic, so a retry walks the same schedule.
+            tokio::time::sleep(Duration::from_millis(120 + 80 * chunk_index as u64)).await;
         }
-        Err(error) => return Err(error),
-    };
-    for kind in missing_max {
-        if let Some(id) = parse_max_id(kind, &response) {
-            store_max_id(app, kind, id);
+    }
+    if let Some(first) = responses.first() {
+        for kind in &missing_max {
+            if let Some(id) = parse_max_id(*kind, first) {
+                store_max_id(app, *kind, id);
+            }
         }
     }
     for kind in kinds {
         let mut pages = Vec::new();
-        for (entry_kind, page) in &entries {
-            if *entry_kind != kind {
+        for (chunk_index, chunk) in entries.chunks(PREFILL_ALIAS_CHUNK).enumerate() {
+            let Some(response) = responses.get(chunk_index) else {
                 continue;
-            }
-            if let Ok(parsed) = parse_batch_page(kind, *page, &response) {
-                pages.push(parsed);
+            };
+            for (entry_kind, page) in chunk {
+                if *entry_kind != kind {
+                    continue;
+                }
+                if let Ok(parsed) = parse_batch_page(kind, *page, response) {
+                    pages.push(parsed);
+                }
             }
         }
         let merged = merge_distinct(&pages);
@@ -1187,6 +1369,7 @@ async fn prefill_pools(
 async fn prepare_packs_inner(
     app: &AppHandle,
     proxy: Option<&str>,
+    pools: &mut PoolCache,
 ) -> Result<PackPreparation, String> {
     // Old studio rows keep an empty collage until they are explicitly
     // refreshed; do that before preparing new packs so the album heals too.
@@ -1200,8 +1383,7 @@ async fn prepare_packs_inner(
             PREPARE_MAX_ATTEMPTS,
         )?
     };
-    let mut pools = PoolCache::new();
-    prefill_pools(app, &packs, proxy, &mut pools).await?;
+    prefill_pools(app, &packs, proxy, pools).await?;
     let mut claimed_packs: Vec<CardPackRow> = Vec::new();
     for pack in packs {
         let claimed = {
@@ -1212,10 +1394,13 @@ async fn prepare_packs_inner(
             claimed_packs.push(pack);
         }
     }
+    let mut batch_rng =
+        Rng::new(claimed_packs.first().map_or(1, |pack| pack.seed as u64) ^ 0xB47C_4A11);
+    let mut batch = prefetch_batch_samples(app, &claimed_packs, proxy, &mut batch_rng).await;
     let mut staged: Vec<(CardPackRow, Vec<GeneratedCard>)> = Vec::new();
     let mut failed = 0;
-    for pack in claimed_packs {
-        match generate_pack_contents(app, &pack, proxy, &mut pools).await {
+    for mut pack in claimed_packs {
+        match generate_pack_contents(app, &mut pack, proxy, pools, Some(&mut batch)).await {
             Ok(cards) => staged.push((pack, cards)),
             Err(error) => {
                 failed += 1;
@@ -1239,6 +1424,7 @@ async fn prepare_packs_inner(
                 .iter()
                 .map(|item| (item.card.kind, item.card.entity_id))
         })
+        .filter(|(kind, _)| needs_remote_metadata(*kind))
         .collect();
     if !batch_keys.is_empty() {
         let mut keys = batch_keys;
@@ -1310,17 +1496,63 @@ async fn prepare_packs_inner(
 async fn prepare_packs_guarded(
     app: &AppHandle,
     proxy: Option<&str>,
+    retry_failed: bool,
+) -> Result<PackPreparation, String> {
+    use crate::anilist::client::PACK_REQUEST_COUNTS;
+    PACK_REQUEST_COUNTS
+        .scope(std::cell::Cell::new((0, 0)), async {
+            let result = prepare_packs_run(app, proxy, retry_failed).await;
+            let (graphql_calls, http_attempts) = PACK_REQUEST_COUNTS.with(std::cell::Cell::get);
+            let prepared = result.as_ref().map_or(0, |value| value.prepared);
+            tracing::info!(
+                prepared,
+                graphql_calls,
+                http_attempts,
+                ok = result.is_ok(),
+                "card preparation requests"
+            );
+            result
+        })
+        .await
+}
+
+async fn prepare_packs_run(
+    app: &AppHandle,
+    proxy: Option<&str>,
+    retry_failed: bool,
 ) -> Result<PackPreparation, String> {
     let Some(_guard) = PrepareRunningGuard::acquire() else {
         return Ok(PackPreparation::default());
     };
-    prepare_packs_inner(app, proxy).await
+    if retry_failed {
+        let _write = lock_app_data_write_timeout(APP_DATA_WRITE_TIMEOUT)?;
+        let connection = open_database(app)?;
+        reset_failed_pack_attempts(&connection, LOCAL_USER_ID)?;
+    }
+    let mut pools = PoolCache::new();
+    // A single pass handles five packs. Drain the queue in bounded passes so a
+    // completion grant of up to ten packs is ready in the same session without
+    // letting an unbounded backlog hold the rate window forever.
+    const MAX_PREPARE_PASSES: usize = 8;
+    let mut total = PackPreparation::default();
+    for _ in 0..MAX_PREPARE_PASSES {
+        let pass = prepare_packs_inner(app, proxy, &mut pools).await?;
+        total.prepared += pass.prepared;
+        total.failed += pass.failed;
+        total.repaired += pass.repaired;
+        total.unnotified = pass.unnotified;
+        let _ = app.emit("cards-packs-progress", pass.clone());
+        if pass.prepared == 0 {
+            break;
+        }
+    }
+    Ok(total)
 }
 
 /// Starts background preparation using the proxy resolved by its caller.
 pub fn spawn_prepare_packs_with_proxy(app: AppHandle, proxy: Option<String>) {
     tauri::async_runtime::spawn(async move {
-        if let Err(error) = prepare_packs_guarded(&app, proxy.as_deref()).await {
+        if let Err(error) = prepare_packs_guarded(&app, proxy.as_deref(), false).await {
             tracing::warn!(
                 error = error.as_str(),
                 "card pack background preparation failed"
@@ -1330,16 +1562,18 @@ pub fn spawn_prepare_packs_with_proxy(app: AppHandle, proxy: Option<String>) {
 }
 
 /// Prepares a bounded batch of unopened packs. Safe to call on every app start:
-/// `notified_at` prevents repeating the same ready notification.
+/// `notified_at` prevents repeating the same ready notification. Only an explicit
+/// retry_failed request returns failed packs to the pending queue.
 #[tauri::command]
 #[allow(non_snake_case)]
 pub async fn cards_prepare_packs(
     app: AppHandle,
+    retry_failed: Option<bool>,
     proxy_url: Option<String>,
     proxyUrl: Option<String>,
 ) -> Result<PackPreparation, String> {
     let proxy = resolve_proxy(proxy_url, proxyUrl);
-    prepare_packs_guarded(&app, proxy.as_deref()).await
+    prepare_packs_guarded(&app, proxy.as_deref(), retry_failed.unwrap_or(false)).await
 }
 
 #[tauri::command]
@@ -1378,6 +1612,7 @@ pub async fn cards_open_pack(
                 cards,
                 value: 0,
                 chosen_slot: pack.chosen_slot,
+                preparing: false,
             });
         }
         let keys = studio_card_keys(
@@ -1394,6 +1629,7 @@ pub async fn cards_open_pack(
             cards,
             value: 0,
             chosen_slot: None,
+            preparing: false,
         });
     }
     let ready_cards = if pack.contents_state == CardPackContentsState::Ready {
@@ -1415,18 +1651,16 @@ pub async fn cards_open_pack(
     let prepared = match ready_cards {
         Some(cards) => cards,
         None => {
-            let cards = prepare_pack(&app, &pack, proxy.as_deref()).await?;
-            if !save_prepared(&app, &pack_id, &cards)? {
-                let connection = open_database(&app)?;
-                let cards = opened_from_db(&connection, &pack_id)?;
-                return Ok(PackOpening {
-                    pack_id,
-                    cards,
-                    value: 0,
-                    chosen_slot: None,
-                });
-            }
-            cards
+            // Opening must never wait for AniList. The background pass writes
+            // the frozen contents; the UI polls the pack row and retries open.
+            spawn_prepare_packs_with_proxy(app.clone(), proxy.clone());
+            return Ok(PackOpening {
+                pack_id,
+                cards: Vec::new(),
+                value: 0,
+                chosen_slot: None,
+                preparing: true,
+            });
         }
     };
     if prepared.len() != pack.size as usize {
@@ -1440,6 +1674,7 @@ pub async fn cards_open_pack(
             cards: prepared.into_iter().map(|card| card.card).collect(),
             value: 0,
             chosen_slot: None,
+            preparing: false,
         });
     }
     // A ready pack was frozen while the studio query could still fail. Repair
@@ -1495,6 +1730,7 @@ fn claim_choice_pack_in(
             cards,
             value: 0,
             chosen_slot: pack.chosen_slot,
+            preparing: false,
         });
     }
     let row = list_pack_cards(connection, &pack_id)?
@@ -1519,6 +1755,7 @@ fn claim_choice_pack_in(
             cards,
             value: 0,
             chosen_slot,
+            preparing: false,
         });
     }
     let mut card = prepared.card.clone();
@@ -1557,6 +1794,7 @@ fn claim_choice_pack_in(
         cards,
         value,
         chosen_slot: Some(slot),
+        preparing: false,
     })
 }
 
@@ -1685,6 +1923,22 @@ mod tests {
         assert_eq!(before, after);
     }
 
+    #[test]
+    fn a_missing_daily_metadata_still_yields_an_answer_node() {
+        let answer = fallback_daily_node(16498);
+        assert_eq!(answer.kind, CardKind::Anime);
+        assert_eq!(answer.entity_id, 16498);
+        assert_eq!(answer.title, "Anime 16498");
+        assert_eq!(answer.image_url, None);
+        assert_eq!(answer.score, 0.0);
+
+        let mut cards = generate_cards(vec![node(1, 1.0), node(2, 2.0)], 7);
+        replace_with_guaranteed(&mut cards, answer, 11, None).expect("fallback guarantee");
+        assert!(cards
+            .iter()
+            .any(|item| item.card.kind == CardKind::Anime && item.card.entity_id == 16498));
+    }
+
     fn choice_pack_row() -> CardPackRow {
         CardPackRow {
             id: "status-choice".into(),
@@ -1700,6 +1954,49 @@ mod tests {
             claimed_at: None,
             chosen_slot: None,
         }
+    }
+
+    #[test]
+    fn an_unavailable_choice_pack_becomes_one_standard_seven_card_pack() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        let mut pack = choice_pack_row();
+        insert_pack(&connection, LOCAL_USER_ID, &pack).unwrap();
+        replace_unavailable_choice_pack(&connection, &mut pack).unwrap();
+        let stored = get_pack(&connection, LOCAL_USER_ID, &pack.id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(stored.pack_kind, "default");
+        assert_eq!(stored.size, 7);
+        assert_eq!(stored.id, "status-choice");
+        assert_eq!(stored.source, "status");
+        assert_eq!(
+            planned_needs(&pack)
+                .unwrap()
+                .iter()
+                .map(|(_, count)| count)
+                .sum::<usize>(),
+            7
+        );
+        assert_eq!(list_packs(&connection, LOCAL_USER_ID, 10).unwrap().len(), 1);
+        assert!(replace_unavailable_choice_pack(&connection, &mut pack).is_err());
+    }
+
+    #[test]
+    fn opened_choice_packs_cannot_be_replaced() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        let mut pack = choice_pack_row();
+        pack.opened_at = Some(1);
+        insert_pack(&connection, LOCAL_USER_ID, &pack).unwrap();
+        assert!(replace_unavailable_choice_pack(&connection, &mut pack).is_err());
+        assert_eq!(
+            get_pack(&connection, LOCAL_USER_ID, &pack.id)
+                .unwrap()
+                .unwrap()
+                .pack_kind,
+            "choice"
+        );
     }
 
     fn choice_frozen_card(slot: i64, kind: CardKind, entity_id: i64) -> CardPackCardRow {
@@ -1802,6 +2099,49 @@ mod tests {
     }
 
     #[test]
+    fn prepared_character_uses_the_metadata_popularity_bonus() {
+        let connection = rusqlite::Connection::open_in_memory().unwrap();
+        crate::app_db::schema::initialize_schema(&connection).unwrap();
+        let sampled = CardNode {
+            kind: CardKind::Character,
+            entity_id: 500,
+            title: "Uta".into(),
+            image_url: None,
+            favourites: 1_000,
+            popularity: 0,
+            score: score_for(CardKind::Character, 1_000, 0),
+        };
+        let generated = generate_cards(vec![sampled], 7);
+        assert_eq!(generated[0].card.rarity, CardRarity::Common);
+        upsert_meta(
+            &connection,
+            &CardMetaRow {
+                kind: CardKind::Character,
+                entity_id: 500,
+                title: "Uta".into(),
+                image_url: None,
+                score: None,
+                popularity: Some(1_000_000),
+                favourites: Some(1_000),
+                collection_anime_id: Some(20605),
+                collection_manga_id: None,
+                collection_title: Some("Tokyo Ghoul".into()),
+                collection_cover_url: None,
+                collage_json: None,
+                fetched_at: 100,
+                preferred_image_url: None,
+                collage_expected: None,
+            },
+        )
+        .unwrap();
+
+        let prepared = prepare_generated(&connection, generated).unwrap();
+        assert_eq!(prepared[0].popularity, 1_000_000);
+        assert!(prepared[0].score > score_for(CardKind::Character, 1_000, 0));
+        assert_eq!(prepared[0].card.rarity, CardRarity::Rare);
+    }
+
+    #[test]
     fn prepared_duplicate_keeps_earliest_owned_rarity() {
         let connection = rusqlite::Connection::open_in_memory().unwrap();
         crate::app_db::schema::initialize_schema(&connection).unwrap();
@@ -1823,6 +2163,11 @@ mod tests {
         let prepared =
             prepare_generated(&connection, generate_cards(vec![node(1, 0.0)], 7)).unwrap();
         assert_eq!(prepared[0].card.rarity, CardRarity::Legendary);
+    }
+
+    #[test]
+    fn the_max_id_cache_is_kept_for_a_day() {
+        assert_eq!(MAX_ID_TTL_SECONDS, 86_400);
     }
 
     #[test]
@@ -1885,6 +2230,21 @@ mod tests {
     }
 
     #[test]
+    fn an_opening_that_is_still_preparing_serializes_empty_cards() {
+        let opening = PackOpening {
+            pack_id: "pack-1".into(),
+            cards: Vec::new(),
+            value: 0,
+            chosen_slot: None,
+            preparing: true,
+        };
+        let value = serde_json::to_value(&opening).expect("serialize opening");
+        assert_eq!(value["packId"], "pack-1");
+        assert_eq!(value["preparing"], true);
+        assert_eq!(value["cards"].as_array().expect("cards array").len(), 0);
+    }
+
+    #[test]
     fn a_prepared_card_roundtrips_through_the_pack_row() {
         let card = PreparedCard {
             card: OpenedCard {
@@ -1907,10 +2267,9 @@ mod tests {
             meta_fetched_at: 100,
             collage_expected: None,
         };
-        assert_eq!(
-            card.meta_row(100).image_url.as_deref(),
-            Some("https://img/uta.jpg")
-        );
+        let meta = card.meta_row(100);
+        assert_eq!(meta.image_url.as_deref(), Some("https://img/uta.jpg"));
+        assert_eq!(meta.fetched_at, 100);
         let row = card.row("pack-1", 3);
         assert_eq!(row.pack_id, "pack-1");
         assert_eq!(row.slot, 3);

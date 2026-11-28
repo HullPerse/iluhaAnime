@@ -85,6 +85,7 @@ function FranchiseGraphSection({
     queryKey: queryKeys.animeFranchiseRefresh(animeId, refreshKey),
     queryFn: () => anilistApi.getAnimeFranchise(animeId, refreshKey ? "fresh" : "all"),
     staleTime: Infinity,
+    enabled: expanded,
   });
 
   useEffect(() => {

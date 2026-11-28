@@ -148,6 +148,7 @@ export function makeOpening(cards = makeOpenedCards()): PackOpening {
     cards,
     value: cards.reduce((sum, card) => sum + card.value, 0),
     chosenSlot: null,
+    preparing: false,
   };
 }
 

@@ -12,57 +12,60 @@ import { defaultAniListFilters } from "@/lib/anilist/anilistFilters.utils";
 import { toLocaleKey } from "@/lib/locale/key.utils";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
 import { ignore } from "@/lib/core/shared/promise.utils";
-import { assertNever } from "@hullperse/hp_utils/type";
 import { addSearchQuery } from "@/store/search.store";
 import { getSettingsSnapshot, settingsAtoms } from "@/store/settings.store";
 import type { AniListFilters, AniMedia, AniUser, SearchMode } from "@/types/anilist/anilist";
-import type { FilterPage } from "@/types/core/ipc";
 import type { AniListSearchRequest } from "@/types/anilist/anilistSearch";
+import type { FilterPage } from "@/types/core/ipc";
 
-async function runSearchRequest(request: AniListSearchRequest): Promise<AniMedia[]> {
+interface PagedSearchRequest {
+  params: AnilistFilterPageParams;
+  maxPages: number;
+}
+
+function pageParamsFor(request: AniListSearchRequest, manga: boolean): PagedSearchRequest | null {
+  const mediaType = manga ? "MANGA" : "ANIME";
+  const configuredMaxPages = Math.max(1, settingsAtoms.anilistMaxPages.get());
+
   switch (request.kind) {
     case "global": {
-      return anilistApi.search(request.params);
+      const params = { ...request.params, page: 1 };
+      const maxPages = Math.max(1, request.params.maxPages ?? configuredMaxPages);
+      delete params.maxPages;
+
+      return { params: { ...params, mediaType }, maxPages };
     }
 
     case "season": {
-      return anilistApi.search({
-        adult: settingsAtoms.anilistAdultContent.get() ? null : false,
-        country: null,
-        episodesFrom: null,
-        episodesTo: null,
-        format: null,
-        genres: null,
-        maxPages: settingsAtoms.anilistMaxPages.get(),
-        perPage: settingsAtoms.anilistPageSize.get(),
-        query: null,
-        scoreFrom: null,
-        scoreTo: null,
-        season: request.season || null,
-        seasonYear: request.seasonYear,
-        sort: null,
-        source: null,
-        status: null,
-        tags: null,
-        yearFrom: null,
-        yearTo: null,
-      });
-    }
-
-    case "studio": {
-      return anilistApi.searchByStudio(request.studioId);
+      return {
+        maxPages: configuredMaxPages,
+        params: {
+          adult: settingsAtoms.anilistAdultContent.get() ? null : false,
+          mediaType: "ANIME",
+          page: 1,
+          perPage: settingsAtoms.anilistPageSize.get(),
+          season: request.season,
+          seasonYear: request.seasonYear,
+        },
+      };
     }
 
     case "tag": {
-      return anilistApi.searchByTag(request.tag);
+      return {
+        maxPages: 3,
+        params: { adult: null, mediaType, page: 1, perPage: 20, tags: [request.tag] },
+      };
     }
 
     case "genre": {
-      return anilistApi.searchByGenre(request.genre);
+      return {
+        maxPages: 3,
+        params: { adult: null, mediaType, page: 1, perPage: 20, genres: [request.genre] },
+      };
     }
 
-    default: {
-      return assertNever(request);
+    case "studio": {
+      return null;
     }
   }
 }
@@ -101,44 +104,21 @@ export function useAnilistSearch() {
     defaultAniListFilters(settingsAtoms.anilistAdultContent.get())
   );
   const [request, setRequest] = useState<AniListSearchRequest | null>(null);
-  const isGlobalRequest = request?.kind === "global";
+  const isStudioRequest = request?.kind === "studio";
+  const pageRequest = request === null ? null : pageParamsFor(request, manga);
 
-  const query = useAppQuery("live", {
-    queryKey: [...queryKeys.anilistSearch(request), manga],
-    queryFn: () => {
-      if (request === null) throw new Error("AniList search request is missing");
-
-      if (manga) {
-        const params =
-          request.kind === "tag"
-            ? { tags: [request.tag] }
-            : request.kind === "genre"
-              ? { genres: [request.genre] }
-              : {};
-
-        return anilistApi.search({ ...params, mediaType: "MANGA" });
-      }
-
-      return runSearchRequest(request);
-    },
-    enabled: request !== null && !isGlobalRequest,
-  });
-
-  const globalPages = useAppInfiniteQuery<FilterPage, Error>("live", {
+  const pages = useAppInfiniteQuery<FilterPage, Error>("live", {
     queryKey: [...queryKeys.anilistSearchPages(request), manga],
-    queryFn: ({ pageParam }) =>
-      anilistApi.filterPage({
-        ...(request as { kind: "global"; params: AnilistFilterPageParams }).params,
-        mediaType: manga ? "MANGA" : "ANIME",
-        page: pageParam as number,
-      }),
+    queryFn: ({ pageParam }) => {
+      if (!pageRequest) throw new Error("AniList search request is missing");
+
+      return anilistApi.filterPage({ ...pageRequest.params, page: pageParam as number });
+    },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages, lastPageParam) => {
-      const params = (request as { kind: "global"; params: AnilistFilterPageParams }).params;
-      const perPage =
-        typeof params.perPage === "number" && params.perPage > 0
-          ? params.perPage
-          : settingsAtoms.anilistPageSize.get();
+      if (!pageRequest || allPages.length >= pageRequest.maxPages) return undefined;
+
+      const perPage = pageRequest.params.perPage ?? 20;
 
       if (lastPage.media.length < perPage) return undefined;
       const loaded = allPages.reduce((count, page) => count + page.media.length, 0);
@@ -147,12 +127,22 @@ export function useAnilistSearch() {
 
       return (lastPageParam as number) + 1;
     },
-    enabled: isGlobalRequest,
+    enabled: pageRequest !== null,
   });
 
-  const searchResults: AniMedia[] = isGlobalRequest
-    ? (globalPages.data?.pages.flatMap((page) => page.media) ?? [])
-    : (query.data ?? []);
+  const studioQuery = useAppQuery("live", {
+    queryKey: [...queryKeys.anilistSearch(request), manga],
+    queryFn: () => {
+      if (request?.kind !== "studio") throw new Error("AniList studio request is missing");
+
+      return anilistApi.searchByStudio(request.studioId);
+    },
+    enabled: isStudioRequest,
+  });
+
+  const searchResults: AniMedia[] = isStudioRequest
+    ? (studioQuery.data ?? [])
+    : (pages.data?.pages.flatMap((page) => page.media) ?? []);
 
   const handleGlobal = useCallback(() => {
     const terms = searchTerms.trim();
@@ -252,12 +242,12 @@ export function useAnilistSearch() {
     handleSeason,
     handleStudio,
     handleTag,
-    loadingSearch: query.isFetching || globalPages.isFetching,
-    loadingSearchMore: globalPages.isFetchingNextPage,
+    loadingSearch: studioQuery.isFetching || pages.isFetching,
+    loadingSearchMore: pages.isFetchingNextPage,
     fetchNextSearchPage: () => {
-      ignore(globalPages.fetchNextPage());
+      ignore(pages.fetchNextPage());
     },
-    hasNextSearchPage: globalPages.hasNextPage ?? false,
+    hasNextSearchPage: pages.hasNextPage ?? false,
     searchFilters,
     searchMode,
     searchResults,

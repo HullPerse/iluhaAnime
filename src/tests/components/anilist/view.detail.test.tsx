@@ -141,9 +141,9 @@ describe("AniListDetailView character navigation", () => {
 });
 
 describe("AniListDetailView mount inventory", () => {
-  const EXPECTED_COMMANDS = ["get_anime_franchise", "get_anime_recommendations"];
+  const EXPECTED_COMMANDS = ["get_anime_recommendations"];
 
-  it("issues exactly one call per expected command and skips custom lists when logged out", async () => {
+  it("issues exactly one recommendations call and skips custom lists when logged out", async () => {
     renderView(false);
 
     await waitFor(() => {
@@ -158,14 +158,17 @@ describe("AniListDetailView mount inventory", () => {
     expect([...commands].sort()).toEqual([...EXPECTED_COMMANDS].sort());
   });
 
-  it("asks for custom lists exactly once when logged in", async () => {
+  it("defers custom lists until the user edits the list entry", async () => {
     renderView(true);
 
     await waitFor(() => {
-      const calls = invokeMock.mock.calls.filter(
-        ([command]) => command === "get_anilist_custom_lists"
-      );
-      expect(calls).toHaveLength(1);
+      const commands = invokeMock.mock.calls.map(([command]) => String(command));
+      expect(commands).toContain("get_anime_recommendations");
     });
+
+    const calls = invokeMock.mock.calls.filter(
+      ([command]) => command === "get_anilist_custom_lists"
+    );
+    expect(calls).toHaveLength(0);
   });
 });

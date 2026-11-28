@@ -1845,6 +1845,11 @@ pub fn initialize_schema(connection: &Connection) -> Result<(), String> {
             .map_err(|error| format!("manga source setting commit: {error}"))?;
     }
 
+    if version < 51 {
+        connection.execute_batch("CREATE TABLE IF NOT EXISTS daily_characters (day TEXT PRIMARY KEY, roster TEXT NOT NULL, progress TEXT NOT NULL, reward_pack_id TEXT, finished INTEGER NOT NULL DEFAULT 0); PRAGMA user_version = 51;")
+            .map_err(|error|format!("daily characters migration: {error}"))?;
+    }
+
     if version > CURRENT_SCHEMA_VERSION {
         return Err(format!(
             "app database is newer than this application ({version} > {CURRENT_SCHEMA_VERSION})"

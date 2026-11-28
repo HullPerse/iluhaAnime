@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use super::auth::optional_token;
 use super::client::graphql_request;
-use super::media::{MEDIA_CORE_SELECTION, parse_animedia, AniMedia};
+use super::media::{parse_animedia, AniMedia, MEDIA_CORE_SELECTION};
 use crate::scrapers::clients::resolve_proxy;
 
 #[derive(Serialize)]
@@ -49,10 +49,12 @@ fn groups(stats: &serde_json::Value, collection: &str, field: &str) -> Vec<Manga
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn get_anilist_manga_overview(
     app_handle: tauri::AppHandle,
     user_id: u64,
     proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<MangaOverview, String> {
     let query = format!(
         "query ($userId: Int) {{
@@ -70,7 +72,7 @@ pub async fn get_anilist_manga_overview(
         MEDIA_CORE_SELECTION
     );
     let body = serde_json::json!({ "query": query, "variables": { "userId": user_id } });
-    let proxy = resolve_proxy(proxy_url, None);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     let token = optional_token(&app_handle);
     let json = graphql_request(body, token.as_deref(), proxy.as_deref()).await?;
     let user = &json["data"]["User"];
@@ -99,13 +101,15 @@ pub async fn get_anilist_manga_overview(
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 pub async fn toggle_anilist_manga_favourite(
     app_handle: tauri::AppHandle,
     manga_id: u64,
     proxy_url: Option<String>,
+    proxyUrl: Option<String>,
 ) -> Result<(), String> {
     let token = super::auth::load_token(&app_handle)?;
-    let proxy = resolve_proxy(proxy_url, None);
+    let proxy = resolve_proxy(proxy_url, proxyUrl);
     graphql_request(
         serde_json::json!({
             "query": "mutation ($mangaId: Int) { ToggleFavourite(mangaId: $mangaId) { manga { pageInfo { total } } } }",

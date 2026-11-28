@@ -137,7 +137,7 @@ export interface CardsClient {
   cardsShell(): Promise<CardsShell>;
   cardsMarkSeen(args: CardsMarkSeenArgs): Promise<CardsSeen>;
   cardsPacks(): Promise<CardPackRow[]>;
-  cardsPreparePacks(args: CardsProxyArgs): Promise<PackPreparation>;
+  cardsPreparePacks(args: CardsProxyArgs & { retryFailed?: boolean }): Promise<PackPreparation>;
   cardsAckPreparedPacks(): Promise<number>;
   cardsOpenPack(args: CardsOpenPackArgs): Promise<PackOpening>;
   cardsClaimPackCard(args: CardsClaimPackCardArgs): Promise<PackOpening>;
@@ -226,7 +226,7 @@ export function createCardsClient(
       ),
     cardsPacks: () => call<CardPackRow[]>("cards_packs"),
     cardsPreparePacks: (args) =>
-      call<PackPreparation>("cards_prepare_packs", proxy(args.proxyUrl)),
+      call<PackPreparation>("cards_prepare_packs", { ...proxy(args.proxyUrl), retryFailed: args.retryFailed ?? false }),
     cardsAckPreparedPacks: () => call<number>("cards_ack_prepared_packs"),
     cardsOpenPack: (args) =>
       call<PackOpening>("cards_open_pack", {

@@ -460,7 +460,7 @@ pub fn list_packs_to_prepare(
                     opened_at, contents_state, claimed_at, chosen_slot
              FROM card_packs
              WHERE user_id = ?1 AND opened_at IS NULL
-               AND contents_state IN ('pending','failed')
+               AND contents_state = 'pending'
                AND prepare_attempts < ?2
              ORDER BY created_at ASC, id ASC LIMIT ?3",
         )
@@ -484,7 +484,7 @@ pub fn mark_pack_prepare_started(
                 SET prepare_attempts = prepare_attempts + 1,
                     last_prepare_error = NULL
               WHERE id = ?1 AND user_id = ?2 AND opened_at IS NULL
-                AND contents_state IN ('pending','failed')
+                AND contents_state = 'pending'
                 AND prepare_attempts < ?3",
             params![pack_id, user_id, max_attempts],
         )
@@ -507,6 +507,19 @@ pub fn mark_pack_prepare_failed(
         )
         .map_err(|error| format!("mark card pack preparation failed: {error}"))?;
     Ok(())
+}
+
+/// A manual preparation run is also an explicit retry: give failed packs the
+/// full attempt budget again instead of leaving them permanently stuck.
+pub fn reset_failed_pack_attempts(connection: &Connection, user_id: i64) -> Result<usize, String> {
+    connection
+        .execute(
+            "UPDATE card_packs
+                SET contents_state = 'pending', prepare_attempts = 0, last_prepare_error = NULL
+              WHERE user_id = ?1 AND opened_at IS NULL AND contents_state = 'failed'",
+            params![user_id],
+        )
+        .map_err(|error| format!("reset failed card pack attempts: {error}"))
 }
 
 pub fn list_pack_cards(
@@ -1627,6 +1640,56 @@ mod tests {
             .expect("count manga packs");
         assert_eq!(cards, 1);
         assert_eq!(packs, 1);
+    }
+
+    #[test]
+    fn failed_packs_wait_for_explicit_retry() {
+        let connection = memory_db();
+        insert_pack(&connection, LOCAL_USER_ID, &pack("retry", 10)).unwrap();
+        assert!(mark_pack_prepare_started(&connection, LOCAL_USER_ID, "retry", 5).unwrap());
+        mark_pack_prepare_failed(&connection, LOCAL_USER_ID, "retry", "rate limit").unwrap();
+        assert!(list_packs_to_prepare(&connection, LOCAL_USER_ID, 5, 5)
+            .unwrap()
+            .is_empty());
+        assert!(!mark_pack_prepare_started(&connection, LOCAL_USER_ID, "retry", 5).unwrap());
+        assert_eq!(
+            reset_failed_pack_attempts(&connection, LOCAL_USER_ID).unwrap(),
+            1
+        );
+        assert_eq!(
+            list_packs_to_prepare(&connection, LOCAL_USER_ID, 5, 5)
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn a_manual_prepare_retry_resets_only_failed_packs() {
+        let connection = memory_db();
+        insert_pack(&connection, LOCAL_USER_ID, &pack("pending", 10)).expect("pending");
+        insert_pack(&connection, LOCAL_USER_ID, &pack("failed", 20)).expect("failed");
+
+        for _ in 0..5 {
+            assert!(
+                mark_pack_prepare_started(&connection, LOCAL_USER_ID, "failed", 5)
+                    .expect("start failed pack")
+            );
+        }
+        mark_pack_prepare_failed(&connection, LOCAL_USER_ID, "failed", "429").expect("fail pack");
+
+        let before = list_packs_to_prepare(&connection, LOCAL_USER_ID, 10, 5).unwrap();
+        assert_eq!(before.len(), 1);
+        assert_eq!(before[0].id, "pending");
+
+        assert_eq!(
+            reset_failed_pack_attempts(&connection, LOCAL_USER_ID).unwrap(),
+            1
+        );
+
+        let after = list_packs_to_prepare(&connection, LOCAL_USER_ID, 10, 5).unwrap();
+        assert_eq!(after.len(), 2);
+        assert!(after.iter().any(|pack| pack.id == "failed"));
     }
 
     #[test]

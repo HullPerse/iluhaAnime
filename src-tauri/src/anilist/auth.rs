@@ -1,4 +1,8 @@
 use serde::Serialize;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 use std::{fs, path::PathBuf};
 use tauri::Manager;
 
@@ -20,6 +24,38 @@ fn token_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
 }
 
 const ANILIST_CREDENTIAL: &str = "anilist.access_token";
+
+/// Short-lived in-process caches so the session query, notification settings
+/// and the release poll do not each issue their own Viewer/list request.
+const AUTH_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+const LISTS_CACHE_TTL: Duration = Duration::from_secs(2 * 60);
+
+fn token_cache_key(token: &str) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    token.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn lock_or_recover<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+fn auth_cache() -> &'static Mutex<Option<(u64, Instant, serde_json::Value)>> {
+    static CACHE: OnceLock<Mutex<Option<(u64, Instant, serde_json::Value)>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(None))
+}
+
+fn lists_cache() -> &'static Mutex<HashMap<String, (Instant, serde_json::Value)>> {
+    static CACHE: OnceLock<Mutex<HashMap<String, (Instant, serde_json::Value)>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub(crate) fn invalidate_anilist_caches() {
+    *lock_or_recover(auth_cache()) = None;
+    lock_or_recover(lists_cache()).clear();
+}
 
 fn save_token(app_handle: &tauri::AppHandle, token: &str) -> Result<(), String> {
     save_secret(ANILIST_CREDENTIAL, token).map_err(|error| error.to_string())?;
@@ -314,6 +350,7 @@ pub async fn anilist_login(
         title_language: parse_title_language(v),
     };
     save_token(&app_handle, &token)?;
+    invalidate_anilist_caches();
     Ok(user)
 }
 #[tauri::command]
@@ -340,6 +377,17 @@ pub async fn check_anilist_auth(
             }
         "
     });
+    let key = token_cache_key(&token);
+    let cached = {
+        let cache = lock_or_recover(auth_cache());
+        cache.as_ref().and_then(|(cached_key, at, json)| {
+            (*cached_key == key && at.elapsed() < AUTH_CACHE_TTL).then(|| json.clone())
+        })
+    };
+    if let Some(json) = cached {
+        let v = &json["data"]["Viewer"];
+        return Ok((!v.is_null()).then(|| parse_ani_user(v)));
+    }
     let proxy = resolve_proxy(proxy_url, proxyUrl);
     let Ok(json) = graphql_request(body, Some(&token), proxy.as_deref()).await else {
         return Ok(None);
@@ -348,6 +396,7 @@ pub async fn check_anilist_auth(
     if v.is_null() {
         return Ok(None);
     }
+    *lock_or_recover(auth_cache()) = Some((key, Instant::now(), json.clone()));
     Ok(Some(parse_ani_user(v)))
 }
 
@@ -576,14 +625,43 @@ pub async fn get_anilist_lists(
     let token = ctx.require_token()?;
     let proxy = ctx.proxy();
     let minimal = minimal.unwrap_or(false);
+    let media_tag = matches!(media_type, Some(super::media::AniMediaType::Manga));
+    let token_key = token_cache_key(token);
+    // ponytail: serialize list cache fills; use keyed locks if list contention matters.
+    static LIST_FILL: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _fill = LIST_FILL.lock().await;
+    tracing::debug!(user_id, minimal, manga = media_tag, "loading AniList lists");
     let mut merged: Vec<AniListCollection> = Vec::new();
     for chunk in 1..=LIST_MAX_CHUNKS {
-        let json = graphql_request(
-            collection_body(user_id, chunk, minimal, media_type),
-            Some(token),
-            proxy,
-        )
-        .await?;
+        let cache_key = format!("{token_key}:{user_id}:{chunk}:{minimal}:{media_tag}");
+        let cached = {
+            let cache = lock_or_recover(lists_cache());
+            cache
+                .get(&cache_key)
+                .and_then(|(at, json)| (at.elapsed() < LISTS_CACHE_TTL).then(|| json.clone()))
+        };
+        tracing::debug!(
+            user_id,
+            minimal,
+            manga = media_tag,
+            chunk,
+            cache_hit = cached.is_some(),
+            "AniList list chunk"
+        );
+        let json = if let Some(json) = cached {
+            json
+        } else {
+            let json = graphql_request(
+                collection_body(user_id, chunk, minimal, media_type),
+                Some(token),
+                proxy,
+            )
+            .await?;
+            let mut cache = lock_or_recover(lists_cache());
+            cache.retain(|_, (at, _)| at.elapsed() < LISTS_CACHE_TTL);
+            cache.insert(cache_key, (Instant::now(), json.clone()));
+            json
+        };
         let collection = &json["data"]["MediaListCollection"];
         merge_list_chunk(&mut merged, parse_collection_lists(&collection["lists"]));
         if !collection["hasNextChunk"].as_bool().unwrap_or(false) {
@@ -768,6 +846,7 @@ async fn load_friend_scores_individually(
 #[tauri::command]
 pub async fn anilist_logout(app_handle: tauri::AppHandle) -> Result<(), String> {
     delete_secret(ANILIST_CREDENTIAL);
+    invalidate_anilist_caches();
     let path = token_path(&app_handle)?;
     let _ = fs::remove_file(&path);
     let _ = app_db::prune_unified_index_scope(app_handle, "anilist".into(), Some(Vec::new()), None);
@@ -838,6 +917,7 @@ pub async fn save_anilist_entry(
                     progressVolumes
                     repeat
                     customLists
+                    media { episodes chapters }
                 }
             }
         ",
@@ -881,23 +961,31 @@ pub async fn save_anilist_entry(
         }
     };
     let saved = parse_saved_entry(&json["data"]["SaveMediaListEntry"]);
+    invalidate_anilist_caches();
     if status.eq_ignore_ascii_case("COMPLETED") && crate::cards::config::CARDS_GRANT_ENABLED {
+        // The mutation already returns the media totals, so completion no
+        // longer needs a second, awaited Media(episodes/chapters) request.
+        let media = &json["data"]["SaveMediaListEntry"]["media"];
+        let episodes = media["episodes"]
+            .as_i64()
+            .and_then(|value| i32::try_from(value).ok());
+        let chapters = media["chapters"]
+            .as_i64()
+            .and_then(|value| i32::try_from(value).ok());
         if matches!(media_type, Some(super::media::AniMediaType::Manga)) {
             crate::cards::grant::maybe_grant_for_manga_completion(
                 &app_handle,
                 media_id,
-                &token,
+                chapters,
                 proxy.as_deref(),
-            )
-            .await;
+            );
         } else {
             crate::cards::grant::maybe_grant_for_completion(
                 &app_handle,
                 media_id,
-                &token,
+                episodes,
                 proxy.as_deref(),
-            )
-            .await;
+            );
         }
     }
     Ok(saved)
@@ -928,6 +1016,7 @@ pub async fn delete_anilist_entry(
         "variables": { "id": entry_id }
     });
     let json = graphql_request(body, Some(&token), proxy.as_deref()).await?;
+    invalidate_anilist_caches();
     Ok(json["data"]["DeleteMediaListEntry"]["deleted"]
         .as_bool()
         .unwrap_or(true))

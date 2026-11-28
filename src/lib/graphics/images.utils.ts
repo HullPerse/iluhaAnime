@@ -2,6 +2,7 @@ import { attemptSync } from "@hullperse/hp_utils/attempt";
 
 const SOURCE_IMAGE_HOSTS = [
   "imglib.info",
+  "mangalib.me",
   "cdnlibs.org",
   "animelib.org",
   "kodikplayer.com",

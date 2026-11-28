@@ -21,7 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 beforeEach(() => {
   invokeMock.mockReset();
-  patchSettings({ anilistProxyUrl: null, cardsImageProxyUrl: null, dailyProxyUrl: null });
+  patchSettings({ anilistProxyUrl: null, animelibProxyUrl: null, cardsImageProxyUrl: null, dailyProxyUrl: null });
   resetRemoteImageCache();
 });
 
@@ -201,10 +201,11 @@ describe("prefetchRemoteImages", () => {
 });
 
 describe("useStreamCover", () => {
-  it("downloads the cover through the cache with the AnimeLib referer", async () => {
+  it.each(["cover.imglib.info", "cover.mangalib.me"])("downloads %s through the AnimeLib proxy with its referer", async (host) => {
+    patchSettings({ animelibProxyUrl: "http://127.0.0.1:7890" });
     invokeMock.mockResolvedValue({ id: "cover-1", path: "C:/images/cover-1.jpg" });
     const { result, unmount } = renderHook(() =>
-      useStreamCover("https://cover.imglib.info/uploads/anime/1/cover.jpg")
+      useStreamCover(`https://${host}/uploads/anime/1/cover.jpg`)
     );
     expect(result.current).toBeNull();
     await waitFor(() => {
@@ -213,6 +214,7 @@ describe("useStreamCover", () => {
     expect(invokeMock).toHaveBeenCalledWith("fetch_remote_image", {
       url: "https://cover.imglib.info/uploads/anime/1/cover.jpg",
       referer: STREAM_COVER_REFERER,
+      proxyUrl: "http://127.0.0.1:7890",
     });
     unmount();
   });

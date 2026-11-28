@@ -27,12 +27,12 @@ export function useUserAnilistData(options: { enabled?: boolean; manga?: boolean
   const userId = query.data?.user?.id;
   const mangaLists = useAppQuery("slow", {
     queryKey: [...queryKeys.anilistData(), "MANGA", "lists", userId],
-    enabled: !!options.manga && userId !== undefined,
+    enabled: (options.enabled ?? true) && userId !== undefined,
     queryFn: () => anilistApi.getLists(userId ?? 0, false, "MANGA"),
   });
   const overview = useAppQuery("slow", {
     queryKey: [...queryKeys.anilistData(), "MANGA", "overview", userId],
-    enabled: !!options.manga && userId !== undefined,
+    enabled: (options.enabled ?? true) && userId !== undefined,
     queryFn: () => anilistApi.getMangaOverview(userId ?? 0),
   });
   const data = useMemo(() => {

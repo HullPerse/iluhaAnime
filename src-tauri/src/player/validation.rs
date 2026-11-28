@@ -63,11 +63,21 @@ pub fn command(name: &str, args: &[Value]) -> Result<(), String> {
 
 pub fn property(name: &str, value: &Value) -> Result<(), String> {
     if name == "deband" {
-        return if value.is_boolean() { Ok(()) } else { Err("invalid deband flag".into()) };
+        return if value.is_boolean() {
+            Ok(())
+        } else {
+            Err("invalid deband flag".into())
+        };
     }
     if name == "audio-device" {
         return match value.as_str() {
-            Some(device) if !device.is_empty() && device.len() <= 1024 && !device.chars().any(char::is_control) => Ok(()),
+            Some(device)
+                if !device.is_empty()
+                    && device.len() <= 1024
+                    && !device.chars().any(char::is_control) =>
+            {
+                Ok(())
+            }
             _ => Err("invalid audio device".into()),
         };
     }

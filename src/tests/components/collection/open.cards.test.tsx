@@ -148,11 +148,23 @@ describe("collection pack opening", () => {
     const cards = makeOpenedCards(2);
     mockInvoke.mockImplementation((command: string) => {
       if (command === "cards_open_pack") {
-        return Promise.resolve({ packId: "pack-1", cards, value: 0, chosenSlot: null });
+        return Promise.resolve({
+          packId: "pack-1",
+          cards,
+          value: 0,
+          chosenSlot: null,
+          preparing: false,
+        });
       }
 
       if (command === "cards_claim_pack_card") {
-        return Promise.resolve({ packId: "pack-1", cards, value: 12, chosenSlot: 0 });
+        return Promise.resolve({
+          packId: "pack-1",
+          cards,
+          value: 12,
+          chosenSlot: 0,
+          preparing: false,
+        });
       }
 
       return Promise.resolve(null);

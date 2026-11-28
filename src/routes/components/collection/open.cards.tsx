@@ -15,6 +15,8 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
   const { mutate, reset, data, isPending, isError } = mutations.openPack;
   const claim = mutations.claimPack;
   const started = useRef<string | null>(null);
+  const preparing = data?.preparing === true;
+  const preparingFailed = preparing && pack.contentsState === "failed";
   const close = () => {
     if (pack.packKind !== "choice") mutations.invalidate();
     onClose();
@@ -27,6 +29,11 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
     started.current = pack.id;
     mutate(pack.id);
   }, [mutate, pack.id]);
+
+  useEffect(() => {
+    if (!preparing || pack.contentsState !== "ready") return;
+    mutate(pack.id);
+  }, [preparing, mutate, pack.contentsState, pack.id]);
 
   const retry = () => {
     reset();
@@ -53,10 +60,23 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
     <Modal
       header={t("collection.open.title")}
       onClose={close}
-      canClose={() => isError}
+      canClose={() => isError || preparing}
       className="w-[min(64rem,calc(100vw-1rem))]"
     >
       {isPending && <TabLoader className="min-h-48 w-full" />}
+      {preparing && !preparingFailed && (
+        <div className="flex flex-col items-center gap-2 p-4">
+          <TabLoader className="min-h-32 w-full" />
+          <span className="windows95-text text-hint text-center" role="status">
+            {t("collection.game.state.pending")}
+          </span>
+        </div>
+      )}
+      {preparingFailed && (
+        <span className="windows95-text text-destructive p-4 text-center" role="alert">
+          {t("collection.open.error")}
+        </span>
+      )}
       {isError && (
         <div className="flex flex-col items-center gap-2 p-4">
           <span className="windows95-text text-destructive text-center" role="alert">
@@ -66,7 +86,7 @@ export default function OpenCards({ pack, onClose }: { pack: CardPackRow; onClos
         </div>
       )}
       <div className="flex justify-end">
-        <Button disabled={!isError} onClick={close}>
+        <Button disabled={!isError && !preparing} onClick={close}>
           {t("common.close")}
         </Button>
       </div>

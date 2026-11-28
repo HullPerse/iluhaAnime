@@ -1,5 +1,9 @@
+tokio::task_local! {
+    pub(crate) static PACK_REQUEST_COUNTS: std::cell::Cell<(u64, u64)>;
+}
+
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
@@ -17,6 +21,23 @@ const RATE_LIMIT_PER_MIN: usize = 25;
 const RATE_LIMIT_ADAPTIVE_CEILING: usize = 30;
 const RATE_LIMIT_BACKOFF_PER_MIN: usize = 10;
 const RATE_LIMIT_RESET_CAP_SECS: u64 = 60;
+const FOREGROUND_RESERVE_DEFAULT: usize = 10;
+const FOREGROUND_TIMEOUT_SECS: u64 = 20;
+const BACKGROUND_TIMEOUT_SECS: u64 = 30;
+const FOREGROUND_ATTEMPTS: u32 = 1;
+const BACKGROUND_ATTEMPTS: u32 = 3;
+const BACKGROUND_YIELD_MS: u64 = 50;
+
+/// Foreground requests are user actions; background requests are card packs,
+/// roster pages and other work the user did not explicitly wait for. The
+/// limiter reserves part of the per-minute window for foreground requests so a
+/// pack batch cannot consume the whole minute before the user acts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RequestPriority {
+    Foreground,
+    Background,
+    Diagnostic,
+}
 fn env_limit(name: &str, default: usize) -> usize {
     std::env::var(name)
         .ok()
@@ -33,20 +54,83 @@ static ANILIST_CONCURRENCY: LazyLock<tokio::sync::Semaphore> = LazyLock::new(|| 
     ))
 });
 static RATE_LOG: LazyLock<Mutex<VecDeque<Instant>>> = LazyLock::new(|| Mutex::new(VecDeque::new()));
+static BACKGROUND_RATE_LOG: LazyLock<Mutex<VecDeque<Instant>>> =
+    LazyLock::new(|| Mutex::new(VecDeque::new()));
 static RATE_LIMIT_ADAPTIVE: AtomicUsize = AtomicUsize::new(RATE_LIMIT_PER_MIN);
 static COOLDOWN_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+/// A 429 backoff must survive the next successful response, otherwise the
+/// adaptive limit immediately jumps back to the server ceiling.
+static BACKOFF_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+static FOREGROUND_INFLIGHT: AtomicUsize = AtomicUsize::new(0);
+static REQUEST_TOTAL: AtomicU64 = AtomicU64::new(0);
+static REQUEST_ATTEMPTS: AtomicU64 = AtomicU64::new(0);
+static REQUEST_429: AtomicU64 = AtomicU64::new(0);
+static SLOT_WAIT_MICROS: AtomicU64 = AtomicU64::new(0);
+static CONFIGURED_RATE_LIMIT: LazyLock<usize> =
+    LazyLock::new(|| env_limit("ILUHA_ANILIST_RATE_LIMIT", RATE_LIMIT_PER_MIN));
+static FOREGROUND_RESERVE: LazyLock<usize> = LazyLock::new(|| {
+    env_limit(
+        "ILUHA_ANILIST_FOREGROUND_RESERVE",
+        FOREGROUND_RESERVE_DEFAULT,
+    )
+});
+static BACKGROUND_BUDGET: LazyLock<usize> = LazyLock::new(|| {
+    env_limit(
+        "ILUHA_ANILIST_BACKGROUND_BUDGET",
+        CONFIGURED_RATE_LIMIT
+            .min(RATE_LIMIT_ADAPTIVE_CEILING)
+            .saturating_sub(*FOREGROUND_RESERVE),
+    )
+});
+
+fn configured_rate_limit() -> usize {
+    (*CONFIGURED_RATE_LIMIT)
+        .min(RATE_LIMIT_ADAPTIVE_CEILING)
+        .max(1)
+}
+
+fn background_budget() -> usize {
+    (*BACKGROUND_BUDGET)
+        .min(rate_limit_per_min().saturating_sub(*FOREGROUND_RESERVE))
+        .max(1)
+}
+
+fn backoff_active() -> bool {
+    let mut backoff = BACKOFF_UNTIL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    match *backoff {
+        Some(deadline) if deadline > Instant::now() => true,
+        Some(_) => {
+            *backoff = None;
+            false
+        }
+        None => false,
+    }
+}
+
+/// Records a 429 and keeps the lowered limit until the reset deadline. The
+/// previous implementation only lowered the atomic and the next successful
+/// response raised it back to 30.
+fn note_rate_limited(delay_secs: u64) {
+    RATE_LIMIT_ADAPTIVE.fetch_min(RATE_LIMIT_BACKOFF_PER_MIN, Ordering::Relaxed);
+    let deadline = Instant::now() + Duration::from_secs(delay_secs.max(1));
+    let mut backoff = BACKOFF_UNTIL
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    *backoff = Some(backoff.map_or(deadline, |current| current.max(deadline)));
+}
 
 fn update_rate_limit(header: Option<&str>) {
+    if backoff_active() {
+        return;
+    }
     let Some(limit) = header.and_then(|v| v.parse::<usize>().ok()) else {
         return;
     };
     if (10..=90).contains(&limit) {
-        RATE_LIMIT_ADAPTIVE.store(limit.min(RATE_LIMIT_ADAPTIVE_CEILING), Ordering::Relaxed);
+        RATE_LIMIT_ADAPTIVE.store(limit.min(configured_rate_limit()), Ordering::Relaxed);
     }
-}
-
-fn note_rate_limited() {
-    RATE_LIMIT_ADAPTIVE.fetch_min(RATE_LIMIT_BACKOFF_PER_MIN, Ordering::Relaxed);
 }
 
 fn parse_retry_after_secs(header: Option<&str>) -> Option<u64> {
@@ -126,11 +210,41 @@ fn now_unix_secs() -> u64 {
 }
 
 fn rate_limit_per_min() -> usize {
-    RATE_LIMIT_ADAPTIVE.load(Ordering::Relaxed)
+    RATE_LIMIT_ADAPTIVE
+        .load(Ordering::Relaxed)
+        .min(configured_rate_limit())
+        .max(1)
 }
 
-async fn acquire_request_slot() -> Result<tokio::sync::SemaphorePermit<'static>, String> {
+struct ForegroundGuard;
+
+impl ForegroundGuard {
+    fn acquire(priority: RequestPriority) -> Option<Self> {
+        (priority == RequestPriority::Foreground).then(|| {
+            FOREGROUND_INFLIGHT.fetch_add(1, Ordering::AcqRel);
+            Self
+        })
+    }
+}
+
+impl Drop for ForegroundGuard {
+    fn drop(&mut self) {
+        FOREGROUND_INFLIGHT.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+async fn acquire_request_slot(
+    priority: RequestPriority,
+) -> Result<tokio::sync::SemaphorePermit<'static>, String> {
     loop {
+        // Background work yields as soon as the user has a foreground request
+        // waiting, even before that request has acquired its permit.
+        if priority == RequestPriority::Background
+            && FOREGROUND_INFLIGHT.load(Ordering::Acquire) > 0
+        {
+            tokio::time::sleep(Duration::from_millis(BACKGROUND_YIELD_MS)).await;
+            continue;
+        }
         let permit = ANILIST_CONCURRENCY
             .acquire()
             .await
@@ -150,6 +264,9 @@ async fn acquire_request_slot() -> Result<tokio::sync::SemaphorePermit<'static>,
                 tracing::warn!("AniList rate-limit log mutex was poisoned; recovering");
                 poisoned.into_inner()
             });
+            let mut background = BACKGROUND_RATE_LOG
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             while let Some(&t) = log.front() {
                 if now.duration_since(t) >= Duration::from_secs(60) {
                     log.pop_front();
@@ -157,13 +274,32 @@ async fn acquire_request_slot() -> Result<tokio::sync::SemaphorePermit<'static>,
                     break;
                 }
             }
-            if log.len() < rate_limit_per_min() {
+            while let Some(&t) = background.front() {
+                if now.duration_since(t) >= Duration::from_secs(60) {
+                    background.pop_front();
+                } else {
+                    break;
+                }
+            }
+            let window_ok = log.len() < rate_limit_per_min();
+            let background_ok =
+                priority != RequestPriority::Background || background.len() < background_budget();
+            if window_ok && background_ok {
                 log.push_back(now);
+                if priority != RequestPriority::Foreground {
+                    background.push_back(now);
+                }
                 return Ok(permit);
             }
-            log.front().map_or(Duration::from_millis(600), |first| {
-                Duration::from_secs(60).saturating_sub(now.duration_since(*first))
-            })
+            if !window_ok {
+                log.front().map_or(Duration::from_millis(600), |first| {
+                    Duration::from_secs(60).saturating_sub(now.duration_since(*first))
+                })
+            } else {
+                // The global window has room, but background has spent its
+                // share. Yield briefly so a foreground request can take it.
+                Duration::from_millis(750)
+            }
         };
         drop(permit);
         tokio::time::sleep(delay).await;
@@ -205,13 +341,56 @@ pub async fn graphql_request(
     token: Option<&str>,
     proxy: Option<&str>,
 ) -> Result<serde_json::Value, String> {
-    let client = client_for_proxy(proxy)?;
-    let mut last_err = "AniList request failed".to_string();
-    const ATTEMPTS: u32 = 3;
-    for attempt in 0..ATTEMPTS {
-        let permit = acquire_request_slot().await?;
+    graphql_request_with_priority(query, token, proxy, RequestPriority::Foreground).await
+}
 
-        let mut builder = client.post("https://graphql.anilist.co").json(&query);
+/// Card packs, roster pages and metadata warmups must not starve user actions.
+pub async fn graphql_request_background(
+    query: serde_json::Value,
+    token: Option<&str>,
+    proxy: Option<&str>,
+) -> Result<serde_json::Value, String> {
+    graphql_request_with_priority(query, token, proxy, RequestPriority::Background).await
+}
+
+#[allow(clippy::too_many_lines)]
+pub async fn graphql_request_with_priority(
+    query: serde_json::Value,
+    token: Option<&str>,
+    proxy: Option<&str>,
+    priority: RequestPriority,
+) -> Result<serde_json::Value, String> {
+    let client = client_for_proxy(proxy)?;
+    let _foreground = ForegroundGuard::acquire(priority);
+    let mut last_err = "AniList request failed".to_string();
+    let attempts = match priority {
+        RequestPriority::Foreground => FOREGROUND_ATTEMPTS,
+        RequestPriority::Background | RequestPriority::Diagnostic => BACKGROUND_ATTEMPTS,
+    };
+    let timeout_secs = match priority {
+        RequestPriority::Foreground => FOREGROUND_TIMEOUT_SECS,
+        RequestPriority::Background | RequestPriority::Diagnostic => BACKGROUND_TIMEOUT_SECS,
+    };
+    let _ = PACK_REQUEST_COUNTS.try_with(|counts| {
+        let (queries, attempts) = counts.get();
+        counts.set((queries + 1, attempts));
+    });
+    REQUEST_TOTAL.fetch_add(1, Ordering::Relaxed);
+    let request_started = Instant::now();
+    for attempt in 0..attempts {
+        let slot_started = Instant::now();
+        let permit = acquire_request_slot(priority).await?;
+        SLOT_WAIT_MICROS.fetch_add(slot_started.elapsed().as_micros() as u64, Ordering::Relaxed);
+        let _ = PACK_REQUEST_COUNTS.try_with(|counts| {
+            let (queries, attempts) = counts.get();
+            counts.set((queries, attempts + 1));
+        });
+        REQUEST_ATTEMPTS.fetch_add(1, Ordering::Relaxed);
+
+        let mut builder = client
+            .post("https://graphql.anilist.co")
+            .timeout(Duration::from_secs(timeout_secs))
+            .json(&query);
         if let Some(t) = token {
             builder = builder.header("Authorization", format!("Bearer {t}"));
         }
@@ -222,7 +401,7 @@ pub async fn graphql_request(
                 last_err = format!("AniList request failed: {e}");
                 tracing::warn!(attempt, error = last_err.as_str(), "anilist network error");
                 drop(permit);
-                if attempt + 1 < ATTEMPTS {
+                if attempt + 1 < attempts {
                     tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
                 }
                 continue;
@@ -246,20 +425,25 @@ pub async fn graphql_request(
             let reset = headers
                 .get("x-ratelimit-reset")
                 .and_then(|v| v.to_str().ok());
-            let remaining = headers
-                .get("x-ratelimit-remaining")
-                .and_then(|v| v.to_str().ok());
             update_rate_limit(
                 headers
                     .get("x-ratelimit-limit")
                     .and_then(|v| v.to_str().ok()),
             );
-            if remaining.is_some_and(|v| v.trim() == "0") {
-                note_rate_limited();
-            }
             let delay = rate_limit_delay_secs(retry_after, reset, now_unix_secs(), 1 << attempt);
             last_err = "AniList rate limit exceeded".to_string();
-            tracing::warn!(attempt, delay_secs = delay, "anilist rate limited");
+            REQUEST_429.fetch_add(1, Ordering::Relaxed);
+            note_rate_limited(delay);
+            tracing::warn!(
+                attempt,
+                ?priority,
+                delay_secs = delay,
+                requests = REQUEST_TOTAL.load(Ordering::Relaxed),
+                attempts = REQUEST_ATTEMPTS.load(Ordering::Relaxed),
+                rate_limited = REQUEST_429.load(Ordering::Relaxed),
+                rate_limit = rate_limit_per_min(),
+                "anilist rate limited"
+            );
             let mut cooldown = COOLDOWN_UNTIL
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -299,7 +483,7 @@ pub async fn graphql_request(
                 return Err(last_err);
             }
             drop(permit);
-            if attempt + 1 < ATTEMPTS {
+            if attempt + 1 < attempts {
                 tokio::time::sleep(Duration::from_secs(1 << attempt)).await;
             }
             continue;
@@ -318,6 +502,17 @@ pub async fn graphql_request(
             tracing::warn!(attempt, error = message.as_str(), "anilist graphql errors");
             return Err(message);
         }
+        tracing::debug!(
+            attempt,
+            ?priority,
+            elapsed_ms = request_started.elapsed().as_millis(),
+            requests = REQUEST_TOTAL.load(Ordering::Relaxed),
+            attempts = REQUEST_ATTEMPTS.load(Ordering::Relaxed),
+            rate_limited = REQUEST_429.load(Ordering::Relaxed),
+            slot_wait_ms = SLOT_WAIT_MICROS.load(Ordering::Relaxed) / 1000,
+            rate_limit = rate_limit_per_min(),
+            "anilist request completed"
+        );
         return Ok(json);
     }
     Err(last_err)
@@ -351,31 +546,28 @@ pub async fn test_anilist_connection(
         return Err(format!("Site check failed: HTTP {}", site.status()));
     }
     let api_start = Instant::now();
-    let resp = client
-        .post("https://graphql.anilist.co")
-        .json(&serde_json::json!({
+    let outcome = graphql_request_with_priority(
+        serde_json::json!({
             "query": "query ($id: Int) { Media(id: $id, type: ANIME) { id title { romaji } } }",
             "variables": { "id": 21 },
-        }))
-        .timeout(Duration::from_secs(15))
-        .send()
-        .await
-        .map_err(|e| format!("API check failed: {}", describe(e)))?;
+        }),
+        None,
+        proxy.as_deref(),
+        RequestPriority::Diagnostic,
+    )
+    .await;
     let api_ms = api_start.elapsed().as_millis();
-    let status = resp.status().as_u16();
-    if !resp.status().is_success() {
-        let body = resp.text().await.unwrap_or_default();
-        if body.contains("temporarily disabled") {
-            return Err(format!(
-                "AniList API temporarily disabled by AniList (HTTP {status} after {api_ms}ms). Site OK ({site_ms}ms). Retry later or switch proxy."
-            ));
+    let json = match outcome {
+        Ok(json) => json,
+        Err(error) => {
+            if error.contains("temporarily disabled") {
+                return Err(format!(
+                    "AniList API temporarily disabled by AniList ({error} after {api_ms}ms). Site OK ({site_ms}ms). Retry later or switch proxy."
+                ));
+            }
+            return Err(format!("API check failed: {error} after {api_ms}ms"));
         }
-        return Err(format!("API check failed: HTTP {status} after {api_ms}ms"));
-    }
-    let json: serde_json::Value = resp
-        .json()
-        .await
-        .map_err(|e| format!("API check failed: bad JSON: {e}"))?;
+    };
     let id = json["data"]["Media"]["id"].as_u64().unwrap_or(0);
     let title = json["data"]["Media"]["title"]["romaji"]
         .as_str()

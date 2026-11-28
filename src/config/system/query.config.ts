@@ -8,7 +8,7 @@ export const QUERY_CONFIG = {
     queries: {
       gcTime: 10 * 60 * 1000,
       networkMode: "offlineFirst" as const,
-      refetchOnReconnect: true,
+      refetchOnReconnect: false,
       refetchOnWindowFocus: false,
       retry: (failureCount: number) => failureCount < 2,
       staleTime: 5 * 60 * 1000,

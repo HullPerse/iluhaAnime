@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cardsApi } from "@/api/cards.api";
 import { usePrepareCardsPacks } from "@/hooks/cards/prepare.hook";
 import { queryKeys } from "@/lib/core/hotkeys/keys.utils";
+import type { CardPackRow } from "@/types/api/cards";
 
 vi.mock("@/hooks/network.hook", () => ({ useOnlineStatus: () => true }));
 
@@ -20,10 +21,15 @@ function wrapperFor(client: QueryClient) {
   );
 }
 
+function queuedPack(contentsState: CardPackRow["contentsState"] = "pending"): CardPackRow {
+  return { openedAt: null, contentsState } as unknown as CardPackRow;
+}
+
 describe("background pack preparation", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.mocked(listen).mockResolvedValue(vi.fn());
+    vi.spyOn(cardsApi, "packs").mockResolvedValue([queuedPack()]);
   });
   afterEach(() => {
     vi.mocked(listen).mockReset();
@@ -40,6 +46,7 @@ describe("background pack preparation", () => {
       wrapper: wrapperFor(makeClient()),
     });
     await act(async () => {
+      await Promise.resolve();
       await Promise.resolve();
     });
     expect(prepare).toHaveBeenCalledTimes(1);
@@ -68,9 +75,38 @@ describe("background pack preparation", () => {
     });
     await act(async () => {
       await Promise.resolve();
+      await Promise.resolve();
     });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.cardsCollectionScope() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.cardsCollectionsScope() });
+    unmount();
+  });
+
+  it("leaves a large backlog for the manual prepare button", async () => {
+    vi.spyOn(cardsApi, "packs").mockResolvedValue(Array.from({ length: 11 }, () => queuedPack()));
+    const prepare = vi.spyOn(cardsApi, "preparePacks");
+    const { unmount } = renderHook(() => usePrepareCardsPacks(true), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(prepare).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it("does nothing when every pack is already prepared", async () => {
+    vi.spyOn(cardsApi, "packs").mockResolvedValue([queuedPack("ready")]);
+    const prepare = vi.spyOn(cardsApi, "preparePacks");
+    const { unmount } = renderHook(() => usePrepareCardsPacks(true), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(prepare).not.toHaveBeenCalled();
     unmount();
   });
 

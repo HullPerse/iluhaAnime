@@ -40,7 +40,7 @@ function invalidateDailyResult(
 
   if (rewardPackId === null || rewardPackId === undefined) return;
   queryClient.invalidateQueries({ queryKey: queryKeys.cardsPacksScope() });
-  queryClient.invalidateQueries({ queryKey: queryKeys.cardsUnreadScope() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.cardsShellScope() });
 }
 
 export function useDailyGame(day: string) {

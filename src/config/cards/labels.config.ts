@@ -70,6 +70,7 @@ const cardSourceLabelKeys: Record<string, TranslationKey> = {
   test: "collection.source.test",
   purchase: "collection.source.purchase",
   starter: "collection.source.starter",
+  status: "collection.source.completion",
   completion: "collection.source.completion",
   daily: "collection.source.daily",
   gift: "collection.source.gift",

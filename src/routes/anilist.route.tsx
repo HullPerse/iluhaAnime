@@ -15,7 +15,6 @@ import { useAnilistModals } from "@/hooks/anilist/modals.hook";
 import { useFavouritePeopleToggles } from "@/hooks/anilist/people.hook";
 import { useAnilistRandom } from "@/hooks/anilist/random.hook";
 import { useAnilistSearch, useProfileRecs } from "@/hooks/anilist/search.hook";
-import { prefetchAnilistStatistics } from "@/hooks/anilist/stats.hook";
 import { useResolvedHotkeys } from "@/hooks/hotkeys.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { usePagination } from "@/hooks/pagination.hook";
@@ -95,10 +94,6 @@ function AnilistRoute() {
   const lists = self.lists;
   const favourites = self.favourites;
   const { recs, recsLoading } = useProfileRecs(user, views.recs);
-
-  useEffect(() => {
-    if (user && !mangaMode) prefetchAnilistStatistics(queryClient, user.id);
-  }, [mangaMode, queryClient, user]);
 
   useEffect(() => {
     if (!user || mangaMode) return;

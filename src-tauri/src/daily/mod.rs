@@ -1,3 +1,6 @@
+mod character_answers;
+mod character_pool;
+pub mod characters;
 pub mod commands;
 mod game;
 mod pool;

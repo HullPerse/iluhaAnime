@@ -50,7 +50,7 @@ describe("AnimeDetailShell transport", () => {
     cleanup();
   });
 
-  it("starts the full bundle and the franchise prefetch exactly once each on mount", async () => {
+  it("starts the full bundle once on mount without prefetching the franchise", async () => {
     render(
       <AnimeDetailShell
         animeId={21}
@@ -65,12 +65,11 @@ describe("AnimeDetailShell transport", () => {
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("get_anime_full", { id: 21 });
-      expect(invokeMock).toHaveBeenCalledWith("get_anime_franchise", { id: 21, scope: "all" });
     });
 
     const commands = invokeMock.mock.calls.map(([command]) => String(command));
     expect(commands.filter((command) => command === "get_anime_full")).toHaveLength(1);
-    expect(commands.filter((command) => command === "get_anime_franchise")).toHaveLength(1);
-    expect(commands).toHaveLength(2);
+    expect(commands.filter((command) => command === "get_anime_franchise")).toHaveLength(0);
+    expect(commands).toHaveLength(1);
   });
 });

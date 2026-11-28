@@ -516,15 +516,18 @@ export const player: Scenario = {
       const playerPage = await findPlayerPage(browser);
       await page.bringToFront();
       await invoke(page, "plugin:window|set_focus", { label: "main" });
+
       if (await invoke<boolean>(playerPage, "plugin:window|is_focused", { label: "player" })) {
         throw new Error("Player still has focus during the media-key test");
       }
+
       for (const expected of ["no", "yes"]) {
         const result = spawnSync(
           "powershell",
           ["-NoProfile", "-File", "scripts/e2e/player-smtc.ps1", "-Action", "media-toggle"],
           { encoding: "utf-8" }
         );
+
         if (result.status !== 0) throw new Error(result.stderr || result.stdout);
         await settle(
           () => playerProperty(playerPage, "pause"),

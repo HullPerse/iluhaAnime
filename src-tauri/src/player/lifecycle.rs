@@ -153,6 +153,10 @@ pub async fn player_open(
         }
     };
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
+        #[cfg(windows)]
+        if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
+            super::suspension::resume(&window).await?;
+        }
         host.set_pending_open(Some(request.clone()));
         raise(&app);
         app.emit_to(PLAYER_WINDOW_LABEL, "player-open-request", &request)
@@ -235,6 +239,10 @@ pub async fn player_open_stream(
     // the window is raised, and the stream is loaded. Whether mpv is already
     // initialized is not a reason to leave the player on the previous frame.
     if app.get_webview_window(PLAYER_WINDOW_LABEL).is_some() {
+        #[cfg(windows)]
+        if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
+            super::suspension::resume(&window).await?;
+        }
         let host = app.state::<PlayerHost>();
         host.set_pending_open(Some(request.clone()));
         // Raise first: a hidden prewarmed window has a throttled renderer, and
@@ -522,7 +530,32 @@ pub async fn player_prewarm(app: AppHandle) -> Result<(), String> {
         host.readiness.wait(generation),
     )
     .await
-    .map_err(|_| "player preparation timed out".to_string())?
+    .map_err(|_| "player preparation timed out".to_string())??;
+    #[cfg(windows)]
+    {
+        let _window_operation = host.window_operation.lock().await;
+        let _operation = host.operation.lock().await;
+        if host.readiness.generation() == generation {
+            if let Some(window) = app.get_webview_window(PLAYER_WINDOW_LABEL) {
+                let path = core(&app)
+                    .get_property("path", "string", PLAYER_WINDOW_LABEL)
+                    .ok()
+                    .and_then(|value| value.as_str().map(str::to_string))
+                    .unwrap_or_default();
+                if prewarm_is_releasable(
+                    window.is_visible().unwrap_or(true),
+                    host.pending_open().is_some(),
+                    &path,
+                ) {
+                    match super::suspension::suspend(&window).await {
+                        Ok(suspended) => tracing::debug!("player WebView2 suspended: {suspended}"),
+                        Err(error) => tracing::warn!("player WebView2 suspend skipped: {error}"),
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Whether the hidden player window may be destroyed to give its memory back.

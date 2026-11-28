@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { TabLoader } from "@/components/shared/loader/tab.loader";
 import { Button } from "@/components/ui/button.component";
 import { useCardsMutations } from "@/hooks/cards/mutations.hook";
-import { useCardsShell, useCardsStarterStatus } from "@/hooks/cards/queries.hook";
+import { useCardsPacks, useCardsShell, useCardsStarterStatus } from "@/hooks/cards/queries.hook";
 import { useI18n } from "@/hooks/i18n.hook";
 import { useOnlineStatus } from "@/hooks/network.hook";
 import { ignore } from "@/lib/core/shared/promise.utils";
@@ -29,6 +29,7 @@ import GiftDialog from "@/routes/components/collection/giftDialog.cards";
 import GiftReceiptDialog from "@/routes/components/collection/giftReceiptDialog.cards";
 import GiftsCards from "@/routes/components/collection/gifts.cards";
 import PacksCards from "@/routes/components/collection/packs.cards";
+import PreparePacksDialog from "@/routes/components/collection/preparePacks.cards";
 import ShopCards from "@/routes/components/collection/shop.cards";
 import TabsCards from "@/routes/components/collection/tabs.cards";
 
@@ -57,10 +58,15 @@ export default function CollectionShell() {
   const giftReceipt = useCell(deeplinkAtoms.giftReceiptTarget);
   const online = useOnlineStatus();
   const bootstrap = useCardsShell();
+  const packs = useCardsPacks();
   const starterStatus = useCardsStarterStatus();
   const { grantStarter, markSeen } = useCardsMutations();
   const [starterClaimed, setStarterClaimed] = useState<boolean>(false);
   const [seenReady, setSeenReady] = useState<boolean>(false);
+  const [prepareOpen, setPrepareOpen] = useState<boolean>(false);
+  const queuedPacks = (packs.data ?? []).filter(
+    (pack) => pack.openedAt === null && pack.contentsState !== "ready"
+  ).length;
   const markSeenMutate = markSeen.mutate;
 
   useEffect(() => {
@@ -138,6 +144,16 @@ export default function CollectionShell() {
       <aside className="windows95-border bg-field flex w-44 shrink-0 [scrollbar-gutter:stable] flex-col gap-1 overflow-y-auto p-1">
         <TabsCards />
         <div className="border-muted mt-auto flex flex-col gap-1 border-t pt-1">
+          {packs.isSuccess && queuedPacks > 0 && (
+            <Button
+              className="h-6 w-full justify-start text-xs"
+              data-testid="collection-prepare-packs"
+              title={t("collection.packs.queue", { count: queuedPacks })}
+              onClick={() => setPrepareOpen(true)}
+            >
+              {t("collection.packs.prepare.action")}
+            </Button>
+          )}
           {starterEligible && (
             <Button
               className="h-6 w-full justify-start text-xs"
@@ -192,6 +208,7 @@ export default function CollectionShell() {
         )}
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</section>
       </section>
+      {prepareOpen && <PreparePacksDialog autoStart onClose={() => setPrepareOpen(false)} />}
       {gift !== null && <GiftDialog gift={gift} onClose={consumeGiftDeepLink} />}
       {giftReceipt !== null && (
         <GiftReceiptDialog receipt={giftReceipt} onClose={consumeGiftReceiptDeepLink} />

@@ -1,9 +1,9 @@
 const collection = {
-  "collection.game.characters.modeDescription": "Угадай персонажей и их аниме по портретам.",
+  "collection.game.characters.modeDescription": "Угадай персонажей и их аниме по портретам",
   "collection.game.characters.history": "Предыдущие дни",
   "collection.game.mode.characters": "Персонажи",
   "collection.game.characters.description":
-    "Укажи имя и аниме для каждого из 5 персонажей, затем нажми \"Ответить\". Пак за 6 из 10 верных ответов.",
+    'Укажи имя и аниме для каждого из 5 персонажей, затем нажми "Ответить". Пак за 6 из 10 верных ответов.',
   "collection.game.characters.back": "К режимам",
   "collection.game.characters.score": "Угадано: {{count}} / 10",
   "collection.game.characters.reward": "Пак получен",

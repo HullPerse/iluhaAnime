@@ -167,7 +167,10 @@
 }
 
 .daily-mode-card {
+  display: flex;
   min-width: 0;
+  flex-direction: column;
+  container-type: inline-size;
 }
 
 .daily-titlebar {
@@ -205,6 +208,7 @@
 
 .daily-mode-body {
   display: grid;
+  flex-grow: 1;
   grid-template-columns: 8.5rem minmax(0, 1fr);
   gap: 0.6rem;
   padding: 0.6rem;
@@ -225,6 +229,20 @@
   width: 100%;
   height: auto;
   image-rendering: pixelated;
+}
+
+/* Cards live in a grid whose column count follows the viewport, but the content
+   pane can be much narrower than the window. Stack the art above the copy once
+   the card itself gets tight, or the description collapses into a word column. */
+@container (max-width: 20rem) {
+  .daily-mode-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .daily-mode-art-frame {
+    width: min(9rem, 100%);
+  }
 }
 
 .daily-mode-copy {

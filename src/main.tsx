@@ -67,7 +67,7 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
 
 const showStartupFallback = (message: string): void => {
   const safe = message.replaceAll("<", "&lt;");
-  document.body.innerHTML = `<div style="background:#0000aa;color:#fff;font-family:monospace;padding:48px"><p>Startup error</p><p>${safe}</p><button onclick="location.reload()">Reload</button></div>`;
+  document.body.innerHTML = `<div style="background:#0000aa;color:#fff;font-family:monospace;padding:48px"><p style="margin:0 0 24px;font-size:20px;font-weight:700;letter-spacing:0.04em">iluhaAnime</p><p>Startup error</p><p>${safe}</p><button onclick="location.reload()">Reload</button></div>`;
 };
 
 const [, mountError] = await attempt(

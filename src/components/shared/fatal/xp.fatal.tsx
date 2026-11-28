@@ -23,7 +23,7 @@ export function XpBsod({
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed inset-0 z-[100] overflow-x-clip overflow-y-auto"
+      className="absolute inset-0 z-[100] overflow-x-clip overflow-y-auto"
       style={{ backgroundColor: "#003399", color: "#ffffff", fontFamily: "Tahoma, sans-serif" }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col px-6 py-14">

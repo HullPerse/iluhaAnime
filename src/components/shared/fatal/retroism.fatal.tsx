@@ -25,7 +25,7 @@ export function RetroismBsod({
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed inset-0 z-[100] overflow-y-auto"
+      className="absolute inset-0 z-[100] overflow-y-auto"
       style={{ backgroundColor: "#000000", color: "#d8d8d8", fontFamily: FONT }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-6 py-16">

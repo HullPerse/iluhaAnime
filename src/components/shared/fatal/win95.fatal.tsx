@@ -25,7 +25,7 @@ export function Win95Bsod({
     <div
       role="alert"
       aria-live="assertive"
-      className="fixed inset-0 z-[100] overflow-x-clip overflow-y-auto"
+      className="absolute inset-0 z-[100] overflow-x-clip overflow-y-auto"
       style={{ backgroundColor: "#0000aa", color: "#ffffff", fontFamily: FONT }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col items-center px-6 py-16">

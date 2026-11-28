@@ -2,6 +2,7 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 
 import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
+import { FatalShell } from "@/components/shared/fatal/shell.fatal";
 import { toFatalInfo } from "@hullperse/hp_utils/fatalClassify";
 import {
   clearFatal,
@@ -42,12 +43,14 @@ export function RouteErrorScreen({ error, reset }: ErrorComponentProps) {
   };
 
   return (
-    <FatalScreen
-      info={fatal}
-      safe={isCurrentSessionSafe()}
-      onReload={() => reload(false)}
-      onSafeReload={() => reload(true)}
-      onRetry={handleRetry}
-    />
+    <FatalShell>
+      <FatalScreen
+        info={fatal}
+        safe={isCurrentSessionSafe()}
+        onReload={() => reload(false)}
+        onSafeReload={() => reload(true)}
+        onRetry={handleRetry}
+      />
+    </FatalShell>
   );
 }

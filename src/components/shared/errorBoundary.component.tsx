@@ -15,6 +15,7 @@ import type { FatalInfo } from "@/types/core/fatal";
 import type { ErrorBoundaryProps, ErrorBoundaryState } from "@/types/core/ui";
 
 import { FatalScreen } from "@/components/shared/fatal/screen.fatal";
+import { FatalShell } from "@/components/shared/fatal/shell.fatal";
 
 interface FatalBoundaryState extends ErrorBoundaryState {
   info: FatalInfo | null;
@@ -91,13 +92,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, FatalBoundarySt
       } satisfies FatalInfo);
 
     return (
-      <FatalScreen
-        info={fatal}
-        safe={isCurrentSessionSafe()}
-        onReload={() => this.reload(false)}
-        onSafeReload={() => this.reload(true)}
-        onRetry={this.handleRetry}
-      />
+      <FatalShell>
+        <FatalScreen
+          info={fatal}
+          safe={isCurrentSessionSafe()}
+          onReload={() => this.reload(false)}
+          onSafeReload={() => this.reload(true)}
+          onRetry={this.handleRetry}
+        />
+      </FatalShell>
     );
   }
 }
